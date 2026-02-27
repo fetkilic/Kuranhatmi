@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ramazan Hatim Rehberi</title>
+    <title>Ramazan Hatim Rehberi - Canlı</title>
     
-    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency-systems-filled/512/d4af37/quran.png">
-    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency-systems-filled/96/d4af37/quran.png">
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -23,26 +20,20 @@
             --gold: #d4af37;
             --turquoise: #14b8a6;
             --deep-bg: #0d1b1e;
-            --overlay-bg: rgba(13, 27, 30, 0.85);
+            --overlay-bg: rgba(13, 27, 30, 0.9);
             --success: #10b981;
         }
 
-        html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%; background: var(--deep-bg);
-        }
-
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--deep-bg); }
         body {
             font-family: 'Montserrat', sans-serif;
             background: radial-gradient(circle at top, #134e4a, var(--deep-bg));
             background-attachment: fixed;
-            color: white; 
-            display: flex; justify-content: center; min-height: 100vh;
-            padding: 20px; box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+            color: white; display: flex; justify-content: center; min-height: 100vh;
+            padding: 20px; box-sizing: border-box; overflow-x: hidden;
         }
 
         #root { width: 100%; max-width: 500px; }
-
         .glass-card {
             background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border); border-radius: 25px; padding: 25px;
@@ -53,37 +44,30 @@
         .logo-icon { width: 60px; height: 60px; fill: var(--gold); filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4)); }
         .logo-text { font-weight: 600; letter-spacing: 4px; color: var(--gold); font-size: 1.4rem; margin: 10px 0 0 0; }
         .logo-subtext { font-size: 0.7rem; color: var(--turquoise); letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
-
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .stat-box { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--glass-border); text-align: center; }
-        .stat-val { color: var(--gold); font-size: 1.5rem; font-weight: 600; }
-        .stat-lbl { font-size: 0.65rem; opacity: 0.7; text-transform: uppercase; margin-top: 5px; }
-
+        
         .cuz-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .cuz-item {
             aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
             border-radius: 15px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05);
-            cursor: pointer; transition: 0.3s; position: relative; overflow: hidden;
+            cursor: pointer; transition: 0.3s; position: relative;
         }
-        .cuz-item.taken { background: rgba(20, 184, 166, 0.2); border-color: var(--turquoise); }
-        .cuz-item.done { background: var(--success); border-color: var(--gold); }
+        .cuz-item.taken { border-color: var(--turquoise); background: rgba(20, 184, 166, 0.2); }
+        .cuz-item.done { border-color: var(--gold); background: var(--success); }
         .cuz-num { font-size: 1.2rem; font-weight: 600; color: var(--gold); }
-        .cuz-user { font-size: 0.6rem; opacity: 0.8; margin-top: 4px; text-align: center; padding: 0 4px; }
+        .cuz-user { font-size: 0.65rem; opacity: 0.9; margin-top: 5px; text-align: center; color: white; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 90%; }
 
-        .btn { width: 100%; padding: 14px; border-radius: 15px; font-weight: 600; border: none; cursor: pointer; transition: 0.3s; }
+        .btn { width: 100%; padding: 14px; border-radius: 15px; font-weight: 600; border: none; cursor: pointer; }
         .btn-gold { background: var(--gold); color: #0d1b1e; }
         .input-glass {
             width: 100%; padding: 14px; border-radius: 15px; border: 1px solid var(--glass-border);
             background: rgba(255,255,255,0.1); color: white; outline: none; margin-bottom: 15px; box-sizing: border-box;
         }
 
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(10px); padding: 20px; box-sizing: border-box; }
-        .modal { background: linear-gradient(145deg, #134e4a, #0d1b1e); border: 2px solid var(--gold); width: 100%; max-width: 380px; border-radius: 30px; padding: 30px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(10px); }
+        .modal { background: #134e4a; border: 2px solid var(--gold); width: 85%; max-width: 350px; border-radius: 25px; padding: 30px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
         
-        .progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 15px 0; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise), var(--gold)); transition: width 1s ease-out; }
-
-        .share-btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); margin-top: 10px; font-size: 0.8rem; }
+        .progress-bar { height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; margin: 20px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise), var(--gold)); transition: width 1s ease; }
     </style>
 </head>
 <body>
@@ -91,85 +75,67 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const STORAGE_KEY = 'ramazan_hatim_v1';
+
+        // --- FIREBASE KONFİGÜRASYONU ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCeCZ5qFTlbN8czSSigydmpAQf4KMLnyh8",
+            authDomain: "kuranhatmi-e5963.firebaseapp.com",
+            databaseURL: "https://kuranhatmi-e5963-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "kuranhatmi-e5963",
+            storageBucket: "kuranhatmi-e5963.firebasestorage.app",
+            messagingSenderId: "631276243606",
+            appId: "1:631276243606:web:0f379e067527db6ad950b7",
+            measurementId: "G-M37J7VF0BH"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
         function App() {
-            const [user, setUser] = useState(null);
-            const [hatimData, setHatimData] = useState(Array.from({ length: 30 }, (_, i) => ({
-                id: i + 1,
-                status: 'free', // free, taken, done
-                owner: null
-            })));
+            const [user, setUser] = useState(localStorage.getItem('hatim_user_v1') || null);
+            const [hatimData, setHatimData] = useState({});
             const [selectedCuz, setSelectedCuz] = useState(null);
             const [tempName, setTempName] = useState('');
 
+            // Canlı senkronizasyon
             useEffect(() => {
-                const savedUser = localStorage.getItem(STORAGE_KEY + '_user');
-                const savedData = localStorage.getItem(STORAGE_KEY + '_data');
-                if (savedUser) setUser(savedUser);
-                if (savedData) setHatimData(JSON.parse(savedData));
+                const hatimRef = db.ref('hatim');
+                hatimRef.on('value', (snapshot) => {
+                    setHatimData(snapshot.val() || {});
+                });
+                return () => hatimRef.off();
             }, []);
-
-            useEffect(() => {
-                localStorage.setItem(STORAGE_KEY + '_data', JSON.stringify(hatimData));
-            }, [hatimData]);
 
             const login = () => {
                 if (tempName.trim()) {
-                    setUser(tempName);
-                    localStorage.setItem(STORAGE_KEY + '_user', tempName);
+                    const cleanName = tempName.trim().substring(0, 20);
+                    setUser(cleanName);
+                    localStorage.setItem('hatim_user_v1', cleanName);
                 }
             };
 
-            const takeCuz = (id) => {
-                const updated = hatimData.map(c => 
-                    c.id === id ? { ...c, status: 'taken', owner: user } : c
-                );
-                setHatimData(updated);
-                setSelectedCuz(null);
-            };
-
-            const completeCuz = (id) => {
-                const updated = hatimData.map(c => 
-                    c.id === id ? { ...c, status: 'done' } : c
-                );
-                setHatimData(updated);
+            const updateCuz = (id, status, owner) => {
+                db.ref(`hatim/${id}`).set({ status, owner });
                 setSelectedCuz(null);
             };
 
             const releaseCuz = (id) => {
-                const updated = hatimData.map(c => 
-                    c.id === id ? { ...c, status: 'free', owner: null } : c
-                );
-                setHatimData(updated);
+                db.ref(`hatim/${id}`).remove();
                 setSelectedCuz(null);
             };
 
-            const handleShare = () => {
-                const doneCount = hatimData.filter(c => c.status === 'done').length;
-                const text = `Ramazan Hatim Grubumuzda ${doneCount}/30 cüz tamamlandı! Hayra ortak olmak için siz de bir cüz seçin: ${window.location.href}`;
-                if (navigator.share) {
-                    navigator.share({ title: 'Ramazan Hatmi', text: text });
-                } else {
-                    navigator.clipboard.writeText(text);
-                    alert("Paylaşım metni kopyalandı!");
-                }
-            };
-
-            const doneCount = hatimData.filter(c => c.status === 'done').length;
-            const takenCount = hatimData.filter(c => c.status === 'taken').length;
+            const doneCount = Object.values(hatimData).filter(c => c.status === 'done').length;
             const progress = (doneCount / 30 * 100).toFixed(1);
 
             if (!user) {
                 return (
-                    <div className="glass-card" style={{marginTop: '50px'}}>
+                    <div className="glass-card" style={{marginTop:'50px'}}>
                         <div className="logo-container">
-                            <svg className="logo-icon" viewBox="0 0 24 24"><path d="M19,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2M19,20H5V4H19V20M8,17H16V15H8V17M8,13H16V11H8V13M8,9H16V7H8V9Z" /></svg>
                             <h1 className="logo-text">HOŞ GELDİNİZ</h1>
-                            <p className="logo-subtext">Hatim Takibi İçin İsim Giriniz</p>
+                            <p className="logo-subtext">Hatim Grubu İçin Adınızı Girin</p>
                         </div>
                         <input className="input-glass" placeholder="Adınız Soyadınız" value={tempName} onChange={e => setTempName(e.target.value)} />
-                        <button className="btn btn-gold" onClick={login}>GİRİŞ YAP</button>
+                        <button className="btn btn-gold" onClick={login}>KATIL</button>
                     </div>
                 );
             }
@@ -179,68 +145,50 @@
                     <div className="logo-container">
                         <svg className="logo-icon" viewBox="0 0 24 24"><path d="M19,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2M19,20H5V4H19V20M8,17H16V15H8V17M8,13H16V11H8V13M8,9H16V7H8V9Z" /></svg>
                         <h1 className="logo-text">RAMAZAN HATMİ</h1>
-                        <p className="logo-subtext">Grup İlerleme Durumu</p>
-                    </div>
-
-                    <div className="stats-grid">
-                        <div className="stat-box">
-                            <div className="stat-val">%{progress}</div>
-                            <div className="stat-lbl">Hatim Tamamlandı</div>
-                        </div>
-                        <div className="stat-box">
-                            <div className="stat-val">{30 - doneCount - takenCount}</div>
-                            <div className="stat-lbl">Boşta Kalan Cüz</div>
-                        </div>
+                        <p style={{color:'var(--turquoise)', fontSize:'0.8rem', marginTop:'5px'}}>Selamun Aleyküm, <b>{user}</b></p>
                     </div>
 
                     <div className="progress-bar"><div className="progress-fill" style={{width: `${progress}%`}}></div></div>
+                    <p style={{textAlign:'center', fontSize:'0.8rem', color:'var(--gold)', fontWeight:'600'}}>Genel İlerleme: %{progress}</p>
 
                     <div className="cuz-list">
-                        {hatimData.map(c => (
-                            <div 
-                                key={c.id} 
-                                className={`cuz-item ${c.status === 'taken' ? 'taken' : ''} ${c.status === 'done' ? 'done' : ''}`}
-                                onClick={() => setSelectedCuz(c)}
-                            >
-                                <span className="cuz-num">{c.id}</span>
-                                <span className="cuz-user">
-                                    {c.status === 'free' ? 'Seçilebilir' : c.owner}
-                                </span>
-                            </div>
-                        ))}
+                        {Array.from({ length: 30 }, (_, i) => {
+                            const id = i + 1;
+                            const info = hatimData[id] || { status: 'free', owner: '' };
+                            return (
+                                <div key={id} className={`cuz-item ${info.status}`} onClick={() => setSelectedCuz({id, ...info})}>
+                                    <span className="cuz-num">{id}</span>
+                                    <span className="cuz-user">{info.owner || 'Boşta'}</span>
+                                </div>
+                            );
+                        })}
                     </div>
-
-                    <button className="btn share-btn" onClick={handleShare}>HATMİ PAYLAŞ VE DAVET ET</button>
 
                     {selectedCuz && (
                         <div className="overlay" onClick={() => setSelectedCuz(null)}>
                             <div className="modal" onClick={e => e.stopPropagation()}>
-                                <h2 style={{color: 'var(--gold)'}}>{selectedCuz.id}. CÜZ</h2>
+                                <h2 style={{color:'var(--gold)'}}>{selectedCuz.id}. CÜZ</h2>
                                 
-                                {selectedCuz.status === 'free' && (
+                                {selectedCuz.status === 'free' ? (
                                     <>
-                                        <p>Bu cüzü okumayı üstlenmek istiyor musunuz?</p>
-                                        <button className="btn btn-gold" onClick={() => takeCuz(selectedCuz.id)}>EVET, ÜSTLENİYORUM</button>
+                                        <p>Bu cüzü okumayı üstlenmek istiyor musun?</p>
+                                        <button className="btn btn-gold" onClick={() => updateCuz(selectedCuz.id, 'taken', user)}>EVET, ÜSTLENİYORUM</button>
                                     </>
-                                )}
-
-                                {selectedCuz.status === 'taken' && selectedCuz.owner === user && (
+                                ) : selectedCuz.owner === user ? (
                                     <>
-                                        <p>Okumayı bitirdiniz mi?</p>
-                                        <button className="btn btn-gold" onClick={() => completeCuz(selectedCuz.id)}>TAMAMLADIM</button>
-                                        <button className="btn btn-outline" style={{marginTop: '10px', color: '#ff4444', border: 'none'}} onClick={() => releaseCuz(selectedCuz.id)}>İPTAL ET (BIRAK)</button>
+                                        {selectedCuz.status === 'taken' ? (
+                                            <>
+                                                <p>Bu cüzü bitirdiysen aşağıdaki butona bas.</p>
+                                                <button className="btn btn-gold" onClick={() => updateCuz(selectedCuz.id, 'done', user)}>TAMAMLADIM ✅</button>
+                                                <button className="btn" style={{marginTop:'10px', background:'transparent', color:'#ef4444', fontSize:'0.8rem'}} onClick={() => releaseCuz(selectedCuz.id)}>VAZGEÇ (CÜZÜ BIRAK)</button>
+                                            </>
+                                        ) : <p style={{color:'var(--success)', fontWeight:'600'}}>Maşallah! Bu cüzü tamamladın.</p>}
                                     </>
-                                )}
-
-                                {selectedCuz.status === 'taken' && selectedCuz.owner !== user && (
+                                ) : (
                                     <p>Bu cüz şu an <b>{selectedCuz.owner}</b> tarafından okunuyor.</p>
                                 )}
-
-                                {selectedCuz.status === 'done' && (
-                                    <p style={{color: 'var(--success)'}}>Bu cüz başarıyla tamamlandı. Allah kabul etsin!</p>
-                                )}
-
-                                <button className="btn btn-outline" style={{marginTop: '20px', color: 'white', opacity: 0.6}} onClick={() => setSelectedCuz(null)}>KAPAT</button>
+                                
+                                <button className="btn" style={{marginTop:'20px', background:'rgba(255,255,255,0.1)', color:'white'}} onClick={() => setSelectedCuz(null)}>Kapat</button>
                             </div>
                         </div>
                     )}
