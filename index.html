@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ramazan Hatim Rehberi - Canlı</title>
+    <title>Ramazan Hatim Rehberi - Canlı & Disiplinli</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -20,8 +20,9 @@
             --gold: #d4af37;
             --turquoise: #14b8a6;
             --deep-bg: #0d1b1e;
-            --overlay-bg: rgba(13, 27, 30, 0.9);
+            --overlay-bg: rgba(13, 27, 30, 0.95);
             --success: #10b981;
+            --danger: #ef4444;
         }
 
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--deep-bg); }
@@ -37,37 +38,48 @@
         .glass-card {
             background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border); border-radius: 25px; padding: 25px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); margin-bottom: 20px;
         }
 
-        .logo-container { text-align: center; margin-bottom: 25px; }
-        .logo-icon { width: 60px; height: 60px; fill: var(--gold); filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4)); }
-        .logo-text { font-weight: 600; letter-spacing: 4px; color: var(--gold); font-size: 1.4rem; margin: 10px 0 0 0; }
-        .logo-subtext { font-size: 0.7rem; color: var(--turquoise); letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
+        .logo-container { text-align: center; margin-bottom: 20px; }
+        .logo-icon { width: 50px; height: 50px; fill: var(--gold); }
+        .logo-text { font-weight: 600; letter-spacing: 3px; color: var(--gold); font-size: 1.2rem; margin: 10px 0 0 0; }
         
-        .cuz-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        .cuz-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
         .cuz-item {
             aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border-radius: 15px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05);
-            cursor: pointer; transition: 0.3s; position: relative;
+            border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05);
+            cursor: pointer; transition: 0.2s; position: relative;
         }
-        .cuz-item.taken { border-color: var(--turquoise); background: rgba(20, 184, 166, 0.2); }
+        .cuz-item.taken { border-color: var(--turquoise); background: rgba(20, 184, 166, 0.15); }
         .cuz-item.done { border-color: var(--gold); background: var(--success); }
-        .cuz-num { font-size: 1.2rem; font-weight: 600; color: var(--gold); }
-        .cuz-user { font-size: 0.65rem; opacity: 0.9; margin-top: 5px; text-align: center; color: white; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 90%; }
+        .cuz-item.delayed { border-color: var(--danger); background: rgba(239, 68, 68, 0.2); animation: pulse 2s infinite; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        .btn { width: 100%; padding: 14px; border-radius: 15px; font-weight: 600; border: none; cursor: pointer; }
+        .cuz-num { font-size: 1.1rem; font-weight: 600; color: var(--gold); }
+        .cuz-user { font-size: 0.6rem; opacity: 0.9; margin-top: 3px; text-align: center; color: white; width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .delay-warning { font-size: 0.5rem; color: var(--danger); font-weight: bold; margin-top: 2px; }
+
+        .btn { width: 100%; padding: 14px; border-radius: 15px; font-weight: 600; border: none; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .btn-gold { background: var(--gold); color: #0d1b1e; }
+        .btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); font-size: 0.8rem; }
+        .btn-share { background: #25d366; color: white; }
+
         .input-glass {
             width: 100%; padding: 14px; border-radius: 15px; border: 1px solid var(--glass-border);
-            background: rgba(255,255,255,0.1); color: white; outline: none; margin-bottom: 15px; box-sizing: border-box;
+            background: rgba(255,255,255,0.1); color: white; outline: none; margin-bottom: 10px; box-sizing: border-box;
         }
 
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(10px); }
-        .modal { background: #134e4a; border: 2px solid var(--gold); width: 85%; max-width: 350px; border-radius: 25px; padding: 30px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+        .modal { background: #0d1b1e; border: 2px solid var(--gold); width: 85%; max-width: 380px; border-radius: 25px; padding: 25px; text-align: center; max-height: 80vh; overflow-y: auto; }
         
-        .progress-bar { height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; margin: 20px 0; }
+        .progress-bar { height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; margin: 15px 0; border: 1px solid var(--glass-border); }
         .progress-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise), var(--gold)); transition: width 1s ease; }
+
+        .archive-item { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; margin-bottom: 8px; border-left: 4px solid var(--gold); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .history-list { text-align: left; font-size: 0.85rem; margin: 15px 0; }
+        .history-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
@@ -76,7 +88,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- FIREBASE KONFİGÜRASYONU ---
         const firebaseConfig = {
             apiKey: "AIzaSyCeCZ5qFTlbN8czSSigydmpAQf4KMLnyh8",
             authDomain: "kuranhatmi-e5963.firebaseapp.com",
@@ -84,8 +95,7 @@
             projectId: "kuranhatmi-e5963",
             storageBucket: "kuranhatmi-e5963.firebasestorage.app",
             messagingSenderId: "631276243606",
-            appId: "1:631276243606:web:0f379e067527db6ad950b7",
-            measurementId: "G-M37J7VF0BH"
+            appId: "1:631276243606:web:0f379e067527db6ad950b7"
         };
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -94,34 +104,73 @@
         function App() {
             const [user, setUser] = useState(localStorage.getItem('hatim_user_v1') || null);
             const [hatimData, setHatimData] = useState({});
+            const [archive, setArchive] = useState({});
             const [selectedCuz, setSelectedCuz] = useState(null);
+            const [viewArchive, setViewArchive] = useState(null);
             const [tempName, setTempName] = useState('');
+            const [now, setNow] = useState(Date.now());
 
-            // Canlı senkronizasyon
             useEffect(() => {
-                const hatimRef = db.ref('hatim');
-                hatimRef.on('value', (snapshot) => {
-                    setHatimData(snapshot.val() || {});
-                });
-                return () => hatimRef.off();
+                db.ref('current_hatim').on('value', snap => setHatimData(snap.val() || {}));
+                db.ref('archive').on('value', snap => setArchive(snap.val() || {}));
+                
+                const timer = setInterval(() => setNow(Date.now()), 60000); // Dakikada bir süreyi kontrol et
+                return () => { 
+                    db.ref('current_hatim').off(); 
+                    db.ref('archive').off(); 
+                    clearInterval(timer);
+                };
             }, []);
 
             const login = () => {
                 if (tempName.trim()) {
-                    const cleanName = tempName.trim().substring(0, 20);
-                    setUser(cleanName);
-                    localStorage.setItem('hatim_user_v1', cleanName);
+                    setUser(tempName.trim());
+                    localStorage.setItem('hatim_user_v1', tempName.trim());
                 }
             };
 
-            const updateCuz = (id, status, owner) => {
-                db.ref(`hatim/${id}`).set({ status, owner });
+            const takeCuz = (id) => {
+                db.ref(`current_hatim/${id}`).set({ 
+                    status: 'taken', 
+                    owner: user,
+                    startTime: Date.now() 
+                });
                 setSelectedCuz(null);
             };
 
-            const releaseCuz = (id) => {
-                db.ref(`hatim/${id}`).remove();
+            const completeCuz = (id) => {
+                db.ref(`current_hatim/${id}`).update({ status: 'done' });
                 setSelectedCuz(null);
+            };
+
+            const finalizeHatim = () => {
+                if(confirm("Bu hatmi arşive taşıyıp yeni bir hatim başlatmak istediğinize emin misiniz?")) {
+                    const newArchiveRef = db.ref('archive').push();
+                    newArchiveRef.set({
+                        date: new Date().toLocaleDateString('tr-TR'),
+                        data: hatimData
+                    });
+                    db.ref('current_hatim').remove();
+                }
+            };
+
+            const shareHatim = (type) => {
+                let text = type === 'invite' 
+                    ? `Ramazan Hatmimize sen de katıl! Bir cüz seç, hayra ortak ol: ${window.location.href}`
+                    : `Müjdeler olsun! Bir hatmi daha tamamladık. Allah kabul etsin! 📖✨`;
+                
+                if (navigator.share) {
+                    navigator.share({ title: 'Hatim Rehberi', text: text });
+                } else {
+                    navigator.clipboard.writeText(text);
+                    alert("Paylaşım linki kopyalandı!");
+                }
+            };
+
+            const isDelayed = (startTime) => {
+                if (!startTime) return false;
+                const birHafta = 7 * 24 * 60 * 60 * 1000;
+                return (Date.now() - startTime) > birHafta;
             };
 
             const doneCount = Object.values(hatimData).filter(c => c.status === 'done').length;
@@ -130,10 +179,7 @@
             if (!user) {
                 return (
                     <div className="glass-card" style={{marginTop:'50px'}}>
-                        <div className="logo-container">
-                            <h1 className="logo-text">HOŞ GELDİNİZ</h1>
-                            <p className="logo-subtext">Hatim Grubu İçin Adınızı Girin</p>
-                        </div>
+                        <div className="logo-container"><h1 className="logo-text">GİRİŞ</h1></div>
                         <input className="input-glass" placeholder="Adınız Soyadınız" value={tempName} onChange={e => setTempName(e.target.value)} />
                         <button className="btn btn-gold" onClick={login}>KATIL</button>
                     </div>
@@ -141,54 +187,106 @@
             }
 
             return (
-                <div className="glass-card">
-                    <div className="logo-container">
-                        <svg className="logo-icon" viewBox="0 0 24 24"><path d="M19,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2M19,20H5V4H19V20M8,17H16V15H8V17M8,13H16V11H8V13M8,9H16V7H8V9Z" /></svg>
-                        <h1 className="logo-text">RAMAZAN HATMİ</h1>
-                        <p style={{color:'var(--turquoise)', fontSize:'0.8rem', marginTop:'5px'}}>Selamun Aleyküm, <b>{user}</b></p>
+                <div id="main-container">
+                    <div className="glass-card">
+                        <div className="logo-container">
+                            <h1 className="logo-text">RAMAZAN HATMİ</h1>
+                            <p style={{color:'var(--turquoise)', fontSize:'0.75rem', marginTop:'5px'}}>Niyet Ettik Hatim Etmeye, {user}</p>
+                        </div>
+
+                        <div className="progress-bar"><div className="progress-fill" style={{width: `${progress}%`}}></div></div>
+                        <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.8rem', color:'var(--gold)', fontWeight:'600'}}>
+                            <span>Hatim: %{progress}</span>
+                            <span>{doneCount}/30 Cüz</span>
+                        </div>
+
+                        <div className="cuz-list">
+                            {Array.from({ length: 30 }, (_, i) => {
+                                const id = i + 1;
+                                const info = hatimData[id] || { status: 'free', owner: '' };
+                                const delayed = info.status === 'taken' && isDelayed(info.startTime);
+                                return (
+                                    <div key={id} className={`cuz-item ${info.status} ${delayed ? 'delayed' : ''}`} onClick={() => setSelectedCuz({id, ...info, delayed})}>
+                                        <span className="cuz-num">{id}</span>
+                                        <span className="cuz-user">{info.owner || 'Boşta'}</span>
+                                        {delayed && <span className="delay-warning">GECİKTİ!</span>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <button className="btn btn-outline" style={{marginTop:'20px'}} onClick={() => shareHatim('invite')}>
+                            KATILIM İÇİN GRUPTA PAYLAŞ 🚀
+                        </button>
+
+                        {progress >= 100 && (
+                            <button className="btn btn-gold" style={{background: 'var(--success)', color:'white', marginTop:'15px'}} onClick={finalizeHatim}>
+                                HATMİ TAMAMLA VE YENİSİNİ BAŞLAT 🎉
+                            </button>
+                        )}
                     </div>
 
-                    <div className="progress-bar"><div className="progress-fill" style={{width: `${progress}%`}}></div></div>
-                    <p style={{textAlign:'center', fontSize:'0.8rem', color:'var(--gold)', fontWeight:'600'}}>Genel İlerleme: %{progress}</p>
-
-                    <div className="cuz-list">
-                        {Array.from({ length: 30 }, (_, i) => {
-                            const id = i + 1;
-                            const info = hatimData[id] || { status: 'free', owner: '' };
-                            return (
-                                <div key={id} className={`cuz-item ${info.status}`} onClick={() => setSelectedCuz({id, ...info})}>
-                                    <span className="cuz-num">{id}</span>
-                                    <span className="cuz-user">{info.owner || 'Boşta'}</span>
+                    {Object.keys(archive).length > 0 && (
+                        <div className="glass-card">
+                            <h3 style={{color:'var(--gold)', fontSize:'1rem', marginBottom:'15px'}}>Biten Hatimler</h3>
+                            {Object.entries(archive).reverse().map(([key, item]) => (
+                                <div key={key} className="archive-item" onClick={() => setViewArchive(item)}>
+                                    <div>
+                                        <div style={{fontSize:'0.9rem', fontWeight:'600'}}>Tamamlanan Hatim</div>
+                                        <div style={{fontSize:'0.7rem', opacity:0.7}}>{item.date}</div>
+                                    </div>
+                                    <span>📖</span>
                                 </div>
-                            );
-                        })}
-                    </div>
+                            ))}
+                        </div>
+                    )}
 
+                    {/* MODAL: Cüz İşlemleri */}
                     {selectedCuz && (
                         <div className="overlay" onClick={() => setSelectedCuz(null)}>
                             <div className="modal" onClick={e => e.stopPropagation()}>
                                 <h2 style={{color:'var(--gold)'}}>{selectedCuz.id}. CÜZ</h2>
-                                
                                 {selectedCuz.status === 'free' ? (
                                     <>
-                                        <p>Bu cüzü okumayı üstlenmek istiyor musun?</p>
-                                        <button className="btn btn-gold" onClick={() => updateCuz(selectedCuz.id, 'taken', user)}>EVET, ÜSTLENİYORUM</button>
+                                        <p>Bu cüzü okumayı üstlenmek üzeresiniz. Lütfen bitireceğinizden emin olun.</p>
+                                        <button className="btn btn-gold" onClick={() => takeCuz(selectedCuz.id)}>SÖZ, ÜSTLENİYORUM</button>
                                     </>
                                 ) : selectedCuz.owner === user ? (
-                                    <>
-                                        {selectedCuz.status === 'taken' ? (
-                                            <>
-                                                <p>Bu cüzü bitirdiysen aşağıdaki butona bas.</p>
-                                                <button className="btn btn-gold" onClick={() => updateCuz(selectedCuz.id, 'done', user)}>TAMAMLADIM ✅</button>
-                                                <button className="btn" style={{marginTop:'10px', background:'transparent', color:'#ef4444', fontSize:'0.8rem'}} onClick={() => releaseCuz(selectedCuz.id)}>VAZGEÇ (CÜZÜ BIRAK)</button>
-                                            </>
-                                        ) : <p style={{color:'var(--success)', fontWeight:'600'}}>Maşallah! Bu cüzü tamamladın.</p>}
-                                    </>
+                                    selectedCuz.status === 'taken' ? (
+                                        <>
+                                            {selectedCuz.delayed && <p style={{color:'var(--danger)', fontWeight:'600'}}>⚠️ 1 haftayı geçtiniz, lütfen hızlanalım!</p>}
+                                            <p>Bu cüzü bitirdiysen aşağıdaki butona bas.</p>
+                                            <button className="btn btn-gold" onClick={() => completeCuz(selectedCuz.id)}>TAMAMLADIM ✅</button>
+                                            <p style={{fontSize:'0.7rem', marginTop:'15px', opacity:0.6}}>Okumaya niyet ettiğiniz cüzü bırakamazsınız. Tamamlamak bir sözdür.</p>
+                                        </>
+                                    ) : <p style={{color:'var(--success)', fontWeight:'600'}}>Maşallah, bu cüzü tamamladınız!</p>
                                 ) : (
-                                    <p>Bu cüz şu an <b>{selectedCuz.owner}</b> tarafından okunuyor.</p>
+                                    <div style={{textAlign:'center'}}>
+                                        <p>Bu cüz şu an <b>{selectedCuz.owner}</b> tarafından okunuyor.</p>
+                                        {selectedCuz.delayed && <p style={{color:'var(--danger)', fontWeight:'600'}}>Hızlandırılması için arkadaşınıza hatırlatın.</p>}
+                                    </div>
                                 )}
-                                
-                                <button className="btn" style={{marginTop:'20px', background:'rgba(255,255,255,0.1)', color:'white'}} onClick={() => setSelectedCuz(null)}>Kapat</button>
+                                <button className="btn btn-outline" style={{marginTop:'20px'}} onClick={() => setSelectedCuz(null)}>Kapat</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL: Arşiv Detayı */}
+                    {viewArchive && (
+                        <div className="overlay" onClick={() => setViewArchive(null)}>
+                            <div className="modal" onClick={e => e.stopPropagation()}>
+                                <h2 style={{color:'var(--gold)', margin:'0'}}>HATİM ÖZETİ</h2>
+                                <p style={{fontSize:'0.8rem', opacity:0.7}}>{viewArchive.date} tarihinde tamamlandı</p>
+                                <div className="history-list">
+                                    {Array.from({length:30}, (_,i)=>i+1).map(id => (
+                                        <div key={id} className="history-row">
+                                            <span>{id}. Cüz</span>
+                                            <span style={{color:'var(--turquoise)'}}>{viewArchive.data[id]?.owner || '-'}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button className="btn btn-share" onClick={() => shareHatim('complete')}>BU MÜJDEYİ PAYLAŞ 📱</button>
+                                <button className="btn btn-outline" onClick={() => setViewArchive(null)}>KAPAT</button>
                             </div>
                         </div>
                     )}
