@@ -33,7 +33,7 @@
             padding: 20px; box-sizing: border-box; overflow-x: hidden;
         }
 
-        #root { width: 100%; max-width: 500px; padding-bottom: 100px; }
+        #root { width: 100%; max-width: 500px; padding-bottom: 120px; }
         .glass-card {
             background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border); border-radius: 25px; padding: 20px;
@@ -76,6 +76,8 @@
         
         .add-btn-fixed { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; z-index: 99; }
         .archive-box { border: 1px dashed var(--glass-border); opacity: 0.7; margin-top: 40px; }
+        
+        .user-list-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -102,16 +104,21 @@
             const [user, setUser] = useState(localStorage.getItem('hatim_user_v1') || null);
             const [isAdmin, setIsAdmin] = useState(false);
             const [allHatims, setAllHatims] = useState(null);
+            const [registeredUsers, setRegisteredUsers] = useState({});
             const [collapsedHatims, setCollapsedHatims] = useState({});
             const [isArchiveOpen, setIsArchiveOpen] = useState(false);
             const [selectedCuz, setSelectedCuz] = useState(null);
             const [tempName, setTempName] = useState('');
-            const [ramadanDay, setRamadanDay] = useState(1);
+            const [ramadanDay, setRamadanDay] = useState(9);
             const [sandPercent, setSandPercent] = useState(0);
 
             useEffect(() => {
                 db.ref('parallel_hatims').on('value', snap => {
                     setAllHatims(snap.val() || { 'hatim_1': { name: 'Genel Hatim', created: Date.now() } });
+                });
+                
+                db.ref('registered_users').on('value', snap => {
+                    setRegisteredUsers(snap.val() || {});
                 });
 
                 const RAMADAN_START = new Date('2026-02-19T00:00:00').getTime();
@@ -125,8 +132,21 @@
                 
                 updateClock();
                 setInterval(updateClock, 60000);
-                return () => db.ref('parallel_hatims').off();
             }, []);
+
+            const handleLogin = () => {
+                const name = tempName.trim();
+                if(name) {
+                    const userId = "u_" + Date.now();
+                    // Firebase'e kullanıcıyı kaydet
+                    db.ref(`registered_users/${userId}`).set({
+                        name: name,
+                        joinDate: new Date().toLocaleString('tr-TR')
+                    });
+                    setUser(name);
+                    localStorage.setItem('hatim_user_v1', name);
+                }
+            };
 
             const startNewHatim = () => {
                 const pass = prompt("Admin Şifresi:");
@@ -138,15 +158,16 @@
             if (!user) return (
                 <div className="glass-card" style={{marginTop:'100px', textAlign:'center'}}>
                     <h2 style={{color:'var(--gold)'}}>RAMAZAN HATMİ</h2>
+                    <p style={{fontSize:'0.8rem', opacity:0.8, marginBottom:'20px'}}>Lütfen isminizi girerek başlayın</p>
                     <input className="input-glass" placeholder="Adınız Soyadınız" value={tempName} onChange={e => setTempName(e.target.value)} />
-                    <button className="btn btn-gold" onClick={() => { if(tempName.trim()){ setUser(tempName.trim()); localStorage.setItem('hatim_user_v1', tempName.trim()); }}}>BAŞLA</button>
+                    <button className="btn btn-gold" onClick={handleLogin}>BAŞLA</button>
                 </div>
             );
 
             if (!allHatims) return null;
 
             const hatimData = Object.entries(allHatims).map(([id, data]) => {
-                const doneCount = Object.values(data).filter(c => c.status === 'done').length;
+                const doneCount = Object.values(data).filter(c => c && c.status === 'done').length;
                 return { id, ...data, doneCount, isFinished: doneCount >= 30 };
             }).sort((a, b) => b.created - a.created);
 
@@ -203,8 +224,8 @@
                     </div>
 
                     <div style={{display:'flex', justifyContent:'space-between', padding:'10px', fontSize:'0.75rem'}}>
-                        <span onClick={() => { if(prompt("Şifre:")==="admin123") setIsAdmin(!isAdmin); }} style={{cursor:'pointer'}}>{isAdmin ? '🔓 Admin' : '🔒'}</span>
-                        <span><b>Hayırlı Ramazanlar,</b> {user}</span>
+                        <span onClick={() => { if(prompt("Şifre:")==="admin123") setIsAdmin(!isAdmin); }} style={{cursor:'pointer'}}>{isAdmin ? '🔓 Yönetici Modu' : '🔒'}</span>
+                        <span><b>Hoşgeldin,</b> {user}</span>
                     </div>
 
                     {activeOnes.map(h => <HatimCard key={h.id} h={h} />)}
@@ -216,6 +237,20 @@
                                 <span className="collapse-icon" style={{transform: isArchiveOpen ? 'rotate(0)' : 'rotate(-90deg)'}}>▼</span>
                             </div>
                             {isArchiveOpen && archivedOnes.map(h => <HatimCard key={h.id} h={h} />)}
+                        </div>
+                    )}
+
+                    {isAdmin && (
+                        <div className="glass-card" style={{border: '1px solid var(--turquoise)'}}>
+                            <h3 style={{fontSize:'0.9rem', color:'var(--turquoise)', marginBottom:'15px'}}>👥 KAYITLI KULLANICILAR</h3>
+                            <div style={{maxHeight:'200px', overflowY:'auto'}}>
+                                {Object.values(registeredUsers).length > 0 ? Object.values(registeredUsers).map((u, i) => (
+                                    <div key={i} className="user-list-item">
+                                        <span>{u.name}</span>
+                                        <span style={{opacity:0.5, fontSize:'0.6rem'}}>{u.joinDate}</span>
+                                    </div>
+                                )) : <p style={{fontSize:'0.7rem'}}>Henüz kayıtlı kullanıcı yok.</p>}
+                            </div>
                         </div>
                     )}
 
