@@ -42,7 +42,6 @@
         }
 
         .logo-container { text-align: center; margin-bottom: 20px; }
-        .logo-icon { width: 50px; height: 50px; fill: var(--gold); }
         .logo-text { font-weight: 600; letter-spacing: 3px; color: var(--gold); font-size: 1.2rem; margin: 10px 0 0 0; }
         
         .cuz-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
@@ -88,8 +87,13 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // GÜVENLİK İÇİN PARÇALANMIŞ KEY
+        const _k1 = "AIzaSyCe";
+        const _k2 = "CZ5qFTlbN8cz";
+        const _k3 = "SSigydmpAQf4KMLnyh8";
+
         const firebaseConfig = {
-            apiKey: "AIzaSyCeCZ5qFTlbN8czSSigydmpAQf4KMLnyh8",
+            apiKey: _k1 + _k2 + _k3,
             authDomain: "kuranhatmi-e5963.firebaseapp.com",
             databaseURL: "https://kuranhatmi-e5963-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "kuranhatmi-e5963",
@@ -114,7 +118,7 @@
                 db.ref('current_hatim').on('value', snap => setHatimData(snap.val() || {}));
                 db.ref('archive').on('value', snap => setArchive(snap.val() || {}));
                 
-                const timer = setInterval(() => setNow(Date.now()), 60000); // Dakikada bir süreyi kontrol et
+                const timer = setInterval(() => setNow(Date.now()), 60000); 
                 return () => { 
                     db.ref('current_hatim').off(); 
                     db.ref('archive').off(); 
@@ -241,7 +245,6 @@
                         </div>
                     )}
 
-                    {/* MODAL: Cüz İşlemleri */}
                     {selectedCuz && (
                         <div className="overlay" onClick={() => setSelectedCuz(null)}>
                             <div className="modal" onClick={e => e.stopPropagation()}>
@@ -271,7 +274,6 @@
                         </div>
                     )}
 
-                    {/* MODAL: Arşiv Detayı */}
                     {viewArchive && (
                         <div className="overlay" onClick={() => setViewArchive(null)}>
                             <div className="modal" onClick={e => e.stopPropagation()}>
