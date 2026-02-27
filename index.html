@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ramazan Hatim Rehberi - Pro</title>
+    <title>Ramazan Hatim Takibi - 9. Gün</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -13,71 +13,40 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --gold: #d4af37;
-            --turquoise: #14b8a6;
-            --deep-bg: #0d1b1e;
-            --overlay-bg: rgba(13, 27, 30, 0.95);
-            --success: #10b981;
-            --whatsapp: #25d366;
-        }
-
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--deep-bg); }
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background: radial-gradient(circle at top, #134e4a, var(--deep-bg));
-            background-attachment: fixed;
-            color: white; display: flex; justify-content: center; min-height: 100vh;
-            padding: 20px; box-sizing: border-box; overflow-x: hidden;
-        }
-
+        :root { --gold: #d4af37; --turquoise: #14b8a6; --deep-bg: #0d1b1e; --glass: rgba(255, 255, 255, 0.1); --whatsapp: #25D366; }
+        body { margin: 0; font-family: 'Montserrat', sans-serif; background: radial-gradient(circle at top, #134e4a, var(--deep-bg)); background-attachment: fixed; color: white; min-height: 100vh; display: flex; justify-content: center; padding: 20px; box-sizing: border-box; }
         #root { width: 100%; max-width: 500px; padding-bottom: 120px; }
-        .glass-card {
-            background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border); border-radius: 25px; padding: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); margin-bottom: 15px;
-        }
-
-        .countdown-container { text-align: center; }
-        .hourglass-track { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 10px; border: 1px solid var(--glass-border); }
-        .hourglass-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #facc15); transition: width 1s linear; }
-
-        .hatim-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 5px 0; }
-        .hatim-header h3 { margin: 0; font-size: 1rem; color: var(--gold); display: flex; align-items: center; gap: 8px; }
-        .collapse-icon { transition: transform 0.3s; font-size: 0.7rem; opacity: 0.6; }
-        .is-collapsed .collapse-icon { transform: rotate(-90deg); }
-        .is-collapsed .cuz-container { display: none; }
-
-        .progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 12px 0; border: 1px solid var(--glass-border); }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise), var(--gold)); transition: width 0.5s ease; }
-
-        .cuz-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
-        .cuz-item {
-            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05);
-            cursor: pointer; transition: 0.2s;
-        }
-        .cuz-item.taken { border-color: var(--turquoise); background: rgba(20, 184, 166, 0.15); }
-        .cuz-item.done { border-color: var(--gold); background: var(--success); }
         
-        .cuz-num { font-size: 1.1rem; font-weight: 600; color: var(--gold); }
-        .cuz-user { font-size: 0.6rem; opacity: 0.9; margin-top: 3px; text-align: center; color: white; width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Progress Bar */
+        .ramazan-progress-container { text-align: center; margin-bottom: 25px; padding: 10px; }
+        .ramazan-label { font-size: 1.1rem; font-weight: 600; color: var(--gold); margin-bottom: 10px; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .ramazan-bar-bg { width: 100%; height: 14px; background: rgba(255,255,255,0.1); border-radius: 7px; overflow: hidden; border: 1px solid rgba(212, 175, 55, 0.4); }
+        .ramazan-bar-fill { height: 100%; background: linear-gradient(90deg, #b8860b, var(--gold), #facc15); box-shadow: 0 0 10px var(--gold); transition: width 1.5s ease-in-out; }
 
-        .btn { width: 100%; padding: 14px; border-radius: 15px; font-weight: 600; border: none; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-sizing: border-box; }
-        .btn-gold { background: var(--gold); color: #0d1b1e; }
-        .btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); font-size: 0.8rem; }
-        .btn-whatsapp { background: var(--whatsapp); color: white; font-size: 0.8rem; padding: 10px; margin-top: 10px; }
+        .glass-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
+        .announcement-box { background: linear-gradient(45deg, var(--gold), #facc15); color: #0d1b1e; padding: 12px 40px 12px 15px; border-radius: 12px; margin-bottom: 20px; position: relative; font-weight: 600; font-size: 0.85rem; }
+        .close-ann { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.2rem; font-weight: bold; }
 
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(10px); }
-        .modal { background: #0d1b1e; border: 2px solid var(--gold); width: 85%; max-width: 380px; border-radius: 25px; padding: 25px; text-align: center; }
-        .input-glass { width: 100%; padding: 14px; border-radius: 15px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.1); color: white; outline: none; margin-bottom: 10px; box-sizing: border-box; }
+        .hatim-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .cuz-container { transition: max-height 0.4s ease; overflow: hidden; }
+        .collapsed { max-height: 0; }
+        .expanded { max-height: 4000px; }
         
-        .add-btn-fixed { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; z-index: 99; }
-        .archive-box { border: 1px dashed var(--glass-border); opacity: 0.7; margin-top: 40px; }
-        
-        .user-list-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
+        .cuz-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        .cuz-item { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
+        .done { border-color: var(--gold); background: rgba(212, 175, 55, 0.2); }
+        .taken { border-color: var(--turquoise); background: rgba(20, 184, 166, 0.2); }
+
+        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-sizing: border-box; }
+        .btn-gold { background: var(--gold); color: #0d1b1e; box-shadow: 0 4px 15px rgba(212,175,55,0.3); }
+        .btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); margin-top: 10px; }
+
+        .admin-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .wa-btn { background: var(--whatsapp); color: white !important; border-radius: 8px; padding: 6px 15px; text-decoration: none; font-size: 0.8rem; }
+
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+        .modal { background: #0d1b1e; border: 1px solid var(--gold); padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
+        .input-glass { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; outline: none; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -86,194 +55,140 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const _k1 = "AIzaSyCe"; const _k2 = "CZ5qFTlbN8cz"; const _k3 = "SSigydmpAQf4KMLnyh8";
         const firebaseConfig = {
-            apiKey: _k1 + _k2 + _k3,
+            apiKey: "AIzaSyCe" + "CZ5qFTlbN8cz" + "SSigydmpAQf4KMLnyh8",
             authDomain: "kuranhatmi-e5963.firebaseapp.com",
             databaseURL: "https://kuranhatmi-e5963-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "kuranhatmi-e5963",
-            storageBucket: "kuranhatmi-e5963.firebasestorage.app",
-            messagingSenderId: "631276243606",
-            appId: "1:631276243606:web:0f379e067527db6ad950b7"
+            projectId: "kuranhatmi-e5963"
         };
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         function App() {
-            const [user, setUser] = useState(localStorage.getItem('hatim_user_v1') || null);
+            const [user, setUser] = useState(JSON.parse(localStorage.getItem('hatim_user_v3')) || null);
             const [isAdmin, setIsAdmin] = useState(false);
-            const [allHatims, setAllHatims] = useState(null);
-            const [registeredUsers, setRegisteredUsers] = useState({});
-            const [collapsedHatims, setCollapsedHatims] = useState({});
-            const [isArchiveOpen, setIsArchiveOpen] = useState(false);
-            const [selectedCuz, setSelectedCuz] = useState(null);
-            const [tempName, setTempName] = useState('');
-            const [ramadanDay, setRamadanDay] = useState(9);
-            const [sandPercent, setSandPercent] = useState(0);
+            const [hatims, setHatims] = useState({});
+            const [users, setUsers] = useState({});
+            const [msg, setMsg] = useState("");
+            const [hiddenMsg, setHiddenMsg] = useState(localStorage.getItem('hide_msg_v3') || "");
+            const [open, setOpen] = useState({});
+            const [selected, setSelected] = useState(null);
+            const [form, setForm] = useState({ name: '', phone: '' });
+
+            // GÜN AYARI: Bugün 9. Gün
+            const ramazanGunu = 9; 
 
             useEffect(() => {
-                db.ref('parallel_hatims').on('value', snap => {
-                    setAllHatims(snap.val() || { 'hatim_1': { name: 'Genel Hatim', created: Date.now() } });
-                });
-                
-                db.ref('registered_users').on('value', snap => {
-                    setRegisteredUsers(snap.val() || {});
-                });
-
-                const RAMADAN_START = new Date('2026-02-19T00:00:00').getTime();
-                const RAMADAN_END = new Date('2026-03-20T00:00:00').getTime();
-                
-                const updateClock = () => {
-                    const diff = Date.now() - RAMADAN_START;
-                    setRamadanDay(Math.max(1, Math.min(30, Math.floor(diff / 86400000) + 1)));
-                    setSandPercent(Math.min(100, (diff / (RAMADAN_END - RAMADAN_START)) * 100));
-                };
-                
-                updateClock();
-                setInterval(updateClock, 60000);
+                db.ref('parallel_hatims').on('value', s => setHatims(s.val() || {}));
+                db.ref('registered_users_v3').on('value', s => setUsers(s.val() || {}));
+                db.ref('system_announcement').on('value', s => setMsg(s.val() || ""));
             }, []);
 
-            const handleLogin = () => {
-                const name = tempName.trim();
-                if(name) {
-                    const userId = "u_" + Date.now();
-                    // Firebase'e kullanıcıyı kaydet
-                    db.ref(`registered_users/${userId}`).set({
-                        name: name,
-                        joinDate: new Date().toLocaleString('tr-TR')
-                    });
-                    setUser(name);
-                    localStorage.setItem('hatim_user_v1', name);
+            const login = () => {
+                if(form.name && form.phone) {
+                    const cleanPhone = form.phone.replace(/[^0-9]/g, ''); 
+                    const u = { name: form.name, phone: cleanPhone, code: Math.random().toString(36).substring(7).toUpperCase() };
+                    db.ref(`registered_users_v3/u_${Date.now()}`).set(u);
+                    setUser(u);
+                    localStorage.setItem('hatim_user_v3', JSON.stringify(u));
                 }
             };
 
-            const startNewHatim = () => {
-                const pass = prompt("Admin Şifresi:");
-                if (pass !== "admin123") return alert("Hatalı!");
-                const name = prompt("Grup İsmi:");
-                if (name) db.ref(`parallel_hatims/hatim_${Date.now()}`).set({ name, created: Date.now() });
-            };
+            const hatimList = Object.entries(hatims).map(([id, data]) => {
+                const done = Object.values(data).filter(c => c && c.status === 'done').length;
+                return { id, ...data, done, isFull: done >= 30 };
+            }).sort((a,b) => (b.created || 0) - (a.created || 0));
 
             if (!user) return (
-                <div className="glass-card" style={{marginTop:'100px', textAlign:'center'}}>
-                    <h2 style={{color:'var(--gold)'}}>RAMAZAN HATMİ</h2>
-                    <p style={{fontSize:'0.8rem', opacity:0.8, marginBottom:'20px'}}>Lütfen isminizi girerek başlayın</p>
-                    <input className="input-glass" placeholder="Adınız Soyadınız" value={tempName} onChange={e => setTempName(e.target.value)} />
-                    <button className="btn btn-gold" onClick={handleLogin}>BAŞLA</button>
+                <div className="glass-card" style={{marginTop: '50px'}}>
+                    <h2 style={{textAlign:'center', color: 'var(--gold)'}}>RAMAZAN HATMİ</h2>
+                    <p style={{fontSize:'0.8rem', textAlign:'center', opacity:0.8, marginBottom:'20px'}}>Ülke koduyla giriniz (Örn: 905xx...)</p>
+                    <input className="input-glass" placeholder="Ad Soyad" onChange={e=>setForm({...form, name: e.target.value})} />
+                    <input className="input-glass" placeholder="Telefon (90...)" type="tel" onChange={e=>setForm({...form, phone: e.target.value})} />
+                    <button className="btn btn-gold" onClick={login}>KATIL</button>
                 </div>
             );
 
-            if (!allHatims) return null;
-
-            const hatimData = Object.entries(allHatims).map(([id, data]) => {
-                const doneCount = Object.values(data).filter(c => c && c.status === 'done').length;
-                return { id, ...data, doneCount, isFinished: doneCount >= 30 };
-            }).sort((a, b) => b.created - a.created);
-
-            const activeOnes = hatimData.filter(h => !h.isFinished);
-            const archivedOnes = hatimData.filter(h => h.isFinished);
-
-            const HatimCard = ({ h }) => {
-                const waText = encodeURIComponent(`📖 ${h.name} hatmine katılmak için bir cüz de sen seç! \nLink: ${window.location.href}`);
-                const waLink = `https://wa.me/?text=${waText}`;
-
-                return (
-                    <div className={`glass-card ${collapsedHatims[h.id] ? 'is-collapsed' : ''}`}>
-                        <div className="hatim-header" onClick={() => setCollapsedHatims(p => ({...p, [h.id]: !p[h.id]}))}>
-                            <h3><span>{h.isFinished ? '✅' : '📖'}</span> {h.name}</h3>
-                            <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-                                <span style={{fontSize:'0.8rem', color: h.isFinished ? 'var(--gold)' : 'var(--turquoise)'}}>
-                                    {h.isFinished ? 'BİTTİ' : `%${((h.doneCount/30)*100).toFixed(0)}`}
-                                </span>
-                                <span className="collapse-icon">▼</span>
-                            </div>
-                        </div>
-                        <div className="cuz-container">
-                            <div className="progress-bar"><div className="progress-fill" style={{width: `${(h.doneCount/30)*100}%`}}></div></div>
-                            {!h.isFinished && (
-                                <>
-                                    <div className="cuz-list">
-                                        {Array.from({ length: 30 }, (_, i) => {
-                                            const cId = i + 1;
-                                            const info = h[cId] || { status: 'free', owner: '' };
-                                            return (
-                                                <div key={cId} className={`cuz-item ${info.status}`} onClick={() => setSelectedCuz({hId: h.id, cId, ...info})}>
-                                                    <span className="cuz-num">{cId}</span>
-                                                    <span className="cuz-user">{info.owner || 'Boşta'}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <a href={waLink} target="_blank" className="btn btn-whatsapp">WHATSAPP'TA DAVET ET</a>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                );
-            };
-
             return (
-                <div id="main-container">
-                    <div className="glass-card countdown-container">
-                        <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.85rem'}}>
-                            <span>🌙 Ramazan'ın <b>{ramadanDay}.</b> Günü</span>
-                            <span style={{color:'var(--gold)'}}>%{sandPercent.toFixed(1)}</span>
+                <div>
+                    {/* Progress Bar */}
+                    <div className="ramazan-progress-container">
+                        <span className="ramazan-label">🌙 Ramazan'ın {ramazanGunu}. Günü</span>
+                        <div className="ramazan-bar-bg">
+                            <div className="ramazan-bar-fill" style={{width: `${(ramazanGunu/30)*100}%`}}></div>
                         </div>
-                        <div className="hourglass-track"><div className="hourglass-fill" style={{width: `${sandPercent}%`}}></div></div>
                     </div>
 
-                    <div style={{display:'flex', justifyContent:'space-between', padding:'10px', fontSize:'0.75rem'}}>
-                        <span onClick={() => { if(prompt("Şifre:")==="admin123") setIsAdmin(!isAdmin); }} style={{cursor:'pointer'}}>{isAdmin ? '🔓 Yönetici Modu' : '🔒'}</span>
-                        <span><b>Hoşgeldin,</b> {user}</span>
-                    </div>
-
-                    {activeOnes.map(h => <HatimCard key={h.id} h={h} />)}
-
-                    {archivedOnes.length > 0 && (
-                        <div className="glass-card archive-box">
-                            <div className="hatim-header" onClick={() => setIsArchiveOpen(!isArchiveOpen)}>
-                                <h3 style={{fontSize:'0.9rem', color:'var(--gold)'}}>📦 ARŞİV (Bitenler)</h3>
-                                <span className="collapse-icon" style={{transform: isArchiveOpen ? 'rotate(0)' : 'rotate(-90deg)'}}>▼</span>
-                            </div>
-                            {isArchiveOpen && archivedOnes.map(h => <HatimCard key={h.id} h={h} />)}
+                    {msg && msg !== hiddenMsg && (
+                        <div className="announcement-box">
+                            <span>📢 {msg}</span>
+                            <div className="close-ann" onClick={() => { setHiddenMsg(msg); localStorage.setItem('hide_msg_v3', msg); }}>×</div>
                         </div>
                     )}
+
+                    <div style={{display:'flex', justifyContent:'space-between', padding:'10px', fontSize:'0.75rem', marginBottom:'10px'}}>
+                        <span onClick={() => { if(prompt("Şifre:") === "admin123") setIsAdmin(!isAdmin); }}>{isAdmin ? '🔓 Yönetici' : '🔒'}</span>
+                        <span>{user.name}</span>
+                    </div>
 
                     {isAdmin && (
-                        <div className="glass-card" style={{border: '1px solid var(--turquoise)'}}>
-                            <h3 style={{fontSize:'0.9rem', color:'var(--turquoise)', marginBottom:'15px'}}>👥 KAYITLI KULLANICILAR</h3>
-                            <div style={{maxHeight:'200px', overflowY:'auto'}}>
-                                {Object.values(registeredUsers).length > 0 ? Object.values(registeredUsers).map((u, i) => (
-                                    <div key={i} className="user-list-item">
-                                        <span>{u.name}</span>
-                                        <span style={{opacity:0.5, fontSize:'0.6rem'}}>{u.joinDate}</span>
-                                    </div>
-                                )) : <p style={{fontSize:'0.7rem'}}>Henüz kayıtlı kullanıcı yok.</p>}
-                            </div>
+                        <div className="glass-card" style={{borderColor: 'var(--turquoise)'}}>
+                            <h4 style={{marginTop:0}}>Kullanıcılar</h4>
+                            {Object.values(users).map((u, i) => (
+                                <div key={i} className="admin-row">
+                                    <div style={{fontSize:'0.8rem'}}><b>{u.name}</b><br/><small>+{u.phone}</small></div>
+                                    <a href={`https://wa.me/${u.phone}`} target="_blank" className="wa-btn">WhatsApp</a>
+                                </div>
+                            ))}
                         </div>
                     )}
 
-                    <div className="add-btn-fixed">
-                        <button className="btn btn-gold" onClick={startNewHatim}>✨ YENİ HATİM GRUBU BAŞLAT</button>
+                    {hatimList.map(h => (
+                        <div key={h.id} className="glass-card" style={h.isFull ? {opacity:0.6} : {}}>
+                            <div className="hatim-header" onClick={() => setOpen({...open, [h.id]: !open[h.id]})}>
+                                <h3>{h.isFull ? '✅' : '📖'} {h.name}</h3>
+                                <span>{h.done}/30 {open[h.id] ? '▲' : '▼'}</span>
+                            </div>
+                            <div className={`cuz-container ${open[h.id] ? 'expanded' : 'collapsed'}`}>
+                                <div className="cuz-list">
+                                    {Array.from({length:30}, (_,i) => {
+                                        const cId = i+1; const info = h[cId] || {status:'free', owner:''};
+                                        return (
+                                            <div key={cId} className={`cuz-item ${info.status}`} onClick={() => setSelected({hId:h.id, cId, ...info})}>
+                                                <b style={{color:'var(--gold)'}}>{cId}</b>
+                                                <small style={{fontSize:'0.5rem', textAlign:'center', overflow:'hidden'}}>{info.owner || 'Boş'}</small>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    <div style={{position:'fixed', bottom:20, width:'90%', maxWidth:450, left:'50%', transform:'translateX(-50%)', zIndex:100}}>
+                        <button className="btn btn-gold" onClick={() => {
+                            const n = prompt("Hatim Grubu Adı:");
+                            if(n) db.ref(`parallel_hatims/h_${Date.now()}`).set({ name: n, created: Date.now() });
+                        }}>+ YENİ HATİM EKLE</button>
                     </div>
 
-                    {selectedCuz && (
-                        <div className="overlay" onClick={() => setSelectedCuz(null)}>
+                    {selected && (
+                        <div className="overlay" onClick={() => setSelected(null)}>
                             <div className="modal" onClick={e => e.stopPropagation()}>
-                                <h2 style={{color:'var(--gold)'}}>{selectedCuz.cId}. CÜZ</h2>
-                                {selectedCuz.status === 'free' ? (
-                                    <button className="btn btn-gold" onClick={() => { db.ref(`parallel_hatims/${selectedCuz.hId}/${selectedCuz.cId}`).set({ status:'taken', owner:user }); setSelectedCuz(null); }}>CÜZÜ ÜSTLEN</button>
+                                <h2 style={{color:'var(--gold)'}}>{selected.cId}. CÜZ</h2>
+                                {selected.status === 'free' ? (
+                                    <button className="btn btn-gold" onClick={() => { db.ref(`parallel_hatims/${selected.hId}/${selected.cId}`).set({ status:'taken', owner:user.name }); setSelected(null); }}>CÜZÜ ÜSTLEN</button>
                                 ) : (
                                     <>
-                                        <p>Okuyan: <b>{selectedCuz.owner}</b></p>
-                                        {(selectedCuz.owner === user || isAdmin) && selectedCuz.status === 'taken' && (
-                                            <button className="btn btn-gold" onClick={() => { db.ref(`parallel_hatims/${selectedCuz.hId}/${selectedCuz.cId}`).update({ status:'done' }); setSelectedCuz(null); }}>BİTİRDİM ✅</button>
+                                        <p>Okuyan: <b>{selected.owner}</b></p>
+                                        {(selected.owner === user.name || isAdmin) && selected.status === 'taken' && (
+                                            <button className="btn btn-gold" onClick={() => { db.ref(`parallel_hatims/${selected.hId}/${selected.cId}`).update({ status:'done' }); setSelected(null); }}>BİTİRDİM ✅</button>
                                         )}
-                                        {isAdmin && <button className="btn btn-outline" style={{color:'red', borderColor:'red', marginTop:'10px'}} onClick={() => { db.ref(`parallel_hatims/${selectedCuz.hId}/${selectedCuz.cId}`).remove(); setSelectedCuz(null); }}>SIFIRLA</button>}
+                                        {isAdmin && <button className="btn btn-outline" style={{color:'red', borderColor:'red'}} onClick={() => { db.ref(`parallel_hatims/${selected.hId}/${selected.cId}`).remove(); setSelected(null); }}>SİL</button>}
                                     </>
                                 )}
-                                <button className="btn btn-outline" style={{marginTop:'15px'}} onClick={() => setSelectedCuz(null)}>Kapat</button>
+                                <button className="btn btn-outline" style={{marginTop:'15px'}} onClick={() => setSelected(null)}>Kapat</button>
                             </div>
                         </div>
                     )}
