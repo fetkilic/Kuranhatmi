@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ramazan Hatim Rehberi - Canlı & Disiplinli</title>
+    <title>Ramazan Hatim Rehberi - Full Versiyon</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -23,6 +23,7 @@
             --overlay-bg: rgba(13, 27, 30, 0.95);
             --success: #10b981;
             --danger: #ef4444;
+            --whatsapp: #25d366;
         }
 
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--deep-bg); }
@@ -41,8 +42,8 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); margin-bottom: 20px;
         }
 
-        .logo-container { text-align: center; margin-bottom: 20px; }
-        .logo-text { font-weight: 600; letter-spacing: 3px; color: var(--gold); font-size: 1.2rem; margin: 10px 0 0 0; }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .admin-badge { background: var(--gold); color: #0d1b1e; padding: 4px 8px; border-radius: 8px; font-size: 0.6rem; font-weight: bold; }
         
         .cuz-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
         .cuz-item {
@@ -52,18 +53,15 @@
         }
         .cuz-item.taken { border-color: var(--turquoise); background: rgba(20, 184, 166, 0.15); }
         .cuz-item.done { border-color: var(--gold); background: var(--success); }
-        .cuz-item.delayed { border-color: var(--danger); background: rgba(239, 68, 68, 0.2); animation: pulse 2s infinite; }
         
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
         .cuz-num { font-size: 1.1rem; font-weight: 600; color: var(--gold); }
         .cuz-user { font-size: 0.6rem; opacity: 0.9; margin-top: 3px; text-align: center; color: white; width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .delay-warning { font-size: 0.5rem; color: var(--danger); font-weight: bold; margin-top: 2px; }
 
-        .btn { width: 100%; padding: 14px; border-radius: 15px; font-weight: 600; border: none; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn { width: 100%; padding: 14px; border-radius: 15px; font-weight: 600; border: none; cursor: pointer; transition: 0.3s; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-gold { background: var(--gold); color: #0d1b1e; }
         .btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); font-size: 0.8rem; }
-        .btn-share { background: #25d366; color: white; }
+        .btn-whatsapp { background: var(--whatsapp); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
 
         .input-glass {
             width: 100%; padding: 14px; border-radius: 15px; border: 1px solid var(--glass-border);
@@ -71,14 +69,10 @@
         }
 
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(10px); }
-        .modal { background: #0d1b1e; border: 2px solid var(--gold); width: 85%; max-width: 380px; border-radius: 25px; padding: 25px; text-align: center; max-height: 80vh; overflow-y: auto; }
+        .modal { background: #0d1b1e; border: 2px solid var(--gold); width: 85%; max-width: 380px; border-radius: 25px; padding: 25px; text-align: center; }
         
         .progress-bar { height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; margin: 15px 0; border: 1px solid var(--glass-border); }
         .progress-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise), var(--gold)); transition: width 1s ease; }
-
-        .archive-item { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; margin-bottom: 8px; border-left: 4px solid var(--gold); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .history-list { text-align: left; font-size: 0.85rem; margin: 15px 0; }
-        .history-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
@@ -87,7 +81,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // GÜVENLİK İÇİN PARÇALANMIŞ KEY
         const _k1 = "AIzaSyCe";
         const _k2 = "CZ5qFTlbN8cz";
         const _k3 = "SSigydmpAQf4KMLnyh8";
@@ -107,23 +100,15 @@
 
         function App() {
             const [user, setUser] = useState(localStorage.getItem('hatim_user_v1') || null);
+            const [isAdmin, setIsAdmin] = useState(false);
             const [hatimData, setHatimData] = useState({});
-            const [archive, setArchive] = useState({});
             const [selectedCuz, setSelectedCuz] = useState(null);
-            const [viewArchive, setViewArchive] = useState(null);
             const [tempName, setTempName] = useState('');
-            const [now, setNow] = useState(Date.now());
+            const [assignName, setAssignName] = useState('');
 
             useEffect(() => {
                 db.ref('current_hatim').on('value', snap => setHatimData(snap.val() || {}));
-                db.ref('archive').on('value', snap => setArchive(snap.val() || {}));
-                
-                const timer = setInterval(() => setNow(Date.now()), 60000); 
-                return () => { 
-                    db.ref('current_hatim').off(); 
-                    db.ref('archive').off(); 
-                    clearInterval(timer);
-                };
+                return () => db.ref('current_hatim').off();
             }, []);
 
             const login = () => {
@@ -133,13 +118,27 @@
                 }
             };
 
-            const takeCuz = (id) => {
+            const toggleAdmin = () => {
+                if (isAdmin) {
+                    setIsAdmin(false);
+                } else {
+                    const pass = prompt("Yönetici şifresini girin:");
+                    if (pass === "admin123") {
+                        setIsAdmin(true);
+                    } else {
+                        alert("Hatalı şifre!");
+                    }
+                }
+            };
+
+            const takeCuz = (id, name = user) => {
                 db.ref(`current_hatim/${id}`).set({ 
                     status: 'taken', 
-                    owner: user,
+                    owner: name,
                     startTime: Date.now() 
                 });
                 setSelectedCuz(null);
+                setAssignName('');
             };
 
             const completeCuz = (id) => {
@@ -147,34 +146,24 @@
                 setSelectedCuz(null);
             };
 
-            const finalizeHatim = () => {
-                if(confirm("Bu hatmi arşive taşıyıp yeni bir hatim başlatmak istediğinize emin misiniz?")) {
-                    const newArchiveRef = db.ref('archive').push();
-                    newArchiveRef.set({
-                        date: new Date().toLocaleDateString('tr-TR'),
-                        data: hatimData
-                    });
-                    db.ref('current_hatim').remove();
+            const resetCuz = (id) => {
+                if(confirm("Bu cüzü tekrar boşa çıkarmak istiyor musunuz?")) {
+                    db.ref(`current_hatim/${id}`).remove();
+                    setSelectedCuz(null);
                 }
             };
 
             const shareHatim = (type) => {
                 let text = type === 'invite' 
-                    ? `Ramazan Hatmimize sen de katıl! Bir cüz seç, hayra ortak ol: ${window.location.href}`
-                    : `Müjdeler olsun! Bir hatmi daha tamamladık. Allah kabul etsin! 📖✨`;
+                    ? `📖 Ramazan Hatmimize sen de katıl! Bir cüz seç, hayra ortak ol: ${window.location.href}`
+                    : `✨ Müjdeler olsun! Bir cüzümü daha tamamladım. Allah kabul etsin!`;
                 
                 if (navigator.share) {
                     navigator.share({ title: 'Hatim Rehberi', text: text });
                 } else {
-                    navigator.clipboard.writeText(text);
-                    alert("Paylaşım linki kopyalandı!");
+                    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                    window.open(url, '_blank');
                 }
-            };
-
-            const isDelayed = (startTime) => {
-                if (!startTime) return false;
-                const birHafta = 7 * 24 * 60 * 60 * 1000;
-                return (Date.now() - startTime) > birHafta;
             };
 
             const doneCount = Object.values(hatimData).filter(c => c.status === 'done').length;
@@ -183,7 +172,7 @@
             if (!user) {
                 return (
                     <div className="glass-card" style={{marginTop:'50px'}}>
-                        <div className="logo-container"><h1 className="logo-text">GİRİŞ</h1></div>
+                        <h2 style={{textAlign:'center', color:'var(--gold)'}}>HOŞGELDİNİZ</h2>
                         <input className="input-glass" placeholder="Adınız Soyadınız" value={tempName} onChange={e => setTempName(e.target.value)} />
                         <button className="btn btn-gold" onClick={login}>KATIL</button>
                     </div>
@@ -193,102 +182,73 @@
             return (
                 <div id="main-container">
                     <div className="glass-card">
-                        <div className="logo-container">
-                            <h1 className="logo-text">RAMAZAN HATMİ</h1>
-                            <p style={{color:'var(--turquoise)', fontSize:'0.75rem', marginTop:'5px'}}>Niyet Ettik Hatim Etmeye, {user}</p>
+                        <div className="header-actions">
+                            <span onClick={toggleAdmin} style={{cursor:'pointer', fontSize:'1.2rem'}}>{isAdmin ? '🔓' : '🔒'}</span>
+                            {isAdmin && <span className="admin-badge">YÖNETİCİ MODU</span>}
+                            <span style={{fontSize:'0.7rem', opacity:0.6}}>{user}</span>
+                        </div>
+
+                        <div style={{textAlign:'center'}}>
+                            <h1 style={{margin:'0', color:'var(--gold)', letterSpacing:'2px', fontSize:'1.5rem'}}>RAMAZAN HATMİ</h1>
                         </div>
 
                         <div className="progress-bar"><div className="progress-fill" style={{width: `${progress}%`}}></div></div>
-                        <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.8rem', color:'var(--gold)', fontWeight:'600'}}>
-                            <span>Hatim: %{progress}</span>
-                            <span>{doneCount}/30 Cüz</span>
+                        <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.7rem', color:'var(--gold)', marginBottom:'10px'}}>
+                            <span>İlerleme: %{progress}</span>
+                            <span>{doneCount}/30 Cüz Bitti</span>
                         </div>
-
+                        
                         <div className="cuz-list">
                             {Array.from({ length: 30 }, (_, i) => {
                                 const id = i + 1;
                                 const info = hatimData[id] || { status: 'free', owner: '' };
-                                const delayed = info.status === 'taken' && isDelayed(info.startTime);
                                 return (
-                                    <div key={id} className={`cuz-item ${info.status} ${delayed ? 'delayed' : ''}`} onClick={() => setSelectedCuz({id, ...info, delayed})}>
+                                    <div key={id} className={`cuz-item ${info.status}`} onClick={() => setSelectedCuz({id, ...info})}>
                                         <span className="cuz-num">{id}</span>
                                         <span className="cuz-user">{info.owner || 'Boşta'}</span>
-                                        {delayed && <span className="delay-warning">GECİKTİ!</span>}
                                     </div>
                                 );
                             })}
                         </div>
 
-                        <button className="btn btn-outline" style={{marginTop:'20px'}} onClick={() => shareHatim('invite')}>
-                            KATILIM İÇİN GRUPTA PAYLAŞ 🚀
+                        <button className="btn btn-whatsapp" style={{marginTop:'20px'}} onClick={() => shareHatim('invite')}>
+                            WA | GRUPTA PAYLAŞ 🚀
                         </button>
-
-                        {progress >= 100 && (
-                            <button className="btn btn-gold" style={{background: 'var(--success)', color:'white', marginTop:'15px'}} onClick={finalizeHatim}>
-                                HATMİ TAMAMLA VE YENİSİNİ BAŞLAT 🎉
-                            </button>
-                        )}
                     </div>
-
-                    {Object.keys(archive).length > 0 && (
-                        <div className="glass-card">
-                            <h3 style={{color:'var(--gold)', fontSize:'1rem', marginBottom:'15px'}}>Biten Hatimler</h3>
-                            {Object.entries(archive).reverse().map(([key, item]) => (
-                                <div key={key} className="archive-item" onClick={() => setViewArchive(item)}>
-                                    <div>
-                                        <div style={{fontSize:'0.9rem', fontWeight:'600'}}>Tamamlanan Hatim</div>
-                                        <div style={{fontSize:'0.7rem', opacity:0.7}}>{item.date}</div>
-                                    </div>
-                                    <span>📖</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
                     {selectedCuz && (
                         <div className="overlay" onClick={() => setSelectedCuz(null)}>
                             <div className="modal" onClick={e => e.stopPropagation()}>
                                 <h2 style={{color:'var(--gold)'}}>{selectedCuz.id}. CÜZ</h2>
+                                
                                 {selectedCuz.status === 'free' ? (
                                     <>
-                                        <p>Bu cüzü okumayı üstlenmek üzeresiniz. Lütfen bitireceğinizden emin olun.</p>
-                                        <button className="btn btn-gold" onClick={() => takeCuz(selectedCuz.id)}>SÖZ, ÜSTLENİYORUM</button>
+                                        <button className="btn btn-gold" onClick={() => takeCuz(selectedCuz.id)}>CÜZÜ ÜSTLEN</button>
+                                        
+                                        {isAdmin && (
+                                            <div style={{marginTop:'20px', borderTop:'1px solid var(--glass-border)', paddingTop:'15px'}}>
+                                                <input className="input-glass" placeholder="İsim yazın..." value={assignName} onChange={e => setAssignName(e.target.value)} />
+                                                <button className="btn btn-outline" onClick={() => takeCuz(selectedCuz.id, assignName)}>BAŞKASINA ATA</button>
+                                            </div>
+                                        )}
                                     </>
-                                ) : selectedCuz.owner === user ? (
-                                    selectedCuz.status === 'taken' ? (
-                                        <>
-                                            {selectedCuz.delayed && <p style={{color:'var(--danger)', fontWeight:'600'}}>⚠️ 1 haftayı geçtiniz, lütfen hızlanalım!</p>}
-                                            <p>Bu cüzü bitirdiysen aşağıdaki butona bas.</p>
-                                            <button className="btn btn-gold" onClick={() => completeCuz(selectedCuz.id)}>TAMAMLADIM ✅</button>
-                                            <p style={{fontSize:'0.7rem', marginTop:'15px', opacity:0.6}}>Okumaya niyet ettiğiniz cüzü bırakamazsınız. Tamamlamak bir sözdür.</p>
-                                        </>
-                                    ) : <p style={{color:'var(--success)', fontWeight:'600'}}>Maşallah, bu cüzü tamamladınız!</p>
                                 ) : (
-                                    <div style={{textAlign:'center'}}>
-                                        <p>Bu cüz şu an <b>{selectedCuz.owner}</b> tarafından okunuyor.</p>
-                                        {selectedCuz.delayed && <p style={{color:'var(--danger)', fontWeight:'600'}}>Hızlandırılması için arkadaşınıza hatırlatın.</p>}
-                                    </div>
+                                    <>
+                                        <p>Okuyan: <b>{selectedCuz.owner}</b></p>
+                                        
+                                        {(selectedCuz.owner === user || isAdmin) && selectedCuz.status === 'taken' && (
+                                            <>
+                                                <button className="btn btn-gold" onClick={() => completeCuz(selectedCuz.id)}>BİTİRDİM ✅</button>
+                                                <button className="btn btn-whatsapp" onClick={() => shareHatim('complete')}>MÜJDEYİ PAYLAŞ 📱</button>
+                                            </>
+                                        )}
+
+                                        {isAdmin && (
+                                            <button className="btn btn-danger" style={{marginTop:'10px'}} onClick={() => resetCuz(selectedCuz.id)}>CÜZÜ SIFIRLA</button>
+                                        )}
+                                    </>
                                 )}
                                 <button className="btn btn-outline" style={{marginTop:'20px'}} onClick={() => setSelectedCuz(null)}>Kapat</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {viewArchive && (
-                        <div className="overlay" onClick={() => setViewArchive(null)}>
-                            <div className="modal" onClick={e => e.stopPropagation()}>
-                                <h2 style={{color:'var(--gold)', margin:'0'}}>HATİM ÖZETİ</h2>
-                                <p style={{fontSize:'0.8rem', opacity:0.7}}>{viewArchive.date} tarihinde tamamlandı</p>
-                                <div className="history-list">
-                                    {Array.from({length:30}, (_,i)=>i+1).map(id => (
-                                        <div key={id} className="history-row">
-                                            <span>{id}. Cüz</span>
-                                            <span style={{color:'var(--turquoise)'}}>{viewArchive.data[id]?.owner || '-'}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button className="btn btn-share" onClick={() => shareHatim('complete')}>BU MÜJDEYİ PAYLAŞ 📱</button>
-                                <button className="btn btn-outline" onClick={() => setViewArchive(null)}>KAPAT</button>
                             </div>
                         </div>
                     )}
