@@ -144,7 +144,8 @@ main{max-width:960px;margin:0 auto;padding:28px 16px 60px;display:flex;flex-dire
     <div class="pvbox" id="pvbox" style="display:none">
       <h4>📌 Dağıtım Önizlemesi</h4>
       <div style="overflow-x:auto"><table class="pvtable" id="pvtable"></table></div>
-      <p style="font-size:12px;color:var(--tm);margin-top:10px">Her sütun bir hatimi gösterir. Sayılar = cüz numaraları. Sonraki hatimler otomatik +<span id="stepLabel">?</span> kayar (döngüsel).</p>
+      <div id="swapHint" style="display:none;background:#fff8e6;border:1.5px solid var(--go);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:13px;color:var(--tx)"></div>
+      <p style="font-size:12px;color:var(--tm);margin-top:10px">Sonraki hatimler otomatik +<span id="stepLabel">?</span> kayar (döngüsel). Cüzlere tıklayarak değiştirebilirsin.</p>
       <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button class="btn bg" onclick="confirmStart()">✓ Onayla ve Başlat</button>
         <button class="bo" onclick="distribute()">🎲 Yeniden Dağıt</button>
@@ -389,34 +390,89 @@ function distribute(){
   document.getElementById('pvbox').style.display='block';
 }
 
+// Swap state
+let _swapFirst = null; // {memberId, cuzIndex}
+
 function renderPreview(){
   if(!S.pendingBase)return;
   const n=S.members.length;
   const step=S.step||1;
-  const maxH=Math.min(5,Math.ceil(30/n)+1); // kaç hatim önizlensin
   document.getElementById('stepLabel').textContent=step;
 
-  const tbl=document.getElementById('pvtable');
-  // Başlık
-  let html=`<thead><tr><th class="nml" style="padding:4px 8px;min-width:80px">İsim</th>`;
-  for(let h=1;h<=maxH;h++) html+=`<th>${h}. Hatim</th>`;
-  html+=`</tr></thead><tbody>`;
+  // 1. cüzden 30. cüze göre sırala
+  const sortedByFirstCuz=[...S.members].sort((a,b)=>{
+    return (S.pendingBase[a.id]&&S.pendingBase[a.id][0]||99)-(S.pendingBase[b.id]&&S.pendingBase[b.id][0]||99);
+  });
 
-  S.members.forEach(m=>{
+  const tbl=document.getElementById('pvtable');
+  let html=`<thead><tr>
+    <th class="nml" style="padding:4px 8px;min-width:90px">İsim</th>
+    <th style="text-align:left;padding:4px 8px;color:var(--go)">1. Hatim Cüzleri <span style="font-size:10px;color:var(--tm);font-weight:400">(değiştirmek için cüze tıkla)</span></th>
+  </tr></thead><tbody>`;
+
+  sortedByFirstCuz.forEach(m=>{
     const bl=S.pendingBase[m.id];
-    html+=`<tr><td style="font-weight:600;font-size:13px;white-space:nowrap"><span class="dot" style="background:${m.color};vertical-align:middle;margin-right:5px"></span>${esc(m.name)}</td>`;
-    for(let h=1;h<=maxH;h++){
-      const cuzler=cuzListForHatim(bl,step,h);
-      html+=`<td style="white-space:nowrap">`;
-      cuzler.forEach(c=>{
-        html+=`<span class="pvc" style="background:${m.color};opacity:${h===1?1:0.45}">${c}</span>`;
-      });
-      html+=`</td>`;
-    }
-    html+=`</tr>`;
+    if(!bl)return;
+    html+=`<tr style="border-bottom:1px solid var(--cd)">
+      <td style="padding:6px 8px;font-weight:600;font-size:13px;white-space:nowrap;vertical-align:middle">
+        <span class="dot" style="background:${m.color};vertical-align:middle;margin-right:5px"></span>${esc(m.name)}
+      </td>
+      <td style="padding:6px 8px">`;
+    bl.forEach((c,i)=>{
+      const isSelected=_swapFirst&&_swapFirst.memberId===m.id&&_swapFirst.cuzIndex===i;
+      html+=`<span onclick="handleSwapClick('${m.id}',${i})"
+        style="display:inline-flex;align-items:center;justify-content:center;
+          min-width:28px;height:26px;padding:0 5px;border-radius:5px;
+          font-size:12px;font-weight:700;color:#fff;margin:2px;cursor:pointer;
+          background:${m.color};
+          ${isSelected?'outline:3px solid var(--go);outline-offset:1px;transform:scale(1.15);':''}
+          transition:transform .15s"
+        title="${c}. Cüz — değiştirmek için tıkla">${c}</span>`;
+    });
+    html+=`</td></tr>`;
   });
   html+=`</tbody>`;
   tbl.innerHTML=html;
+
+  // Seçili varsa ipucu göster
+  const hint=document.getElementById('swapHint');
+  if(_swapFirst){
+    const m=S.members.find(x=>x.id===_swapFirst.memberId);
+    const cuz=S.pendingBase[_swapFirst.memberId][_swapFirst.cuzIndex];
+    hint.style.display='block';
+    hint.innerHTML=`🔄 <strong>${esc(m.name)}</strong>'in <strong>${cuz}. Cüzü</strong> seçildi — şimdi değiştirmek istediğin cüze tıkla. <button onclick="_swapFirst=null;renderPreview()" style="margin-left:8px;background:none;border:1px solid #ccc;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px">İptal</button>`;
+  } else {
+    hint.style.display='none';
+  }
+}
+
+function handleSwapClick(memberId, cuzIndex){
+  if(!_swapFirst){
+    // İlk seçim
+    _swapFirst={memberId, cuzIndex};
+    renderPreview();
+    return;
+  }
+  if(_swapFirst.memberId===memberId && _swapFirst.cuzIndex===cuzIndex){
+    // Aynı cüze tekrar tıklandı → iptal
+    _swapFirst=null;
+    renderPreview();
+    return;
+  }
+  // İkinci seçim — swap yap
+  const bl1=S.pendingBase[_swapFirst.memberId];
+  const bl2=S.pendingBase[memberId];
+  const c1=bl1[_swapFirst.cuzIndex];
+  const c2=bl2[cuzIndex];
+  bl1[_swapFirst.cuzIndex]=c2;
+  bl2[cuzIndex]=c1;
+  // Sıralı tut
+  bl1.sort((a,b)=>a-b);
+  bl2.sort((a,b)=>a-b);
+  _swapFirst=null;
+  save();
+  renderPreview();
+  toast(`🔄 ${c1}. ve ${c2}. Cüz değiştirildi!`);
 }
 
 function confirmStart(){
