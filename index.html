@@ -284,7 +284,7 @@ function memberCuzList(mid, hatimNo){
   const extras = (hn===S.hatimNo)
     ? Object.entries(S.manualExtra||{}).filter(([,m])=>m===mid).map(([c])=>Number(c))
     : [];
-  return [...base, ...extras];
+  return [...base, ...extras].sort((a,b)=>a-b);
 }
 
 function gm(id){return S.members.find(m=>m.id===id)}
@@ -367,18 +367,20 @@ function distribute(){
   // Örnek 3 kişi: Ali→1,4,7... 2.hatimde→2,5,8... (her cüz +1 kayar)
   const step=1;
 
-  // Rastgele başlangıç offseti (0-29)
-  const offset = Math.floor(Math.random()*30);
-  
-  // Cüzleri offset'ten başlayarak sırala (döngüsel)
-  const ordered=[];
-  for(let i=0;i<30;i++) ordered.push(((offset+i)%30)+1);
-  
-  // Her üyeye round-robin: üye[i] → ordered[i], ordered[i+n], ordered[i+2n], ...
+  // Cüzler 1'den 30'a sıralı dağıtılır, kişiler rastgele sıralanır
+  // Önce üye sırasını karıştır (rastgelelik burada)
+  const shuffledMembers = [...S.members];
+  for(let i=shuffledMembers.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [shuffledMembers[i],shuffledMembers[j]]=[shuffledMembers[j],shuffledMembers[i]];
+  }
+
+  // Cüzler 1,2,3...30 sırasıyla round-robin dağıtılır
+  // shuffledMembers[0] → 1,n+1,2n+1,...  shuffledMembers[1] → 2,n+2,...
   const base={};
-  S.members.forEach((m,i)=>{
+  shuffledMembers.forEach((m,i)=>{
     const cuzler=[];
-    for(let j=i;j<30;j+=n) cuzler.push(ordered[j]);
+    for(let j=i+1;j<=30;j+=n) cuzler.push(j);
     base[m.id]=cuzler;
   });
 
