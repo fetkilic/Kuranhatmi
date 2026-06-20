@@ -647,30 +647,43 @@ function exportPDF(){
   y += 18;
 
   // ── KİŞİ BAZINDA TABLO ──
+  // Tüm üyeler bir sayfaya sığsın: mevcut y'den footer'a kadar olan alanı böl
+  const tableHeaderH = 14; // başlık metni + tablo header
+  const footerMargin = 12;
+  const availableH = H - y - tableHeaderH - footerMargin;
+  const n = S.members.length;
+  // Dinamik satır yüksekliği: min 4.5, max 8
+  const rowH = Math.min(8, Math.max(4.5, availableH / n));
+  const nameFontSize = rowH < 6 ? 5.5 : (rowH < 7 ? 6.5 : 8);
+  const badgeSize = rowH < 6 ? 3.5 : (rowH < 7 ? 4.5 : 5);
+  const badgeW = rowH < 6 ? 5 : (rowH < 7 ? 6 : 7);
+  const badgeGap = badgeW + 1;
+  const textY = rowH * 0.68;
+
   doc.setFont('helvetica','bold');
-  doc.setFontSize(9);
+  doc.setFontSize(rowH < 6 ? 7 : 9);
   doc.setTextColor(26,58,42);
   doc.text('KİŞİ BAZINDA CÜZ DAĞILIMI', 10, y);
   y += 5;
 
   // Tablo başlık
+  const thH = Math.max(5.5, rowH * 0.85);
   doc.setFillColor(26,58,42);
-  doc.rect(10, y, W-20, 7, 'F');
+  doc.rect(10, y, W-20, thH, 'F');
   doc.setTextColor(201,168,76);
   doc.setFont('helvetica','bold');
-  doc.setFontSize(8);
-  doc.text('İSİM', 14, y+4.8);
-  doc.text('BU HATİM CÜZLERİ', 55, y+4.8);
-  doc.text('DURUM', W-35, y+4.8);
-  doc.text('SONRAKİ HATİM', W-28, y+4.8);
-  y += 7;
+  doc.setFontSize(Math.min(7, nameFontSize));
+  doc.text('İSİM', 14, y+thH*0.72);
+  doc.text('BU HATİM CÜZLERİ', 52, y+thH*0.72);
+  doc.text('DURUM', W-34, y+thH*0.72);
+  doc.text('SONRAKİ', W-18, y+thH*0.72);
+  y += thH;
 
   S.members.forEach((m,idx)=>{
     const myCuzler = memberCuzList(m.id, S.hatimNo);
     const nextCuzler = memberCuzList(m.id, S.hatimNo+1);
     const allDone = myCuzler.length>0 && myCuzler.every(c=>S.completedInHatim[String(c)]);
     const doneC = myCuzler.filter(c=>S.completedInHatim[String(c)]).length;
-    const rowH = 8;
 
     // Satır arkaplanı
     if(idx%2===0) doc.setFillColor(248,245,237);
@@ -680,46 +693,49 @@ function exportPDF(){
     // Renk şeridi
     const [r,g,b] = hexRGB(m.color);
     doc.setFillColor(r,g,b);
-    doc.rect(10, y, 3, rowH, 'F');
+    doc.rect(10, y, 2.5, rowH, 'F');
 
     // İsim
     doc.setFont('helvetica','bold');
-    doc.setFontSize(8);
+    doc.setFontSize(nameFontSize);
     doc.setTextColor(20,20,20);
-    doc.text(m.name.substring(0,18), 15, y+5.2);
+    const maxNameChars = rowH < 6 ? 12 : 16;
+    doc.text(m.name.substring(0, maxNameChars), 14.5, y + rowH*textY);
 
     // Cüzler — küçük kutucuklar
-    let cx = 55;
-    myCuzler.slice(0,12).forEach(c=>{
+    const maxBadges = Math.floor((W - 20 - 42 - 22 - 22) / badgeGap);
+    let cx = 52;
+    myCuzler.slice(0, maxBadges).forEach(c=>{
       const done = !!S.completedInHatim[String(c)];
-      if(done){doc.setFillColor(r,g,b)}
-      else{doc.setFillColor(200,200,200)}
-      doc.roundedRect(cx, y+1.5, 7, 5, 1, 1, 'F');
+      doc.setFillColor(done ? r : 190, done ? g : 190, done ? b : 190);
+      doc.roundedRect(cx, y + rowH*0.18, badgeW, rowH*0.65, 0.8, 0.8, 'F');
       doc.setFont('helvetica','bold');
-      doc.setFontSize(5.5);
+      doc.setFontSize(badgeSize);
       doc.setTextColor(255,255,255);
-      doc.text(String(c), cx+3.5, y+5.2, {align:'center'});
-      cx += 8;
+      doc.text(String(c), cx + badgeW/2, y + rowH*textY, {align:'center'});
+      cx += badgeGap;
     });
-    if(myCuzler.length>12){
-      doc.setFontSize(6); doc.setTextColor(150,150,150);
-      doc.text(`+${myCuzler.length-12}`, cx, y+5.2);
+    if(myCuzler.length > maxBadges){
+      doc.setFontSize(badgeSize); doc.setTextColor(150,150,150);
+      doc.text(`+${myCuzler.length-maxBadges}`, cx+1, y + rowH*textY);
     }
 
     // Durum
-    doc.setFont('helvetica',allDone?'bold':'normal');
-    doc.setFontSize(7.5);
-    if(allDone){doc.setTextColor(45,106,79); doc.text('✓ Tamam', W-34, y+5.2)}
-    else{doc.setTextColor(150,150,150); doc.text(`${doneC}/${myCuzler.length}`, W-34, y+5.2)}
+    doc.setFont('helvetica', allDone?'bold':'normal');
+    doc.setFontSize(nameFontSize - 0.5);
+    if(allDone){doc.setTextColor(45,106,79); doc.text('✓', W-34, y + rowH*textY)}
+    else{doc.setTextColor(150,150,150); doc.text(`${doneC}/${myCuzler.length}`, W-34, y + rowH*textY)}
 
     // Sonraki hatim
     doc.setFont('helvetica','normal');
-    doc.setFontSize(7);
+    doc.setFontSize(Math.max(4, nameFontSize - 1.5));
     doc.setTextColor(r,g,b);
-    doc.text(nextCuzler.slice(0,8).join(', ')+(nextCuzler.length>8?'...':'')||'—', W-26, y+5.2);
+    const nextStr = nextCuzler.slice(0,5).join(',') + (nextCuzler.length>5?'…':'');
+    doc.text(nextStr||'—', W-26, y + rowH*textY);
 
     y += rowH;
-    if(y > H-30){doc.addPage(); y=15}
+    // Sadece gerçekten taşarsa yeni sayfa
+    if(y > H - footerMargin - 5){doc.addPage(); y=15}
   });
 
   y += 6;
