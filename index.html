@@ -505,7 +505,13 @@ function renderSummary(){
   if(!S.hatimNo){sc.style.display='none';return}
   sc.style.display='';
   const nextNo=S.hatimNo+1;
-  const rows=S.members.map(m=>{
+  // Üyeleri 1. cüzden 30. cüze göre sırala (kim 1. cüzü aldıysa en üstte)
+  const sortedMembers=[...S.members].sort((a,b)=>{
+    const aFirst=memberCuzList(a.id,S.hatimNo)[0]||99;
+    const bFirst=memberCuzList(b.id,S.hatimNo)[0]||99;
+    return aFirst-bFirst;
+  });
+  const rows=sortedMembers.map(m=>{
     const myCuzler=memberCuzList(m.id,S.hatimNo);
     const nextCuzler=memberCuzList(m.id,nextNo);
     const allDone=myCuzler.length>0&&myCuzler.every(c=>S.completedInHatim[String(c)]);
@@ -682,7 +688,13 @@ function exportPDF(){
   doc.text('SONRAKİ', W-22, y+thH*0.72);
   y += thH;
 
-  S.members.forEach((m,idx)=>{
+  // PDF'de de 1. cüzden 30. cüze göre sırala
+  const pdfMembers=[...S.members].sort((a,b)=>{
+    const aFirst=memberCuzList(a.id,S.hatimNo)[0]||99;
+    const bFirst=memberCuzList(b.id,S.hatimNo)[0]||99;
+    return aFirst-bFirst;
+  });
+  pdfMembers.forEach((m,idx)=>{
     const myCuzler = memberCuzList(m.id, S.hatimNo);
     const nextCuzler = memberCuzList(m.id, S.hatimNo+1);
     const allDone = myCuzler.length>0 && myCuzler.every(c=>S.completedInHatim[String(c)]);
