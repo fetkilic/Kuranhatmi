@@ -28,11 +28,15 @@
     margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);
   }
   .sec-title{font-size:21px;font-weight:800;color:#5b9dff;letter-spacing:.5px;}
+  .sec-right{display:flex;align-items:center;gap:12px;}
   .sec-date{font-size:13px;color:var(--muted);}
   .sec-date b{color:#ff6b6b;}
+  .sec-del{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+    background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;line-height:1;transition:all .15s ease;}
+  .sec-del:hover{border-color:#ff6b6b;color:#ff6b6b;background:rgba(255,107,107,.08);}
 
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 24px;}
-  @media(max-width:880px){.grid{grid-template-columns:1fr;}}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(10,auto);grid-auto-flow:column;gap:14px 24px;}
+  @media(max-width:880px){.grid{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row;}}
 
   .row{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -134,7 +138,8 @@ const names = [
 ];
 
 const SECDE = {9:1,13:1,14:1,15:1,16:1,17:1,19:2,21:1,27:1,30:2};
-function cuzFor(i, h){ return ((i + (h - 1)) % 30) + 1; }
+/* h. hatimde c. cüzü okuyan kişinin sıra no'su (rotasyonun tersi) */
+function personFor(c, h){ return (((c - h) % 30) + 30) % 30; }
 
 const BASE = new Date(2026, 5, 25, 18, 0);
 const GUN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
@@ -164,6 +169,7 @@ function load(){
   if(typeof st.hatimCount !== "number") st.hatimCount = 1;
   if(!st.done) st.done = {};
   if(!Array.isArray(st.archived)) st.archived = [];
+  if(!Array.isArray(st.removed)) st.removed = [];
   return st;
 }
 let state = load();
@@ -177,6 +183,7 @@ function setDone(h,cuz,val){
 }
 function countDone(h){ const o = state.done[h] || {}; return Object.keys(o).filter(k=>o[k]).length; }
 function isArchived(h){ return state.archived.indexOf(h) !== -1; }
+function isRemoved(h){ return state.removed.indexOf(h) !== -1; }
 
 /* ---- UI durumu (kaydedilmez) ---- */
 let archiveOpen = false;
@@ -196,7 +203,7 @@ function rowHTML(name, cuz, done, interactive, h){
 
 function sectionHTML(h){
   let rows = "";
-  names.forEach((name,i)=>{ const cuz = cuzFor(i,h); rows += rowHTML(name, cuz, isDone(h,cuz), true, h); });
+  for(let c=1;c<=30;c++){ rows += rowHTML(names[personFor(c,h)], c, isDone(h,c), true, h); }
   const read = countDone(h), left = 30 - read, pct = Math.round(read/30*100);
   const banner = read === 30
     ? '<div class="done-banner"><span class="txt">🎉 Tamamlandı — 30/30 okundu</span>'
@@ -204,7 +211,8 @@ function sectionHTML(h){
     : "";
   return '<section class="hatim-section" id="hatim-'+h+'">'
     + '<div class="sec-head"><div class="sec-title">'+h+'. HATİM</div>'
-    + '<div class="sec-date">Son Tarih: <b>'+hatimDate(h)+'</b> · 18:00</div></div>'
+    + '<div class="sec-right"><span class="sec-date">Son Tarih: <b>'+hatimDate(h)+'</b> · 18:00</span>'
+    + '<button class="sec-del" data-action="del" data-h="'+h+'" title="Bu hatimi kaldır">✕</button></div></div>'
     + '<div class="grid">'+rows+'</div>'
     + '<div class="mini"><div class="mini-row"><span class="mini-read">'+read+' okundu</span>'
     + '<span class="mini-left">'+left+' kaldı</span><span class="mini-pct">%'+pct+'</span></div>'
@@ -215,8 +223,6 @@ function sectionHTML(h){
 function controlsHTML(){
   let h = '<div class="controls">';
   h += '<button class="btn add" data-action="add">+ '+(state.hatimCount+1)+'. Hatimi Aç</button>';
-  if(state.hatimCount > 1)
-    h += '<button class="btn" data-action="remove">'+state.hatimCount+'. hatimi kaldır</button>';
   h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
   return h + '</div>';
 }
@@ -230,7 +236,7 @@ function archiveHTML(){
       let detail = "";
       if(show){
         let rows = "";
-        names.forEach((name,i)=>{ rows += rowHTML(name, cuzFor(i,h), true, false, h); });
+        for(let c=1;c<=30;c++){ rows += rowHTML(names[personFor(c,h)], c, true, false, h); }
         detail = '<div class="grid">'+rows+'</div>';
       }
       inner += '<div class="arch-item"><div class="arch-row">'
@@ -239,6 +245,7 @@ function archiveHTML(){
         + '<div class="arch-actions">'
         + '<button class="btn" data-action="arch-show" data-h="'+h+'">'+(show?'Gizle':'Detay')+'</button>'
         + '<button class="btn" data-action="arch-restore" data-h="'+h+'">Geri al</button>'
+        + '<button class="btn" data-action="del" data-h="'+h+'">Sil</button>'
         + '</div></div>'+detail+'</div>';
     });
   }
@@ -249,7 +256,7 @@ function archiveHTML(){
 
 function render(){
   let out = "";
-  for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h)) out += sectionHTML(h); }
+  for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h) && !isRemoved(h)) out += sectionHTML(h); }
   out += controlsHTML();
   out += archiveHTML();
   app.innerHTML = out;
@@ -264,22 +271,33 @@ function render(){
 function toggle(h,cuz){ setDone(h,cuz,!isDone(h,cuz)); render(); }
 function archiveHatim(h){ if(!isArchived(h)) state.archived.push(h); save(); archiveOpen = true; render(); }
 function restoreHatim(h){ state.archived = state.archived.filter(x=>x!==h); delete expanded[h]; save(); render(); }
+function removeHatim(h){
+  if(!confirm(h + ". hatim kaldırılsın mı? Bu hatimin işaretleri silinecek.")) return;
+  delete state.done[h];
+  state.archived = state.archived.filter(x=>x!==h);
+  delete expanded[h];
+  if(h === state.hatimCount){
+    state.hatimCount--;
+    while(state.hatimCount > 0 && state.removed.indexOf(state.hatimCount) !== -1){
+      state.removed = state.removed.filter(x=>x!==state.hatimCount);
+      state.hatimCount--;
+    }
+  } else if(state.removed.indexOf(h) === -1){
+    state.removed.push(h);
+  }
+  if(state.hatimCount < 1) state.hatimCount = 1;
+  save(); render();
+}
 
 app.addEventListener('click', e=>{
   const btn = e.target.closest('[data-action]');
   if(btn){
     const a = btn.dataset.action, h = +btn.dataset.h;
     if(a === 'add'){ state.hatimCount++; save(); scrollTarget = state.hatimCount; render(); }
-    else if(a === 'remove'){
-      if(state.hatimCount > 1 && confirm(state.hatimCount + ". hatim kaldırılsın mı? İşaretleri silinecek.")){
-        delete state.done[state.hatimCount];
-        state.archived = state.archived.filter(x=>x!==state.hatimCount);
-        state.hatimCount--; save(); render();
-      }
-    }
+    else if(a === 'del'){ removeHatim(h); }
     else if(a === 'reset'){
       if(confirm("TÜM hatimler, arşiv ve işaretler silinecek. Emin misiniz?")){
-        state = {hatimCount:1, done:{}, archived:[]}; expanded = {}; save(); render();
+        state = {hatimCount:1, done:{}, archived:[], removed:[]}; expanded = {}; save(); render();
       }
     }
     else if(a === 'archive'){ archiveHatim(h); }
