@@ -22,7 +22,6 @@
   .warn{margin:10px 0 0;color:var(--yellow);font-size:13.5px;font-weight:600;}
   .divider{height:1px;background:var(--line);margin:18px 0 24px;}
 
-  /* hatim bölümü */
   .hatim-section{margin-bottom:38px;}
   .sec-head{
     display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
@@ -69,7 +68,6 @@
   }
   .row.done .badge-okundu{display:inline-block;}
 
-  /* kompakt özet */
   .mini{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
   .mini-row{display:flex;align-items:center;gap:14px;font-size:14px;font-weight:700;margin-bottom:10px;}
   .mini-read{color:var(--green-l);}
@@ -78,7 +76,12 @@
   .bar{height:12px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;overflow:hidden;}
   .bar-fill{height:100%;width:0;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px;transition:width .4s ease;}
 
-  /* kontroller */
+  .done-banner{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    margin-top:14px;background:rgba(34,197,94,.1);border:1px solid #1f6b3a;border-radius:12px;padding:12px 16px;
+  }
+  .done-banner .txt{color:var(--green-l);font-weight:800;}
+
   .controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
   .btn{border:1px solid var(--line);background:transparent;color:var(--muted);
     padding:11px 18px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s ease;}
@@ -86,6 +89,23 @@
   .btn.add{background:#16233f;border-color:#2c4a7a;color:#9fc3ff;}
   .btn.add:hover{background:#1c2e52;border-color:#3b82f6;color:#cfe0ff;}
   .btn.reset:hover{border-color:#ff6b6b;color:#ff6b6b;}
+
+  /* arşiv */
+  .archive{margin-top:30px;border-top:1px solid var(--line);padding-top:22px;}
+  .arch-head{
+    width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--text);
+    padding:15px 18px;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .arch-head:hover{background:var(--card-hover);}
+  .arch-item{margin-top:12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .arch-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .arch-title{font-weight:800;color:var(--green-l);}
+  .arch-date{font-size:13px;color:var(--muted);}
+  .arch-actions{margin-left:auto;display:flex;gap:8px;}
+  .arch-actions .btn{padding:7px 12px;font-size:13px;}
+  .arch-item .grid{margin-top:14px;}
+  .archive .row{cursor:default;}
   footer{text-align:center;color:#566080;font-size:12px;margin-top:30px;}
 </style>
 </head>
@@ -99,7 +119,7 @@
 
   <div id="app"></div>
 
-  <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. İşaretlemeler bu cihazda saklanır.</footer>
+  <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Tamamlanan hatimi "Arşive at" ile saklayabilirsin. İşaretlemeler bu cihazda tutulur.</footer>
 </div>
 
 <script>
@@ -113,13 +133,9 @@ const names = [
   "AHMED KILIÇ","YUSUF KILIÇ","ZEYNEP KILIÇ","ZELİHA ÖZDEMİR","GÜLSÜM GÖZEK"
 ];
 
-/* Secde olan cüzler (değer 2 = çift secde, ikon gösterilir) */
 const SECDE = {9:1,13:1,14:1,15:1,16:1,17:1,19:2,21:1,27:1,30:2};
-
-/* h. hatimde i. kişinin okuduğu cüz (+1 kayma, 30'u geçince başa döner) */
 function cuzFor(i, h){ return ((i + (h - 1)) % 30) + 1; }
 
-/* Son tarih: 1. hatim Perşembe 25.06.2026, her hatim +7 gün */
 const BASE = new Date(2026, 5, 25, 18, 0);
 const GUN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
 function hatimDate(h){
@@ -127,29 +143,31 @@ function hatimDate(h){
   d.setDate(d.getDate() + (h - 1) * 7);
   const dd = String(d.getDate()).padStart(2,'0');
   const mm = String(d.getMonth()+1).padStart(2,'0');
-  return `${GUN[d.getDay()]} ${dd}.${mm}.${d.getFullYear()}`;
+  return GUN[d.getDay()] + " " + dd + "." + mm + "." + d.getFullYear();
 }
 
 /* ---- Durum (localStorage) ---- */
 const KEY = "hatim_state_v2";
 function load(){
-  try{ const r = localStorage.getItem(KEY); if(r) return JSON.parse(r); }catch(e){}
-  // eski tek-hatim versiyonundan taşı
-  const st = {hatimCount:1, done:{}};
-  try{
-    const old = JSON.parse(localStorage.getItem("hatim1_okunan"));
-    if(old && typeof old === "object"){
-      st.done["1"] = {};
-      Object.keys(old).forEach(k=>{ if(old[k]) st.done["1"][k] = true; });
-    }
-  }catch(e){}
+  let st = null;
+  try{ const r = localStorage.getItem(KEY); if(r) st = JSON.parse(r); }catch(e){}
+  if(!st){
+    st = {hatimCount:1, done:{}, archived:[]};
+    try{
+      const old = JSON.parse(localStorage.getItem("hatim1_okunan"));
+      if(old && typeof old === "object"){
+        st.done["1"] = {};
+        Object.keys(old).forEach(k=>{ if(old[k]) st.done["1"][k] = true; });
+      }
+    }catch(e){}
+  }
+  if(typeof st.hatimCount !== "number") st.hatimCount = 1;
+  if(!st.done) st.done = {};
+  if(!Array.isArray(st.archived)) st.archived = [];
   return st;
 }
 let state = load();
-function save(){
-  window.__state = state;
-  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
-}
+function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
 function isDone(h,cuz){ return !!(state.done[h] && state.done[h][cuz]); }
 function setDone(h,cuz,val){
@@ -157,54 +175,83 @@ function setDone(h,cuz,val){
   if(val) state.done[h][cuz] = true; else delete state.done[h][cuz];
   save();
 }
-function countDone(h){
-  const o = state.done[h] || {};
-  return Object.keys(o).filter(k=>o[k]).length;
-}
+function countDone(h){ const o = state.done[h] || {}; return Object.keys(o).filter(k=>o[k]).length; }
+function isArchived(h){ return state.archived.indexOf(h) !== -1; }
 
-/* ---- Çizim ---- */
-const app = document.getElementById('app');
+/* ---- UI durumu (kaydedilmez) ---- */
+let archiveOpen = false;
+let expanded = {};
 let scrollTarget = null;
+const app = document.getElementById('app');
+
+function rowHTML(name, cuz, done, interactive, h){
+  const sec = SECDE[cuz];
+  const icon = sec === 2 ? '<span class="secde-icon" title="Tilavet Secdesi">۩</span>' : "";
+  const data = interactive ? (' data-h="'+h+'" data-cuz="'+cuz+'" role="button" tabindex="0"') : "";
+  return '<div class="row'+(done?' done':'')+'"'+data+'>'
+    + '<div class="left"><span class="check">✓</span><span class="name">'+name+'</span>'
+    + '<span class="badge-okundu">✓ Okundu</span></div>'
+    + '<span class="badge'+(sec?' secde':'')+'">'+cuz+icon+'</span></div>';
+}
 
 function sectionHTML(h){
   let rows = "";
-  names.forEach((name,i)=>{
-    const cuz = cuzFor(i,h);
-    const sec = SECDE[cuz];
-    const icon = sec === 2 ? `<span class="secde-icon" title="Tilavet Secdesi">۩</span>` : "";
-    const done = isDone(h,cuz);
-    rows += `<div class="row${done?' done':''}" data-h="${h}" data-cuz="${cuz}" role="button" tabindex="0">
-        <div class="left"><span class="check">✓</span><span class="name">${name}</span><span class="badge-okundu">✓ Okundu</span></div>
-        <span class="badge${sec?' secde':''}">${cuz}${icon}</span>
-      </div>`;
-  });
+  names.forEach((name,i)=>{ const cuz = cuzFor(i,h); rows += rowHTML(name, cuz, isDone(h,cuz), true, h); });
   const read = countDone(h), left = 30 - read, pct = Math.round(read/30*100);
-  return `<section class="hatim-section" id="hatim-${h}">
-    <div class="sec-head">
-      <div class="sec-title">${h}. HATİM</div>
-      <div class="sec-date">Son Tarih: <b>${hatimDate(h)}</b> · 18:00</div>
-    </div>
-    <div class="grid">${rows}</div>
-    <div class="mini">
-      <div class="mini-row"><span class="mini-read">${read} okundu</span><span class="mini-left">${left} kaldı</span><span class="mini-pct">%${pct}</span></div>
-      <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
-    </div>
-  </section>`;
+  const banner = read === 30
+    ? '<div class="done-banner"><span class="txt">🎉 Tamamlandı — 30/30 okundu</span>'
+      + '<button class="btn add" data-action="archive" data-h="'+h+'">Arşive at</button></div>'
+    : "";
+  return '<section class="hatim-section" id="hatim-'+h+'">'
+    + '<div class="sec-head"><div class="sec-title">'+h+'. HATİM</div>'
+    + '<div class="sec-date">Son Tarih: <b>'+hatimDate(h)+'</b> · 18:00</div></div>'
+    + '<div class="grid">'+rows+'</div>'
+    + '<div class="mini"><div class="mini-row"><span class="mini-read">'+read+' okundu</span>'
+    + '<span class="mini-left">'+left+' kaldı</span><span class="mini-pct">%'+pct+'</span></div>'
+    + '<div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div></div>'
+    + banner + '</section>';
 }
 
 function controlsHTML(){
-  let h = `<div class="controls">`;
-  h += `<button class="btn add" data-action="add">+ ${state.hatimCount+1}. Hatimi Aç</button>`;
+  let h = '<div class="controls">';
+  h += '<button class="btn add" data-action="add">+ '+(state.hatimCount+1)+'. Hatimi Aç</button>';
   if(state.hatimCount > 1)
-    h += `<button class="btn" data-action="remove">${state.hatimCount}. hatimi kaldır</button>`;
-  h += `<button class="btn reset" data-action="reset">Tümünü sıfırla</button>`;
-  return h + `</div>`;
+    h += '<button class="btn" data-action="remove">'+state.hatimCount+'. hatimi kaldır</button>';
+  h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
+  return h + '</div>';
+}
+
+function archiveHTML(){
+  if(state.archived.length === 0) return "";
+  let inner = "";
+  if(archiveOpen){
+    state.archived.slice().sort((a,b)=>a-b).forEach(h=>{
+      const show = !!expanded[h];
+      let detail = "";
+      if(show){
+        let rows = "";
+        names.forEach((name,i)=>{ rows += rowHTML(name, cuzFor(i,h), true, false, h); });
+        detail = '<div class="grid">'+rows+'</div>';
+      }
+      inner += '<div class="arch-item"><div class="arch-row">'
+        + '<span class="arch-title">'+h+'. Hatim · ✓ Tamamlandı</span>'
+        + '<span class="arch-date">'+hatimDate(h)+'</span>'
+        + '<div class="arch-actions">'
+        + '<button class="btn" data-action="arch-show" data-h="'+h+'">'+(show?'Gizle':'Detay')+'</button>'
+        + '<button class="btn" data-action="arch-restore" data-h="'+h+'">Geri al</button>'
+        + '</div></div>'+detail+'</div>';
+    });
+  }
+  return '<div class="archive"><button class="arch-head" data-action="arch-toggle">'
+    + '<span>📁 Arşiv · '+state.archived.length+' tamamlanmış hatim</span>'
+    + '<span>'+(archiveOpen?'▾':'▸')+'</span></button>'+inner+'</div>';
 }
 
 function render(){
   let out = "";
-  for(let h=1; h<=state.hatimCount; h++) out += sectionHTML(h);
+  for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h)) out += sectionHTML(h); }
   out += controlsHTML();
+  out += archiveHTML();
   app.innerHTML = out;
   if(scrollTarget){
     const el = document.getElementById('hatim-' + scrollTarget);
@@ -213,31 +260,41 @@ function render(){
   }
 }
 
-/* ---- Etkileşim (delegasyon) ---- */
+/* ---- İşlemler ---- */
 function toggle(h,cuz){ setDone(h,cuz,!isDone(h,cuz)); render(); }
+function archiveHatim(h){ if(!isArchived(h)) state.archived.push(h); save(); archiveOpen = true; render(); }
+function restoreHatim(h){ state.archived = state.archived.filter(x=>x!==h); delete expanded[h]; save(); render(); }
 
 app.addEventListener('click', e=>{
-  const row = e.target.closest('.row');
-  if(row){ toggle(+row.dataset.h, +row.dataset.cuz); return; }
   const btn = e.target.closest('[data-action]');
-  if(!btn) return;
-  const a = btn.dataset.action;
-  if(a === 'add'){
-    state.hatimCount++; save(); scrollTarget = state.hatimCount; render();
-  } else if(a === 'remove'){
-    if(state.hatimCount > 1 && confirm(state.hatimCount + ". hatim kaldırılsın mı? İşaretleri silinecek.")){
-      delete state.done[state.hatimCount]; state.hatimCount--; save(); render();
+  if(btn){
+    const a = btn.dataset.action, h = +btn.dataset.h;
+    if(a === 'add'){ state.hatimCount++; save(); scrollTarget = state.hatimCount; render(); }
+    else if(a === 'remove'){
+      if(state.hatimCount > 1 && confirm(state.hatimCount + ". hatim kaldırılsın mı? İşaretleri silinecek.")){
+        delete state.done[state.hatimCount];
+        state.archived = state.archived.filter(x=>x!==state.hatimCount);
+        state.hatimCount--; save(); render();
+      }
     }
-  } else if(a === 'reset'){
-    if(confirm("TÜM hatimler ve işaretler silinecek. Emin misiniz?")){
-      state = {hatimCount:1, done:{}}; save(); render();
+    else if(a === 'reset'){
+      if(confirm("TÜM hatimler, arşiv ve işaretler silinecek. Emin misiniz?")){
+        state = {hatimCount:1, done:{}, archived:[]}; expanded = {}; save(); render();
+      }
     }
+    else if(a === 'archive'){ archiveHatim(h); }
+    else if(a === 'arch-toggle'){ archiveOpen = !archiveOpen; render(); }
+    else if(a === 'arch-show'){ expanded[h] = !expanded[h]; render(); }
+    else if(a === 'arch-restore'){ restoreHatim(h); }
+    return;
   }
+  const row = e.target.closest('.row');
+  if(row && row.dataset.h){ toggle(+row.dataset.h, +row.dataset.cuz); }
 });
 app.addEventListener('keydown', e=>{
   if(e.key === 'Enter' || e.key === ' '){
     const row = e.target.closest('.row');
-    if(row){ e.preventDefault(); toggle(+row.dataset.h, +row.dataset.cuz); }
+    if(row && row.dataset.h){ e.preventDefault(); toggle(+row.dataset.h, +row.dataset.cuz); }
   }
 });
 
