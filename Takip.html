@@ -327,11 +327,17 @@ function render(){
 
 /* ---- İşlemler ---- */
 function toggle(h,cuz){
+  const willRead = !isDone(h,cuz);
+  const kisi = names[personFor(cuz,h)];
+  const msg = willRead
+    ? (h + ". hatim · " + cuz + ". cüz\n" + kisi + "\n\nOKUNDU olarak işaretlensin mi?")
+    : (h + ". hatim · " + cuz + ". cüz\n" + kisi + "\n\nİşaret kaldırılsın mı? (okunmadı yapılacak)");
+  if(!confirm(msg)) return;
   if(useFirebase){
-    if(isDone(h,cuz)) fbPath('done/'+h+'/'+cuz).remove();
-    else fbPath('done/'+h+'/'+cuz).set(true);
+    if(willRead) fbPath('done/'+h+'/'+cuz).set(true);
+    else fbPath('done/'+h+'/'+cuz).remove();
   } else {
-    setDone(h,cuz,!isDone(h,cuz)); render();
+    setDone(h,cuz,willRead); render();
   }
 }
 
