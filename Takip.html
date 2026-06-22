@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1. Hatim Listesi</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --bg2:#0f1830;
+    --card:#1a2238;
+    --card-hover:#212c47;
+    --text:#e8edf7;
+    --muted:#9aa7c2;
+    --blue:#3b82f6;
+    --blue-d:#2563eb;
+    --yellow:#f5c518;
+    --green:#16a34a;
+    --green-l:#22c55e;
+    --green-bg:#0f2a1a;
+    --line:#26314e;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#13203f 0%,var(--bg) 55%);
+    color:var(--text);
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  header{text-align:center;padding:10px 0 4px;}
+  h1{
+    margin:0;
+    font-size:clamp(26px,4vw,40px);
+    font-weight:800;
+    letter-spacing:.5px;
+    color:#5b9dff;
+  }
+  .sub{margin:8px 0 2px;color:var(--muted);font-size:15px;}
+  .sub .date{color:#ff6b6b;font-weight:700;}
+  .warn{margin:6px 0 0;color:var(--yellow);font-size:13.5px;font-weight:600;}
+  .divider{height:1px;background:var(--line);margin:18px 0 22px;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px 24px;
+  }
+  @media(max-width:880px){.grid{grid-template-columns:1fr;}}
+
+  .row{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+    cursor:pointer;
+    transition:background .15s ease,border-color .15s ease,transform .08s ease;
+    user-select:none;
+  }
+  .row:hover{background:var(--card-hover);}
+  .row:active{transform:scale(.99);}
+  .name{font-size:16px;font-weight:700;letter-spacing:.3px;}
+
+  .badge{
+    flex:none;
+    min-width:46px;
+    text-align:center;
+    font-weight:800;
+    font-size:15px;
+    color:#fff;
+    background:var(--blue);
+    border-radius:8px;
+    padding:6px 10px;
+    display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  }
+  .badge.secde{background:var(--yellow);color:#1c1606;}
+  .secde-icon{font-size:13px;line-height:1;}
+
+  /* tamamlanmış (okundu) durum */
+  .row.done{
+    background:var(--green-bg);
+    border-color:#1f6b3a;
+  }
+  .row.done:hover{background:#123421;}
+  .row.done .name{color:var(--green-l);}
+  .row.done .badge{background:var(--green) !important;color:#fff !important;}
+  .check{
+    flex:none;
+    width:24px;height:24px;border-radius:50%;
+    border:2px solid #3a4666;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:14px;color:transparent;
+    transition:all .15s ease;
+  }
+  .row.done .check{
+    background:var(--green-l);border-color:var(--green-l);color:#fff;
+  }
+  .left{display:flex;align-items:center;gap:12px;min-width:0;}
+  .badge-okundu{
+    display:none;font-size:11px;font-weight:700;color:var(--green-l);
+    background:rgba(34,197,94,.12);border:1px solid #1f6b3a;
+    padding:2px 7px;border-radius:6px;margin-left:8px;white-space:nowrap;
+  }
+  .row.done .badge-okundu{display:inline-block;}
+
+  /* özet */
+  .summary{
+    margin-top:30px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px;
+  }
+  .summary h2{margin:0 0 16px;font-size:18px;font-weight:800;}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:600px){.stats{grid-template-columns:1fr;}}
+  .stat{
+    background:var(--bg2);border:1px solid var(--line);
+    border-radius:12px;padding:16px;text-align:center;
+  }
+  .stat .num{font-size:32px;font-weight:800;line-height:1;}
+  .stat .lbl{margin-top:6px;color:var(--muted);font-size:13px;font-weight:600;}
+  .stat.read .num{color:var(--green-l);}
+  .stat.left-stat .num{color:#ff8a5b;}
+  .stat.total .num{color:#5b9dff;}
+
+  .bar-wrap{margin-top:18px;}
+  .bar-top{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600;}
+  .bar{height:14px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;overflow:hidden;}
+  .bar-fill{height:100%;width:0;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px;transition:width .4s ease;}
+  .pct{color:var(--green-l);font-weight:800;}
+
+  .actions{margin-top:18px;text-align:center;}
+  .reset{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;
+    transition:all .15s ease;
+  }
+  .reset:hover{border-color:#ff6b6b;color:#ff6b6b;}
+
+  footer{text-align:center;color:#566080;font-size:12px;margin-top:26px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>1. HATİM LİSTESİ</h1>
+    <p class="sub">Son Tarih: <span class="date">Perşembe 25.06.2026</span> saat 18:00 &nbsp;|&nbsp; Lütfen okundu bildirimi yapın.</p>
+    <p class="warn">⚠️ Sarı renkli cüzlerde Tilavet Secdesi bulunmaktadır. (19. ve 30. cüzlerde 2 adet secde vardır)</p>
+  </header>
+
+  <div class="divider"></div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="summary">
+    <h2>Hatim Durumu</h2>
+    <div class="stats">
+      <div class="stat read"><div class="num" id="readCount">0</div><div class="lbl">Okunan Cüz</div></div>
+      <div class="stat left-stat"><div class="num" id="leftCount">30</div><div class="lbl">Okunmayan Cüz</div></div>
+      <div class="stat total"><div class="num" id="totalCount">30</div><div class="lbl">Toplam Cüz</div></div>
+    </div>
+
+    <div class="bar-wrap">
+      <div class="bar-top">
+        <span>Tamamlanma</span>
+        <span class="pct" id="pctLabel">%0</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+    </div>
+
+    <div class="actions">
+      <button class="reset" id="resetBtn">Tümünü sıfırla</button>
+    </div>
+  </div>
+
+  <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. İşaretlemeniz bu cihazda kaydedilir.</footer>
+</div>
+
+<script>
+// --- Liste verisi (görselden) ---
+const people = [
+  {n:"BÜNYAMİN KILIÇ",c:1},{n:"MERYEM KILIÇ",c:2},{n:"HAFIZ HÜSEYİN KILIÇ",c:3},
+  {n:"GÜLFİKAR KAYA",c:4},{n:"ZEYNEP KILIÇ ÇABUK",c:5},{n:"RUKİYE ZENGÜL",c:6},
+  {n:"NİGAR ÇAKIR",c:7},{n:"RECEP KAYA",c:8},{n:"EMİNE KILIÇ",c:9,s:1},
+  {n:"SEYFULLAH KILIÇ",c:10},
+  {n:"ASİYE KILIÇ",c:11},{n:"YAHYA KILIÇ",c:12},{n:"ELİF KILIÇ",c:13,s:1},
+  {n:"SAFURA TOK",c:14,s:1},{n:"FAHREDDİN KILIÇ",c:15,s:1},{n:"ELMAS KILIÇ",c:16,s:1},
+  {n:"FETULLAH KILIÇ",c:17,s:1},{n:"ABDURRAHMAN KILIÇ",c:18},{n:"HASAN KILIÇ",c:19,s:2},
+  {n:"FATMA KILIÇ",c:20},
+  {n:"AYŞE KILIÇ",c:21,s:1},{n:"SEVDA DIŞIKITLI",c:22},{n:"GÜLSEN DEMİRDAŞ",c:23},
+  {n:"LÜTFULLAH KILIÇ",c:24},{n:"GÜLSENEM KILIÇ",c:25},{n:"AHMED KILIÇ",c:26},
+  {n:"YUSUF KILIÇ",c:27,s:1},{n:"ZEYNEP KILIÇ",c:28},{n:"ZELİHA ÖZDEMİR",c:29},
+  {n:"GÜLSÜM GÖZEK",c:30,s:2}
+];
+
+const STORAGE_KEY = "hatim1_okunan";
+
+// localStorage güvenli sarmalayıcı (preview'da hata vermesin, deploy'da kalıcı olsun)
+const store = {
+  load(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch(e){ return window.__hatim || {}; }
+  },
+  save(obj){
+    window.__hatim = obj;
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }catch(e){}
+  }
+};
+
+let done = store.load();
+
+const grid = document.getElementById('grid');
+
+function render(){
+  grid.innerHTML = "";
+  people.forEach(p=>{
+    const isDone = !!done[p.c];
+    const row = document.createElement('div');
+    row.className = "row" + (isDone ? " done" : "");
+    row.setAttribute('role','button');
+    row.setAttribute('tabindex','0');
+
+    const secdeMark = p.s ? `<span class="secde-icon" title="Tilavet Secdesi">۩</span>` : "";
+    const okunduTag = `<span class="badge-okundu">✓ Okundu</span>`;
+
+    row.innerHTML = `
+      <div class="left">
+        <span class="check">✓</span>
+        <span class="name">${p.n}</span>
+        ${okunduTag}
+      </div>
+      <span class="badge ${p.s ? 'secde' : ''}">${p.c}${secdeMark}</span>
+    `;
+
+    const toggle = ()=>{
+      if(done[p.c]) delete done[p.c]; else done[p.c] = true;
+      store.save(done);
+      render();
+    };
+    row.addEventListener('click', toggle);
+    row.addEventListener('keydown', e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); }});
+
+    grid.appendChild(row);
+  });
+  updateSummary();
+}
+
+function updateSummary(){
+  const total = people.length;
+  const read = Object.keys(done).filter(k=>done[k]).length;
+  const left = total - read;
+  const pct = Math.round((read/total)*100);
+
+  document.getElementById('readCount').textContent = read;
+  document.getElementById('leftCount').textContent = left;
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('pctLabel').textContent = "%" + pct;
+  document.getElementById('barFill').style.width = pct + "%";
+}
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(confirm("Tüm işaretler silinecek. Emin misiniz?")){
+    done = {};
+    store.save(done);
+    render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
