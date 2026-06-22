@@ -126,6 +126,24 @@
   .arch-item .grid{margin-top:14px;}
   .archive .row{cursor:default;}
   footer{text-align:center;color:#566080;font-size:12px;margin-top:30px;}
+
+  /* özel onay penceresi */
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,8,18,.74);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000;}
+  .modal-overlay[hidden]{display:none;}
+  .modal-card{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:400px;width:100%;
+    padding:22px 22px 18px;box-shadow:0 24px 70px rgba(0,0,0,.55);animation:pop .15s ease;}
+  @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:12px;}
+  .modal-body{font-size:15px;color:var(--muted);line-height:1.55;margin-bottom:22px;}
+  .modal-body .hl{color:#5b9dff;font-weight:800;}
+  .modal-body .nm{color:var(--text);font-weight:700;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+  .modal-actions .btn{min-width:96px;padding:11px 16px;}
+  .modal-ok{background:var(--green);border-color:var(--green);color:#fff;}
+  .modal-ok:hover{background:var(--green-l);border-color:var(--green-l);color:#fff;}
+  .modal-ok.danger{background:#b91c1c;border-color:#b91c1c;color:#fff;}
+  .modal-ok.danger:hover{background:#dc2626;border-color:#dc2626;color:#fff;}
 </style>
 </head>
 <body>
@@ -142,6 +160,17 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
+</div>
+
+<div class="modal-overlay" id="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn" id="modalCancel">İptal</button>
+      <button class="btn modal-ok" id="modalOk">Onayla</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
@@ -248,6 +277,23 @@ let expanded = {};
 let scrollTarget = null;
 const app = document.getElementById('app');
 
+/* ---- Özel onay penceresi ---- */
+const modal = document.getElementById('modal');
+let modalOnOk = null;
+function uiConfirm(opts){
+  document.getElementById('modalTitle').innerHTML = opts.title || 'Onay';
+  document.getElementById('modalBody').innerHTML = opts.body || '';
+  const ok = document.getElementById('modalOk');
+  ok.textContent = opts.okText || 'Onayla';
+  ok.className = 'btn modal-ok' + (opts.danger ? ' danger' : '');
+  modalOnOk = opts.onOk || null;
+  modal.hidden = false;
+}
+function closeModal(){ modal.hidden = true; modalOnOk = null; }
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalOk').addEventListener('click', function(){ const fn = modalOnOk; closeModal(); if(fn) fn(); });
+modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
+
 function rowHTML(name, cuz, done, interactive, h){
   const sec = SECDE[cuz];
   const icon = sec === 2 ? '<span class="secde-icon" title="Tilavet Secdesi">۩</span>' : "";
@@ -329,16 +375,20 @@ function render(){
 function toggle(h,cuz){
   const willRead = !isDone(h,cuz);
   const kisi = names[personFor(cuz,h)];
-  const msg = willRead
-    ? (h + ". hatim · " + cuz + ". cüz\n" + kisi + "\n\nOKUNDU olarak işaretlensin mi?")
-    : (h + ". hatim · " + cuz + ". cüz\n" + kisi + "\n\nİşaret kaldırılsın mı? (okunmadı yapılacak)");
-  if(!confirm(msg)) return;
-  if(useFirebase){
-    if(willRead) fbPath('done/'+h+'/'+cuz).set(true);
-    else fbPath('done/'+h+'/'+cuz).remove();
-  } else {
-    setDone(h,cuz,willRead); render();
-  }
+  uiConfirm({
+    title: willRead ? 'Okundu olarak işaretle' : 'İşareti kaldır',
+    okText: willRead ? '✓ Okundu' : 'Kaldır',
+    danger: !willRead,
+    body: '<span class="hl">'+h+'. hatim · '+cuz+'. cüz</span><br><span class="nm">'+kisi+'</span><br><br>'
+        + (willRead ? 'Bu cüz <b>OKUNDU</b> olarak işaretlensin mi?'
+                    : 'Bu cüzün işareti kaldırılsın mı? (okunmadı yapılacak)'),
+    onOk: function(){
+      if(useFirebase){
+        if(willRead) fbPath('done/'+h+'/'+cuz).set(true);
+        else fbPath('done/'+h+'/'+cuz).remove();
+      } else { setDone(h,cuz,willRead); render(); }
+    }
+  });
 }
 
 function shareText(h){
@@ -375,7 +425,13 @@ function restoreHatim(h){
   else { state.archived = state.archived.filter(x=>x!==h); save(); render(); }
 }
 function removeHatim(h){
-  if(!confirm(h + ". hatim kaldırılsın mı? Bu hatimin işaretleri silinecek.")) return;
+  uiConfirm({
+    title:'Hatimi kaldır', danger:true, okText:'Kaldır',
+    body:'<span class="hl">'+h+'. hatim</span><br><br>Bu hatim ve tüm işaretleri silinecek. Emin misiniz?',
+    onOk:function(){ doRemoveHatim(h); }
+  });
+}
+function doRemoveHatim(h){
   delete expanded[h];
   if(useFirebase){
     const updates = {};
@@ -418,11 +474,15 @@ app.addEventListener('click', e=>{
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'reset'){
-      if(confirm("TÜM hatimler, arşiv ve işaretler silinecek. Emin misiniz?")){
-        expanded = {}; archiveOpen = false;
-        if(useFirebase){ fbRoot().remove(); }
-        else { state = {hatimCount:1, done:{}, archived:[], removed:[]}; save(); render(); }
-      }
+      uiConfirm({
+        title:'Tümünü sıfırla', danger:true, okText:'Sil',
+        body:'<b>TÜM</b> hatimler, arşiv ve işaretler silinecek. Bu işlem geri alınamaz. Emin misiniz?',
+        onOk:function(){
+          expanded = {}; archiveOpen = false;
+          if(useFirebase){ fbRoot().remove(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[]}; save(); render(); }
+        }
+      });
     }
     else if(a === 'archive'){ archiveHatim(h); }
     else if(a === 'arch-toggle'){ archiveOpen = !archiveOpen; render(); }
