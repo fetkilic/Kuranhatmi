@@ -27,6 +27,12 @@
   .dedication .fatiha{display:block;margin-top:4px;font-size:13px;color:var(--muted);font-style:italic;}
   .warn{margin:14px 0 0;color:var(--yellow);font-size:13.5px;font-weight:600;}
   .divider{height:1px;background:var(--line);margin:18px 0 24px;}
+  .status{display:inline-block;margin:14px auto 0;font-size:12.5px;font-weight:700;
+    padding:5px 12px;border-radius:999px;border:1px solid var(--line);color:var(--muted);}
+  .status.ok{color:var(--green-l);border-color:#1f6b3a;background:rgba(34,197,94,.08);}
+  .status.connecting{color:var(--yellow);}
+  .status.offline{color:#ff8a5b;border-color:#5a2f2f;}
+  .status.local{color:#5b9dff;}
 
   .hatim-section{margin-bottom:38px;}
   .sec-head{
@@ -129,14 +135,17 @@
     <p class="dedication">Merhum <strong>HAFIZ HALİL KILIÇ</strong> <span class="nick">(HACIBABAMIZ)</span> ruhuna ithafen
       <span class="fatiha">El-Fâtiha</span></p>
     <p class="warn">⚠️ Sarı renkli cüzlerde Tilavet Secdesi bulunmaktadır. (19. ve 30. cüzlerde 2 adet secde vardır)</p>
+    <div class="status connecting" id="status">🟡 Bağlanıyor…</div>
   </header>
   <div class="divider"></div>
 
   <div id="app"></div>
 
-  <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Tamamlanan hatimi "Arşive at" ile saklayabilirsin. İşaretlemeler bu cihazda tutulur.</footer>
+  <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- İsimler (1. hatim sırası: ilk kişi 1. cüz, son kişi 30. cüz) ---- */
 const names = [
@@ -162,6 +171,31 @@ function hatimDate(h){
   return GUN[d.getDay()] + " " + dd + "." + mm + "." + d.getFullYear();
 }
 
+/* ---- Firebase yapılandırması (boşken sayfa yerel modda çalışır) ---- */
+const firebaseConfig = {
+  apiKey: "AIzaSyDSp5iJV-psz95rrjCNd3ccLz_-xuRvPoI",
+  authDomain: "hatim-takip-bd12a.firebaseapp.com",
+  databaseURL: "https://hatim-takip-bd12a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "hatim-takip-bd12a",
+  storageBucket: "hatim-takip-bd12a.firebasestorage.app",
+  messagingSenderId: "765316268052",
+  appId: "1:765316268052:web:93196df559c15be84ae701"
+};
+const useFirebase = firebaseConfig.databaseURL
+  && firebaseConfig.databaseURL.indexOf("BURAYA") === -1
+  && typeof firebase !== "undefined";
+let db = null;
+function fbRoot(){ return db.ref('hatim'); }
+function fbPath(p){ return db.ref('hatim/' + p); }
+function setStatus(s){
+  const el = document.getElementById('status'); if(!el) return;
+  el.className = 'status ' + s;
+  el.textContent = ({
+    ok:'🟢 Senkronize · canlı', connecting:'🟡 Bağlanıyor…',
+    offline:'🔴 Bağlantı yok', local:'⚪ Yerel mod · sadece bu cihaz'
+  })[s] || s;
+}
+
 /* ---- Durum (localStorage) ---- */
 const KEY = "hatim_state_v2";
 function load(){
@@ -183,7 +217,8 @@ function load(){
   if(!Array.isArray(st.removed)) st.removed = [];
   return st;
 }
-let state = load();
+let state = {hatimCount:1, done:{}, archived:[], removed:[]};
+if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
 function isDone(h,cuz){ return !!(state.done[h] && state.done[h][cuz]); }
@@ -195,6 +230,17 @@ function setDone(h,cuz,val){
 function countDone(h){ const o = state.done[h] || {}; return Object.keys(o).filter(k=>o[k]).length; }
 function isArchived(h){ return state.archived.indexOf(h) !== -1; }
 function isRemoved(h){ return state.removed.indexOf(h) !== -1; }
+
+/* Firebase anlık görüntüsünü yerel state'e çevirir */
+function applySnap(val){
+  val = val || {};
+  state.hatimCount = (val.meta && val.meta.hatimCount) || 1;
+  state.done = val.done || {};
+  state.archived = val.archived ? Object.keys(val.archived).filter(k=>val.archived[k]).map(Number) : [];
+  state.removed = val.removed ? Object.keys(val.removed).filter(k=>val.removed[k]).map(Number) : [];
+  if(state.hatimCount < 1) state.hatimCount = 1;
+  render();
+}
 
 /* ---- UI durumu (kaydedilmez) ---- */
 let archiveOpen = false;
@@ -280,7 +326,14 @@ function render(){
 }
 
 /* ---- İşlemler ---- */
-function toggle(h,cuz){ setDone(h,cuz,!isDone(h,cuz)); render(); }
+function toggle(h,cuz){
+  if(useFirebase){
+    if(isDone(h,cuz)) fbPath('done/'+h+'/'+cuz).remove();
+    else fbPath('done/'+h+'/'+cuz).set(true);
+  } else {
+    setDone(h,cuz,!isDone(h,cuz)); render();
+  }
+}
 
 function shareText(h){
   const readNums = [], unread = [];
@@ -305,13 +358,36 @@ function shareWhatsApp(h){
   window.open("https://wa.me/?text=" + encodeURIComponent(shareText(h)), "_blank");
 }
 
-function archiveHatim(h){ if(!isArchived(h)) state.archived.push(h); save(); archiveOpen = true; render(); }
-function restoreHatim(h){ state.archived = state.archived.filter(x=>x!==h); delete expanded[h]; save(); render(); }
+function archiveHatim(h){
+  archiveOpen = true;
+  if(useFirebase){ fbPath('archived/'+h).set(true); }
+  else { if(!isArchived(h)) state.archived.push(h); save(); render(); }
+}
+function restoreHatim(h){
+  delete expanded[h];
+  if(useFirebase){ fbPath('archived/'+h).remove(); }
+  else { state.archived = state.archived.filter(x=>x!==h); save(); render(); }
+}
 function removeHatim(h){
   if(!confirm(h + ". hatim kaldırılsın mı? Bu hatimin işaretleri silinecek.")) return;
+  delete expanded[h];
+  if(useFirebase){
+    const updates = {};
+    updates['done/'+h] = null;
+    updates['archived/'+h] = null;
+    if(h === state.hatimCount){
+      let nc = state.hatimCount - 1;
+      while(nc > 0 && state.removed.indexOf(nc) !== -1){ updates['removed/'+nc] = null; nc--; }
+      if(nc < 1) nc = 1;
+      updates['meta/hatimCount'] = nc;
+    } else {
+      updates['removed/'+h] = true;
+    }
+    fbRoot().update(updates);
+    return;
+  }
   delete state.done[h];
   state.archived = state.archived.filter(x=>x!==h);
-  delete expanded[h];
   if(h === state.hatimCount){
     state.hatimCount--;
     while(state.hatimCount > 0 && state.removed.indexOf(state.hatimCount) !== -1){
@@ -329,12 +405,17 @@ app.addEventListener('click', e=>{
   const btn = e.target.closest('[data-action]');
   if(btn){
     const a = btn.dataset.action, h = +btn.dataset.h;
-    if(a === 'add'){ state.hatimCount++; save(); scrollTarget = state.hatimCount; render(); }
+    if(a === 'add'){
+      if(useFirebase){ scrollTarget = state.hatimCount + 1; fbPath('meta/hatimCount').set(state.hatimCount + 1); }
+      else { state.hatimCount++; save(); scrollTarget = state.hatimCount; render(); }
+    }
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'reset'){
       if(confirm("TÜM hatimler, arşiv ve işaretler silinecek. Emin misiniz?")){
-        state = {hatimCount:1, done:{}, archived:[], removed:[]}; expanded = {}; save(); render();
+        expanded = {}; archiveOpen = false;
+        if(useFirebase){ fbRoot().remove(); }
+        else { state = {hatimCount:1, done:{}, archived:[], removed:[]}; save(); render(); }
       }
     }
     else if(a === 'archive'){ archiveHatim(h); }
@@ -353,7 +434,21 @@ app.addEventListener('keydown', e=>{
   }
 });
 
-render();
+/* ---- Başlatma ---- */
+if(useFirebase){
+  setStatus('connecting');
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    db.ref('.info/connected').on('value', s=>{ setStatus(s.val() ? 'ok' : 'offline'); });
+    fbRoot().on('value', snap=>{ applySnap(snap.val()); });
+  }catch(err){
+    state = load(); setStatus('local'); render();
+  }
+} else {
+  setStatus('local');
+  render();
+}
 </script>
 </body>
 </html>
