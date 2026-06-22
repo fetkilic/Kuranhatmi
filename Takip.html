@@ -93,6 +93,9 @@
   .btn.add{background:#16233f;border-color:#2c4a7a;color:#9fc3ff;}
   .btn.add:hover{background:#1c2e52;border-color:#3b82f6;color:#cfe0ff;}
   .btn.reset:hover{border-color:#ff6b6b;color:#ff6b6b;}
+  .btn.wa{background:#0c3b34;border-color:#128C7E;color:#cffaef;}
+  .btn.wa:hover{background:#10564b;border-color:#25D366;color:#eafff8;}
+  .mini .btn.wa{width:100%;margin-top:14px;}
 
   /* arşiv */
   .archive{margin-top:30px;border-top:1px solid var(--line);padding-top:22px;}
@@ -216,7 +219,8 @@ function sectionHTML(h){
     + '<div class="grid">'+rows+'</div>'
     + '<div class="mini"><div class="mini-row"><span class="mini-read">'+read+' okundu</span>'
     + '<span class="mini-left">'+left+' kaldı</span><span class="mini-pct">%'+pct+'</span></div>'
-    + '<div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div></div>'
+    + '<div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div>'
+    + '<button class="btn wa" data-action="share" data-h="'+h+'">📲 WhatsApp\'ta paylaş</button></div>'
     + banner + '</section>';
 }
 
@@ -269,6 +273,29 @@ function render(){
 
 /* ---- İşlemler ---- */
 function toggle(h,cuz){ setDone(h,cuz,!isDone(h,cuz)); render(); }
+
+function shareText(h){
+  const readNums = [], unread = [];
+  for(let c=1;c<=30;c++){ if(isDone(h,c)) readNums.push(c); else unread.push(c); }
+  const read = readNums.length, left = unread.length, pct = Math.round(read/30*100);
+  let t = "📖 " + h + ". HATİM DURUMU\n";
+  t += "🗓️ Son tarih: " + hatimDate(h) + " 18:00\n\n";
+  if(left === 0){
+    t += "🎉 Tamamlandı! 30/30 cüz okundu. Allah kabul etsin.\n";
+  } else {
+    t += "✅ Okunan: " + read + "/30 (%" + pct + ")\n";
+    t += "⏳ Kalan: " + left + " cüz\n";
+    if(read > 0) t += "\n📗 Okunan cüzler: " + readNums.join(", ") + "\n";
+    t += "\n📌 Okunmayan cüzler:\n";
+    unread.forEach(c=>{ t += "• " + c + ". cüz — " + names[personFor(c,h)] + "\n"; });
+  }
+  t += "\n🔗 " + location.href;
+  return t;
+}
+function shareWhatsApp(h){
+  window.open("https://wa.me/?text=" + encodeURIComponent(shareText(h)), "_blank");
+}
+
 function archiveHatim(h){ if(!isArchived(h)) state.archived.push(h); save(); archiveOpen = true; render(); }
 function restoreHatim(h){ state.archived = state.archived.filter(x=>x!==h); delete expanded[h]; save(); render(); }
 function removeHatim(h){
@@ -295,6 +322,7 @@ app.addEventListener('click', e=>{
     const a = btn.dataset.action, h = +btn.dataset.h;
     if(a === 'add'){ state.hatimCount++; save(); scrollTarget = state.hatimCount; render(); }
     else if(a === 'del'){ removeHatim(h); }
+    else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'reset'){
       if(confirm("TÜM hatimler, arşiv ve işaretler silinecek. Emin misiniz?")){
         state = {hatimCount:1, done:{}, archived:[], removed:[]}; expanded = {}; save(); render();
