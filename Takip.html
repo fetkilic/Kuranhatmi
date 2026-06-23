@@ -334,6 +334,7 @@ let archiveOpen = false;
 let expanded = {};
 let scrollTarget = null;
 let activeHatim = null;
+let userPicked = false;
 const app = document.getElementById('app');
 
 /* ---- Özel onay penceresi ---- */
@@ -496,10 +497,15 @@ function tabsHTML(actives){
   return t + '</div>';
 }
 
+function defaultActive(actives){
+  for(let k=0;k<actives.length;k++){ if(countDone(actives[k]) < 30) return actives[k]; } // ilk bitmemiş
+  return actives.length ? actives[actives.length-1] : null;                                // hepsi bittiyse sonuncu
+}
+
 function render(){
   const actives = [];
   for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h) && !isRemoved(h)) actives.push(h); }
-  if(actives.indexOf(activeHatim) === -1){ activeHatim = actives.length ? actives[actives.length-1] : null; }
+  if(!userPicked || actives.indexOf(activeHatim) === -1){ activeHatim = defaultActive(actives); }
 
   let out = tabsHTML(actives);
   if(activeHatim != null) out += sectionHTML(activeHatim);
@@ -511,6 +517,7 @@ function render(){
 
 /* ---- İşlemler ---- */
 function toggle(h,cuz){
+  userPicked = true;
   const willRead = !isDone(h,cuz);
   const kisi = displayName(cuz,h);
   uiConfirm({
@@ -627,12 +634,13 @@ app.addEventListener('click', e=>{
   if(btn){
     const a = btn.dataset.action, h = +btn.dataset.h;
     if(a === 'add'){
+      userPicked = true;
       activeHatim = state.hatimCount + 1;
       window.scrollTo(0,0);
       if(useFirebase){ fbPath('meta/hatimCount').set(state.hatimCount + 1); }
       else { state.hatimCount++; save(); render(); }
     }
-    else if(a === 'tab'){ activeHatim = h; window.scrollTo(0,0); render(); }
+    else if(a === 'tab'){ userPicked = true; activeHatim = h; window.scrollTo(0,0); render(); }
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'admin'){ openAdmin(); }
