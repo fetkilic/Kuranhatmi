@@ -127,6 +127,30 @@
   .archive .row{cursor:default;}
   footer{text-align:center;color:#566080;font-size:12px;margin-top:30px;}
 
+  /* sekmeler */
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 12px;margin-bottom:14px;
+    position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);
+    -webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+  .tabs::-webkit-scrollbar{height:6px;}
+  .tabs::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+  .tab{flex:0 0 auto;min-width:104px;background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:10px 14px 8px;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:flex-start;
+    transition:background .15s,border-color .15s;}
+  .tab:hover{background:var(--card-hover);}
+  .tab.active{border-color:#3b82f6;background:#16233f;box-shadow:0 0 0 1px #3b82f6 inset;}
+  .tab-no{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;}
+  .tab.active .tab-no{color:#9fc3ff;}
+  .tab-prog{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;}
+  .tab.done .tab-prog{color:var(--green-l);}
+  .tab-bar{width:100%;height:4px;background:var(--bg2);border-radius:999px;overflow:hidden;}
+  .tab-fill{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px;}
+  .tab.active .tab-fill{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+  .tab-add{min-width:80px;align-items:center;justify-content:center;gap:3px;border-style:dashed;color:var(--muted);}
+  .tab-add:hover{border-color:#3b82f6;color:#9fc3ff;}
+  .tab-plus{font-size:20px;font-weight:800;line-height:1;}
+  .empty{text-align:center;color:var(--muted);padding:46px 20px;font-size:15px;line-height:1.6;
+    background:var(--card);border:1px solid var(--line);border-radius:14px;}
+
   /* özel onay penceresi */
   .modal-overlay{position:fixed;inset:0;background:rgba(5,8,18,.74);backdrop-filter:blur(3px);
     display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000;}
@@ -309,6 +333,7 @@ function applySnap(val){
 let archiveOpen = false;
 let expanded = {};
 let scrollTarget = null;
+let activeHatim = null;
 const app = document.getElementById('app');
 
 /* ---- Özel onay penceresi ---- */
@@ -425,7 +450,6 @@ function sectionHTML(h){
 
 function controlsHTML(){
   let h = '<div class="controls">';
-  h += '<button class="btn add" data-action="add">+ '+(state.hatimCount+1)+'. Hatimi Aç</button>';
   h += '<button class="btn" data-action="admin">🔒 Admin</button>';
   h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
   return h + '</div>';
@@ -458,17 +482,31 @@ function archiveHTML(){
     + '<span>'+(archiveOpen?'▾':'▸')+'</span></button>'+inner+'</div>';
 }
 
+function tabsHTML(actives){
+  let t = '<div class="tabs" id="tabs">';
+  actives.forEach(h=>{
+    const read = countDone(h), pct = Math.round(read/30*100), done = read === 30;
+    t += '<button class="tab'+(h===activeHatim?' active':'')+(done?' done':'')+'" data-action="tab" data-h="'+h+'">'
+       + '<span class="tab-no">'+h+'. Hatim</span>'
+       + '<span class="tab-prog">'+(done?'✓ 30/30':read+'/30')+'</span>'
+       + '<span class="tab-bar"><span class="tab-fill" style="width:'+pct+'%"></span></span>'
+       + '</button>';
+  });
+  t += '<button class="tab tab-add" data-action="add"><span class="tab-plus">＋</span><span class="tab-no">Yeni</span></button>';
+  return t + '</div>';
+}
+
 function render(){
-  let out = "";
-  for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h) && !isRemoved(h)) out += sectionHTML(h); }
+  const actives = [];
+  for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h) && !isRemoved(h)) actives.push(h); }
+  if(actives.indexOf(activeHatim) === -1){ activeHatim = actives.length ? actives[actives.length-1] : null; }
+
+  let out = tabsHTML(actives);
+  if(activeHatim != null) out += sectionHTML(activeHatim);
+  else out += '<div class="empty">Henüz açık hatim yok.<br>“＋ Yeni” ile bir hatim aç.</div>';
   out += controlsHTML();
   out += archiveHTML();
   app.innerHTML = out;
-  if(scrollTarget){
-    const el = document.getElementById('hatim-' + scrollTarget);
-    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-    scrollTarget = null;
-  }
 }
 
 /* ---- İşlemler ---- */
@@ -589,9 +627,12 @@ app.addEventListener('click', e=>{
   if(btn){
     const a = btn.dataset.action, h = +btn.dataset.h;
     if(a === 'add'){
-      if(useFirebase){ scrollTarget = state.hatimCount + 1; fbPath('meta/hatimCount').set(state.hatimCount + 1); }
-      else { state.hatimCount++; save(); scrollTarget = state.hatimCount; render(); }
+      activeHatim = state.hatimCount + 1;
+      window.scrollTo(0,0);
+      if(useFirebase){ fbPath('meta/hatimCount').set(state.hatimCount + 1); }
+      else { state.hatimCount++; save(); render(); }
     }
+    else if(a === 'tab'){ activeHatim = h; window.scrollTo(0,0); render(); }
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'admin'){ openAdmin(); }
