@@ -144,6 +144,15 @@
   .modal-ok:hover{background:var(--green-l);border-color:var(--green-l);color:#fff;}
   .modal-ok.danger{background:#b91c1c;border-color:#b91c1c;color:#fff;}
   .modal-ok.danger:hover{background:#dc2626;border-color:#dc2626;color:#fff;}
+  .modal-card.wide{max-width:480px;}
+  .admin-input{width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:9px 11px;font-size:14px;font-weight:600;}
+  .admin-input:focus{outline:none;border-color:#5b9dff;}
+  .admin-note{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px;
+    background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+  .admin-list{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;}
+  .admin-row{display:flex;align-items:center;gap:10px;}
+  .admin-no{flex:none;width:26px;text-align:right;color:var(--muted);font-weight:700;font-size:13px;}
 </style>
 </head>
 <body>
@@ -189,6 +198,25 @@ const names = [
 const SECDE = {9:1,13:1,14:1,15:1,16:1,17:1,19:2,21:1,27:1,30:2};
 /* h. hatimde c. cüzü okuyan kişinin sıra no'su (rotasyonun tersi) */
 function personFor(c, h){ return (((c - h) % 30) + 30) % 30; }
+
+/* ---- Admin / isim sürümleme ---- */
+const ADMIN_PASS = "Hacibaba!";
+let isAdmin = false;
+function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+/* i. katılımcının güncel (canlı) ismi: admin değişikliği varsa o, yoksa varsayılan */
+function liveName(i){ return (state.names && state.names[i] != null && state.names[i] !== "") ? state.names[i] : names[i]; }
+/* h. hatimde i. katılımcının ismi: o hatim donduruldu (snapshot) ise eski isim, değilse canlı isim */
+function nameFor(i, h){
+  if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
+  return liveName(i);
+}
+/* Gösterilecek isim: cüz okunduysa onu okuyanın o anki adı (kilitli), değilse güncel ad */
+function displayName(c, h){
+  const i = personFor(c,h);
+  if(isDone(h,c) && state.readers && state.readers[h] && state.readers[h][c] != null) return state.readers[h][c];
+  if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
+  return liveName(i);
+}
 
 const BASE = new Date(2026, 5, 25, 18, 0);
 const GUN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
@@ -244,9 +272,12 @@ function load(){
   if(!st.done) st.done = {};
   if(!Array.isArray(st.archived)) st.archived = [];
   if(!Array.isArray(st.removed)) st.removed = [];
+  if(!st.names) st.names = {};
+  if(!st.snapshots) st.snapshots = {};
+  if(!st.readers) st.readers = {};
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[]};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -267,6 +298,9 @@ function applySnap(val){
   state.done = val.done || {};
   state.archived = val.archived ? Object.keys(val.archived).filter(k=>val.archived[k]).map(Number) : [];
   state.removed = val.removed ? Object.keys(val.removed).filter(k=>val.removed[k]).map(Number) : [];
+  state.names = val.names || {};
+  state.snapshots = val.snapshots || {};
+  state.readers = val.readers || {};
   if(state.hatimCount < 1) state.hatimCount = 1;
   render();
 }
@@ -279,20 +313,85 @@ const app = document.getElementById('app');
 
 /* ---- Özel onay penceresi ---- */
 const modal = document.getElementById('modal');
+const modalCard = modal.querySelector('.modal-card');
 let modalOnOk = null;
 function uiConfirm(opts){
+  modalCard.className = 'modal-card' + (opts.wide ? ' wide' : '');
   document.getElementById('modalTitle').innerHTML = opts.title || 'Onay';
   document.getElementById('modalBody').innerHTML = opts.body || '';
+  document.getElementById('modalCancel').style.display = opts.hideCancel ? 'none' : '';
   const ok = document.getElementById('modalOk');
   ok.textContent = opts.okText || 'Onayla';
   ok.className = 'btn modal-ok' + (opts.danger ? ' danger' : '');
   modalOnOk = opts.onOk || null;
   modal.hidden = false;
 }
+function uiAlert(title, body){ uiConfirm({title:title, body:body||'', okText:'Tamam', hideCancel:true}); }
 function closeModal(){ modal.hidden = true; modalOnOk = null; }
 document.getElementById('modalCancel').addEventListener('click', closeModal);
 document.getElementById('modalOk').addEventListener('click', function(){ const fn = modalOnOk; closeModal(); if(fn) fn(); });
 modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
+
+/* ---- Admin paneli ---- */
+function openAdmin(){
+  if(isAdmin){ showAdminPanel(); return; }
+  uiConfirm({
+    title:'🔒 Admin Girişi',
+    body:'Yönetici şifresini girin:<br><br><input id="adminPass" type="password" class="admin-input" placeholder="Şifre" autocomplete="off">',
+    okText:'Giriş',
+    onOk:function(){
+      const el = document.getElementById('adminPass');
+      const v = el ? el.value : '';
+      if(v === ADMIN_PASS){ isAdmin = true; showAdminPanel(); }
+      else { uiAlert('Hatalı şifre', 'Girdiğiniz şifre yanlış.'); }
+    }
+  });
+  setTimeout(function(){ const el = document.getElementById('adminPass'); if(el) el.focus(); }, 60);
+}
+function showAdminPanel(){
+  let rows = '';
+  for(let i=0;i<30;i++){
+    rows += '<div class="admin-row"><span class="admin-no">'+(i+1)+'.</span>'
+          + '<input class="admin-input" data-i="'+i+'" value="'+escAttr(liveName(i))+'"></div>';
+  }
+  uiConfirm({
+    wide:true,
+    title:'Admin · Katılımcı İsimleri',
+    body:'<div class="admin-note">İsim değişikliği <b>aktif ve sonraki</b> hatimlere yansır. <b>Tamamlanan/arşivlenen</b> hatimlerde eski isim korunur.</div>'
+        + '<div class="admin-list">'+rows+'</div>',
+    okText:'Kaydet',
+    onOk:saveAdminNames
+  });
+}
+function saveAdminNames(){
+  const inputs = document.querySelectorAll('.admin-list input[data-i]');
+  /* Önce tamamlanmış (30/30) ama henüz dondurulmamış hatimleri eski isimlerle dondur */
+  for(let h=1; h<=state.hatimCount; h++){
+    const complete = countDone(h) === 30;
+    const hasSnap = state.snapshots && state.snapshots[h];
+    if(complete && !hasSnap && !isRemoved(h)){
+      if(useFirebase) fbPath('snapshots/'+h).set(snapNames());
+      else { state.snapshots = state.snapshots || {}; state.snapshots[h] = snapNames(); }
+    }
+  }
+  /* Sonra yeni isimleri uygula */
+  let changed = false;
+  inputs.forEach(function(inp){
+    const i = +inp.dataset.i;
+    const val = (inp.value || '').trim();
+    if(!val) return;
+    if(val === liveName(i)) return;
+    changed = true;
+    if(useFirebase){
+      if(val === names[i]) fbPath('names/'+i).remove();
+      else fbPath('names/'+i).set(val);
+    } else {
+      state.names = state.names || {};
+      if(val === names[i]) delete state.names[i]; else state.names[i] = val;
+    }
+  });
+  if(!useFirebase){ save(); render(); }
+}
 
 function rowHTML(name, cuz, done, interactive, h){
   const sec = SECDE[cuz];
@@ -306,7 +405,7 @@ function rowHTML(name, cuz, done, interactive, h){
 
 function sectionHTML(h){
   let rows = "";
-  for(let c=1;c<=30;c++){ rows += rowHTML(names[personFor(c,h)], c, isDone(h,c), true, h); }
+  for(let c=1;c<=30;c++){ rows += rowHTML(displayName(c,h), c, isDone(h,c), true, h); }
   const read = countDone(h), left = 30 - read, pct = Math.round(read/30*100);
   const banner = read === 30
     ? '<div class="done-banner"><span class="txt">🎉 Tamamlandı — 30/30 okundu</span>'
@@ -327,6 +426,7 @@ function sectionHTML(h){
 function controlsHTML(){
   let h = '<div class="controls">';
   h += '<button class="btn add" data-action="add">+ '+(state.hatimCount+1)+'. Hatimi Aç</button>';
+  h += '<button class="btn" data-action="admin">🔒 Admin</button>';
   h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
   return h + '</div>';
 }
@@ -340,7 +440,7 @@ function archiveHTML(){
       let detail = "";
       if(show){
         let rows = "";
-        for(let c=1;c<=30;c++){ rows += rowHTML(names[personFor(c,h)], c, true, false, h); }
+        for(let c=1;c<=30;c++){ rows += rowHTML(displayName(c,h), c, true, false, h); }
         detail = '<div class="grid">'+rows+'</div>';
       }
       inner += '<div class="arch-item"><div class="arch-row">'
@@ -374,7 +474,7 @@ function render(){
 /* ---- İşlemler ---- */
 function toggle(h,cuz){
   const willRead = !isDone(h,cuz);
-  const kisi = names[personFor(cuz,h)];
+  const kisi = displayName(cuz,h);
   uiConfirm({
     title: willRead ? 'Okundu olarak işaretle' : 'İşareti kaldır',
     okText: willRead ? '✓ Okundu' : 'Kaldır',
@@ -384,9 +484,18 @@ function toggle(h,cuz){
                     : 'Bu cüzün işareti kaldırılsın mı? (okunmadı yapılacak)'),
     onOk: function(){
       if(useFirebase){
-        if(willRead) fbPath('done/'+h+'/'+cuz).set(true);
-        else fbPath('done/'+h+'/'+cuz).remove();
-      } else { setDone(h,cuz,willRead); render(); }
+        const u = {};
+        if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = liveName(personFor(cuz,h)); }
+        else { u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; }
+        fbRoot().update(u);
+      } else {
+        setDone(h,cuz,willRead);
+        state.readers = state.readers || {};
+        if(!state.readers[h]) state.readers[h] = {};
+        if(willRead) state.readers[h][cuz] = liveName(personFor(cuz,h));
+        else delete state.readers[h][cuz];
+        save(); render();
+      }
     }
   });
 }
@@ -405,7 +514,7 @@ function shareText(h){
     t += "⏳ Kalan: " + left + " cüz\n";
     if(read > 0) t += "\n📗 Okunan cüzler: " + readNums.join(", ") + "\n";
     t += "\n📌 Okunmayan cüzler:\n";
-    unread.forEach(c=>{ t += "• " + c + ". cüz — " + names[personFor(c,h)] + "\n"; });
+    unread.forEach(c=>{ t += "• " + c + ". cüz — " + displayName(c,h) + "\n"; });
   }
   t += "\n🔗 " + location.href;
   return t;
@@ -414,15 +523,23 @@ function shareWhatsApp(h){
   window.open("https://wa.me/?text=" + encodeURIComponent(shareText(h)), "_blank");
 }
 
+function snapNames(){ const s = {}; for(let i=0;i<30;i++) s[i] = liveName(i); return s; }
 function archiveHatim(h){
   archiveOpen = true;
-  if(useFirebase){ fbPath('archived/'+h).set(true); }
-  else { if(!isArchived(h)) state.archived.push(h); save(); render(); }
+  const hasSnap = state.snapshots && state.snapshots[h];
+  if(useFirebase){
+    if(!hasSnap) fbPath('snapshots/'+h).set(snapNames());
+    fbPath('archived/'+h).set(true);
+  } else {
+    if(!isArchived(h)) state.archived.push(h);
+    if(!hasSnap){ state.snapshots = state.snapshots || {}; state.snapshots[h] = snapNames(); }
+    save(); render();
+  }
 }
 function restoreHatim(h){
   delete expanded[h];
-  if(useFirebase){ fbPath('archived/'+h).remove(); }
-  else { state.archived = state.archived.filter(x=>x!==h); save(); render(); }
+  if(useFirebase){ fbPath('archived/'+h).remove(); fbPath('snapshots/'+h).remove(); }
+  else { state.archived = state.archived.filter(x=>x!==h); if(state.snapshots) delete state.snapshots[h]; save(); render(); }
 }
 function removeHatim(h){
   uiConfirm({
@@ -437,6 +554,8 @@ function doRemoveHatim(h){
     const updates = {};
     updates['done/'+h] = null;
     updates['archived/'+h] = null;
+    updates['snapshots/'+h] = null;
+    updates['readers/'+h] = null;
     if(h === state.hatimCount){
       let nc = state.hatimCount - 1;
       while(nc > 0 && state.removed.indexOf(nc) !== -1){ updates['removed/'+nc] = null; nc--; }
@@ -450,6 +569,8 @@ function doRemoveHatim(h){
   }
   delete state.done[h];
   state.archived = state.archived.filter(x=>x!==h);
+  if(state.snapshots) delete state.snapshots[h];
+  if(state.readers) delete state.readers[h];
   if(h === state.hatimCount){
     state.hatimCount--;
     while(state.hatimCount > 0 && state.removed.indexOf(state.hatimCount) !== -1){
@@ -473,6 +594,7 @@ app.addEventListener('click', e=>{
     }
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
+    else if(a === 'admin'){ openAdmin(); }
     else if(a === 'reset'){
       uiConfirm({
         title:'Tümünü sıfırla', danger:true, okText:'Sil',
@@ -480,7 +602,7 @@ app.addEventListener('click', e=>{
         onOk:function(){
           expanded = {}; archiveOpen = false;
           if(useFirebase){ fbRoot().remove(); }
-          else { state = {hatimCount:1, done:{}, archived:[], removed:[]}; save(); render(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}}; save(); render(); }
         }
       });
     }
