@@ -374,7 +374,7 @@ function openAdmin(){
     onOk:function(){
       const el = document.getElementById('adminPass');
       const v = el ? el.value : '';
-      if(v === ADMIN_PASS){ isAdmin = true; showAdminPanel(); }
+      if(v === ADMIN_PASS){ isAdmin = true; render(); showAdminPanel(); }
       else { uiAlert('Hatalı şifre', 'Girdiğiniz şifre yanlış.'); }
     }
   });
@@ -446,7 +446,8 @@ function sectionHTML(h){
   return '<section class="hatim-section" id="hatim-'+h+'">'
     + '<div class="sec-head"><div class="sec-title">'+h+'. HATİM</div>'
     + '<div class="sec-right"><span class="sec-date">Son Tarih: <b>'+hatimDate(h)+'</b> · 18:00</span>'
-    + '<button class="sec-del" data-action="del" data-h="'+h+'" title="Bu hatimi kaldır">✕</button></div></div>'
+    + (isAdmin ? '<button class="sec-del" data-action="del" data-h="'+h+'" title="Bu hatimi kaldır">✕</button>' : '')
+    + '</div></div>'
     + '<div class="grid">'+rows+'</div>'
     + '<div class="mini"><div class="mini-row"><span class="mini-read">'+read+' okundu</span>'
     + '<span class="mini-left">'+left+' kaldı</span><span class="mini-pct">%'+pct+'</span></div>'
@@ -458,8 +459,11 @@ function sectionHTML(h){
 function controlsHTML(){
   let h = '<div class="controls">';
   h += '<button class="btn" data-action="notif">🔔 Bildirim</button>';
-  h += '<button class="btn" data-action="admin">🔒 Admin</button>';
-  h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
+  h += '<button class="btn" data-action="admin">'+(isAdmin ? '🔓 Admin' : '🔒 Admin')+'</button>';
+  if(isAdmin){
+    h += '<button class="btn" data-action="admin-logout">Admin’den çık</button>';
+    h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
+  }
   return h + '</div>';
 }
 
@@ -481,7 +485,7 @@ function archiveHTML(){
         + '<div class="arch-actions">'
         + '<button class="btn" data-action="arch-show" data-h="'+h+'">'+(show?'Gizle':'Detay')+'</button>'
         + '<button class="btn" data-action="arch-restore" data-h="'+h+'">Geri al</button>'
-        + '<button class="btn" data-action="del" data-h="'+h+'">Sil</button>'
+        + (isAdmin ? '<button class="btn" data-action="del" data-h="'+h+'">Sil</button>' : '')
         + '</div></div>'+detail+'</div>';
     });
   }
@@ -526,7 +530,18 @@ function shareCompletion(h){
   window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
 }
 function requestNotif(){
-  if(!('Notification' in window)){ uiAlert('Desteklenmiyor','Bu tarayıcı bildirimleri desteklemiyor.'); return; }
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '');
+  if(!('Notification' in window)){
+    if(isIOS){
+      uiAlert('iPhone bildirim sınırı',
+        'iPhone’da Safari/Chrome sekmesi sistem bildirimini desteklemez (Apple sınırı).<br><br>'
+        +'Yine de uygulama açıkken bir hatim tamamlanınca <b>ekran üstü kutlama penceresi</b> çıkar. '
+        +'Ayrıca tamamlanınca <b>“WhatsApp’ta duyur”</b> ile herkese haber verebilirsiniz.');
+    } else {
+      uiAlert('Desteklenmiyor','Bu tarayıcı bildirimleri desteklemiyor.');
+    }
+    return;
+  }
   if(Notification.permission === 'granted'){ uiAlert('Bildirim açık','Bir hatim tamamlandığında bildirim alacaksınız.'); return; }
   Notification.requestPermission().then(function(p){
     if(p === 'granted') uiAlert('Bildirim açık','Bir hatim tamamlandığında bildirim alacaksınız.');
@@ -695,6 +710,7 @@ app.addEventListener('click', e=>{
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'admin'){ openAdmin(); }
+    else if(a === 'admin-logout'){ isAdmin = false; render(); }
     else if(a === 'notif'){ requestNotif(); }
     else if(a === 'reset'){
       uiConfirm({
