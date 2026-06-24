@@ -177,6 +177,12 @@
   .admin-list{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;}
   .admin-row{display:flex;align-items:center;gap:10px;}
   .admin-no{flex:none;width:26px;text-align:right;color:var(--muted);font-weight:700;font-size:13px;}
+  .admin-toggle{flex:none;min-width:62px;padding:8px 10px;border-radius:8px;font-size:12.5px;font-weight:800;
+    cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;}
+  .admin-toggle.on{background:rgba(34,197,94,.12);border-color:#1f6b3a;color:var(--green-l);}
+  .admin-row.off .admin-input{opacity:.5;text-decoration:line-through;}
+  .admin-add{margin-top:12px;width:100%;border-style:dashed;color:#9fc3ff;border-color:#2c4a7a;}
+  .admin-add:hover{border-color:#3b82f6;color:#cfe0ff;}
   .celebrate{font-size:15px;color:var(--text);line-height:1.65;}
   .celebrate b{color:#d9b44a;}
   .celebrate .dua{display:inline-block;color:var(--green-l);font-weight:800;margin-top:2px;}
@@ -231,16 +237,41 @@ const ADMIN_PASS = "Hacibaba!";
 let isAdmin = false;
 function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 /* i. katılımcının güncel (canlı) ismi: admin değişikliği varsa o, yoksa varsayılan */
-function liveName(i){ return (state.names && state.names[i] != null && state.names[i] !== "") ? state.names[i] : names[i]; }
+function liveName(i){
+  if(state.names && state.names[i] != null && state.names[i] !== "") return state.names[i];
+  if(i < 30) return names[i];
+  return "Katılımcı " + (i+1);
+}
+function participantCount(){ return (state.pcount && state.pcount > 30) ? state.pcount : 30; }
+function isInactive(i){ return !!(state.inactive && state.inactive[i]); }
+function activeList(){ const a = []; const M = participantCount(); for(let i=0;i<M;i++){ if(!isInactive(i)) a.push(i); } return a; }
+/* h. hatimde c. cüzü okuyan katılımcının index'i (aktif liste + son okuyuculara fazladan dağıtım) */
+function assignedIndex(c, h){
+  const list = activeList();
+  const N = list.length;
+  if(N === 0) return null;
+  const rot = (((h - 1) % N) + N) % N;
+  const base = Math.floor(30 / N), rem = 30 % N;  // son `rem` kişi 1 fazla okur
+  let cuz = 1;
+  for(let p = 0; p < N; p++){
+    const reps = (p >= N - rem) ? base + 1 : base;
+    for(let r = 0; r < reps; r++){
+      if(cuz === c) return list[(((p - rot) % N) + N) % N];
+      cuz++;
+    }
+  }
+  return null;
+}
 /* h. hatimde i. katılımcının ismi: o hatim donduruldu (snapshot) ise eski isim, değilse canlı isim */
 function nameFor(i, h){
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
   return liveName(i);
 }
-/* Gösterilecek isim: cüz okunduysa onu okuyanın o anki adı (kilitli), değilse güncel ad */
+/* Gösterilecek isim: cüz okunduysa onu okuyanın o anki adı (kilitli), değilse güncel atama */
 function displayName(c, h){
-  const i = personFor(c,h);
   if(isDone(h,c) && state.readers && state.readers[h] && state.readers[h][c] != null) return state.readers[h][c];
+  const i = assignedIndex(c,h);
+  if(i == null) return '—';
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
   return liveName(i);
 }
@@ -302,9 +333,11 @@ function load(){
   if(!st.names) st.names = {};
   if(!st.snapshots) st.snapshots = {};
   if(!st.readers) st.readers = {};
+  if(!st.inactive) st.inactive = {};
+  if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, inactive:{}, pcount:30};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -328,6 +361,8 @@ function applySnap(val){
   state.names = val.names || {};
   state.snapshots = val.snapshots || {};
   state.readers = val.readers || {};
+  state.inactive = val.inactive || {};
+  state.pcount = val.pcount || 30;
   if(state.hatimCount < 1) state.hatimCount = 1;
   render();
   detectCompletions();
@@ -362,11 +397,25 @@ function uiAlert(title, body){ uiConfirm({title:title, body:body||'', okText:'Ta
 function closeModal(){ modal.hidden = true; modalOnOk = null; }
 document.getElementById('modalCancel').addEventListener('click', closeModal);
 document.getElementById('modalOk').addEventListener('click', function(){ const fn = modalOnOk; closeModal(); if(fn) fn(); });
-modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
+modal.addEventListener('click', function(e){
+  const b = e.target.closest('[data-action]');
+  if(b){
+    const a = b.dataset.action;
+    if(a === 'adm-toggle'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].active = !adminRows[i].active; showAdminPanel(); return; }
+    if(a === 'adm-add'){ syncAdminInputs(); adminRows.push({name:'', active:true}); showAdminPanel(); return; }
+  }
+  if(e.target === modal) closeModal();
+});
 
 /* ---- Admin paneli ---- */
+let adminRows = [];
+function initAdminRows(){
+  adminRows = [];
+  const M = participantCount();
+  for(let i=0;i<M;i++){ adminRows.push({ name: liveName(i), active: !isInactive(i) }); }
+}
 function openAdmin(){
-  if(isAdmin){ showAdminPanel(); return; }
+  if(isAdmin){ initAdminRows(); showAdminPanel(); return; }
   uiConfirm({
     title:'🔒 Admin Girişi',
     body:'Yönetici şifresini girin:<br><br><input id="adminPass" type="password" class="admin-input" placeholder="Şifre" autocomplete="off">',
@@ -374,55 +423,68 @@ function openAdmin(){
     onOk:function(){
       const el = document.getElementById('adminPass');
       const v = el ? el.value : '';
-      if(v === ADMIN_PASS){ isAdmin = true; render(); showAdminPanel(); }
+      if(v === ADMIN_PASS){ isAdmin = true; render(); initAdminRows(); showAdminPanel(); }
       else { uiAlert('Hatalı şifre', 'Girdiğiniz şifre yanlış.'); }
     }
   });
   setTimeout(function(){ const el = document.getElementById('adminPass'); if(el) el.focus(); }, 60);
 }
-function showAdminPanel(){
-  let rows = '';
-  for(let i=0;i<30;i++){
-    rows += '<div class="admin-row"><span class="admin-no">'+(i+1)+'.</span>'
-          + '<input class="admin-input" data-i="'+i+'" value="'+escAttr(liveName(i))+'"></div>';
-  }
-  uiConfirm({
-    wide:true,
-    title:'Admin · Katılımcı İsimleri',
-    body:'<div class="admin-note">İsim değişikliği <b>aktif ve sonraki</b> hatimlere yansır. <b>Tamamlanan/arşivlenen</b> hatimlerde eski isim korunur.</div>'
-        + '<div class="admin-list">'+rows+'</div>',
-    okText:'Kaydet',
-    onOk:saveAdminNames
+function syncAdminInputs(){
+  document.querySelectorAll('.admin-list input[data-ai]').forEach(function(inp){
+    const i = +inp.dataset.ai; if(adminRows[i]) adminRows[i].name = inp.value;
   });
 }
-function saveAdminNames(){
-  const inputs = document.querySelectorAll('.admin-list input[data-i]');
-  /* Önce tamamlanmış (30/30) ama henüz dondurulmamış hatimleri eski isimlerle dondur */
+function showAdminPanel(){
+  const activeCount = adminRows.filter(function(r){ return r.active && (r.name||'').trim(); }).length;
+  let rows = '';
+  adminRows.forEach(function(r, i){
+    rows += '<div class="admin-row'+(r.active?'':' off')+'">'
+          + '<span class="admin-no">'+(i+1)+'.</span>'
+          + '<input class="admin-input" data-ai="'+i+'" value="'+escAttr(r.name)+'" placeholder="İsim">'
+          + '<button class="admin-toggle'+(r.active?' on':'')+'" data-action="adm-toggle" data-ai="'+i+'">'
+          + (r.active?'Aktif':'Pasif')+'</button></div>';
+  });
+  uiConfirm({
+    wide:true,
+    title:'Admin · Katılımcılar',
+    body:'<div class="admin-note">Aktif katılımcı: <b>'+activeCount+'</b> · 30 cüz. '
+        +'30’dan azsa kalan cüzler <b>en sondaki okuyuculara</b> ek olarak dağıtılır.<br>'
+        +'“Pasif” yapılan kişiye cüz verilmez. İsim/durum değişikliği <b>aktif ve sonraki</b> hatimlere yansır; '
+        +'okunmuş cüzler ve arşiv eski haliyle kalır.</div>'
+        +'<div class="admin-list">'+rows+'</div>'
+        +'<button class="btn admin-add" data-action="adm-add">＋ Yeni katılımcı ekle</button>',
+    okText:'Kaydet',
+    onOk:saveAdminParticipants
+  });
+}
+function saveAdminParticipants(){
+  syncAdminInputs();
+  /* Önce tamamlanmış (30/30) ama dondurulmamış hatimleri eski isimlerle dondur */
   for(let h=1; h<=state.hatimCount; h++){
-    const complete = countDone(h) === 30;
-    const hasSnap = state.snapshots && state.snapshots[h];
-    if(complete && !hasSnap && !isRemoved(h)){
+    if(countDone(h) === 30 && !(state.snapshots && state.snapshots[h]) && !isRemoved(h)){
       if(useFirebase) fbPath('snapshots/'+h).set(snapNames());
       else { state.snapshots = state.snapshots || {}; state.snapshots[h] = snapNames(); }
     }
   }
-  /* Sonra yeni isimleri uygula */
-  let changed = false;
-  inputs.forEach(function(inp){
-    const i = +inp.dataset.i;
-    const val = (inp.value || '').trim();
-    if(!val) return;
-    if(val === liveName(i)) return;
-    changed = true;
-    if(useFirebase){
-      if(val === names[i]) fbPath('names/'+i).remove();
-      else fbPath('names/'+i).set(val);
-    } else {
-      state.names = state.names || {};
-      if(val === names[i]) delete state.names[i]; else state.names[i] = val;
+  const M = adminRows.length;
+  if(useFirebase){
+    const updates = {};
+    updates['pcount'] = M;
+    for(let i=0;i<M;i++){
+      const nm = (adminRows[i].name || '').trim() || ('Katılımcı '+(i+1));
+      updates['names/'+i] = (i < 30 && nm === names[i]) ? null : nm;
+      updates['inactive/'+i] = adminRows[i].active ? null : true;
     }
-  });
-  if(!useFirebase){ save(); render(); }
+    fbRoot().update(updates);
+  } else {
+    state.pcount = M; state.names = state.names || {}; state.inactive = state.inactive || {};
+    for(let i=0;i<M;i++){
+      const nm = (adminRows[i].name || '').trim() || ('Katılımcı '+(i+1));
+      if(i < 30 && nm === names[i]) delete state.names[i]; else state.names[i] = nm;
+      if(adminRows[i].active) delete state.inactive[i]; else state.inactive[i] = true;
+    }
+    save(); render();
+  }
 }
 
 function rowHTML(name, cuz, done, interactive, h){
@@ -596,14 +658,14 @@ function toggle(h,cuz){
     onOk: function(){
       if(useFirebase){
         const u = {};
-        if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = liveName(personFor(cuz,h)); }
+        if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = liveName(assignedIndex(cuz,h)); }
         else { u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; }
         fbRoot().update(u);
       } else {
         setDone(h,cuz,willRead);
         state.readers = state.readers || {};
         if(!state.readers[h]) state.readers[h] = {};
-        if(willRead) state.readers[h][cuz] = liveName(personFor(cuz,h));
+        if(willRead) state.readers[h][cuz] = liveName(assignedIndex(cuz,h));
         else delete state.readers[h][cuz];
         save(); render(); detectCompletions();
       }
@@ -634,7 +696,7 @@ function shareWhatsApp(h){
   window.open("https://wa.me/?text=" + encodeURIComponent(shareText(h)), "_blank");
 }
 
-function snapNames(){ const s = {}; for(let i=0;i<30;i++) s[i] = liveName(i); return s; }
+function snapNames(){ const s = {}; const M = participantCount(); for(let i=0;i<M;i++) s[i] = liveName(i); return s; }
 function archiveHatim(h){
   archiveOpen = true;
   const hasSnap = state.snapshots && state.snapshots[h];
@@ -719,7 +781,7 @@ app.addEventListener('click', e=>{
         onOk:function(){
           expanded = {}; archiveOpen = false;
           if(useFirebase){ fbRoot().remove(); }
-          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}}; save(); render(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, inactive:{}, pcount:30}; save(); render(); }
         }
       });
     }
