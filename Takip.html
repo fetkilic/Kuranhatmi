@@ -177,6 +177,9 @@
   .admin-list{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;}
   .admin-row{display:flex;align-items:center;gap:10px;}
   .admin-no{flex:none;width:26px;text-align:right;color:var(--muted);font-weight:700;font-size:13px;}
+  .celebrate{font-size:15px;color:var(--text);line-height:1.65;}
+  .celebrate b{color:#d9b44a;}
+  .celebrate .dua{display:inline-block;color:var(--green-l);font-weight:800;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -327,6 +330,7 @@ function applySnap(val){
   state.readers = val.readers || {};
   if(state.hatimCount < 1) state.hatimCount = 1;
   render();
+  detectCompletions();
 }
 
 /* ---- UI durumu (kaydedilmez) ---- */
@@ -345,7 +349,9 @@ function uiConfirm(opts){
   modalCard.className = 'modal-card' + (opts.wide ? ' wide' : '');
   document.getElementById('modalTitle').innerHTML = opts.title || 'Onay';
   document.getElementById('modalBody').innerHTML = opts.body || '';
-  document.getElementById('modalCancel').style.display = opts.hideCancel ? 'none' : '';
+  const cancel = document.getElementById('modalCancel');
+  cancel.style.display = opts.hideCancel ? 'none' : '';
+  cancel.textContent = opts.cancelText || 'İptal';
   const ok = document.getElementById('modalOk');
   ok.textContent = opts.okText || 'Onayla';
   ok.className = 'btn modal-ok' + (opts.danger ? ' danger' : '');
@@ -451,6 +457,7 @@ function sectionHTML(h){
 
 function controlsHTML(){
   let h = '<div class="controls">';
+  h += '<button class="btn" data-action="notif">🔔 Bildirim</button>';
   h += '<button class="btn" data-action="admin">🔒 Admin</button>';
   h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
   return h + '</div>';
@@ -481,6 +488,50 @@ function archiveHTML(){
   return '<div class="archive"><button class="arch-head" data-action="arch-toggle">'
     + '<span>📁 Arşiv · '+state.archived.length+' tamamlanmış hatim</span>'
     + '<span>'+(archiveOpen?'▾':'▸')+'</span></button>'+inner+'</div>';
+}
+
+/* ---- Hatim tamamlanma bildirimi ---- */
+let completedSet = null;
+function detectCompletions(){
+  const now = {};
+  for(let h=1; h<=state.hatimCount; h++){ if(!isRemoved(h) && countDone(h) === 30) now[h] = true; }
+  if(completedSet === null){ completedSet = now; return; }   // ilk yükleme: sessiz
+  for(const h in now){ if(!completedSet[h]) onHatimCompleted(+h); }
+  completedSet = now;
+}
+function onHatimCompleted(h){ showCompletionModal(h); osNotify(h); }
+function showCompletionModal(h){
+  uiConfirm({
+    title:'🎉 '+h+'. Hatim Tamamlandı',
+    body:'<div class="celebrate">Elhamdülillah, <b>'+h+'. hatim</b> hatmedildi.<br>'
+        +'Merhum <b>HAFIZ HALİL KILIÇ</b> (Hacıbabamız) ruhuna.<br><br>'
+        +'<span class="dua">🤲 Hatim duası Perşembe akşamı yapılacaktır.</span></div>',
+    okText:'📲 WhatsApp\'ta duyur',
+    cancelText:'Kapat',
+    onOk:function(){ shareCompletion(h); }
+  });
+}
+function osNotify(h){
+  try{
+    if('Notification' in window && Notification.permission === 'granted'){
+      new Notification(h+'. Hatim tamamlandı 🎉', { body:'Hatim duası Perşembe akşamı yapılacaktır.', tag:'hatim-'+h });
+    }
+  }catch(e){}
+}
+function shareCompletion(h){
+  let t = '🎉 '+h+'. HATİM TAMAMLANDI\n';
+  t += 'Merhum HAFIZ HALİL KILIÇ (Hacıbabamız) ruhuna hatmedildi.\n\n';
+  t += '🤲 Hatim duası Perşembe akşamı yapılacaktır.\nKatılımlarınızı bekleriz.\n\n';
+  t += '🔗 ' + location.href;
+  window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+}
+function requestNotif(){
+  if(!('Notification' in window)){ uiAlert('Desteklenmiyor','Bu tarayıcı bildirimleri desteklemiyor.'); return; }
+  if(Notification.permission === 'granted'){ uiAlert('Bildirim açık','Bir hatim tamamlandığında bildirim alacaksınız.'); return; }
+  Notification.requestPermission().then(function(p){
+    if(p === 'granted') uiAlert('Bildirim açık','Bir hatim tamamlandığında bildirim alacaksınız.');
+    else uiAlert('Bildirim kapalı','İzin verilmedi. Tarayıcı ayarlarından sonra açabilirsiniz.');
+  });
 }
 
 function tabsHTML(actives){
@@ -539,7 +590,7 @@ function toggle(h,cuz){
         if(!state.readers[h]) state.readers[h] = {};
         if(willRead) state.readers[h][cuz] = liveName(personFor(cuz,h));
         else delete state.readers[h][cuz];
-        save(); render();
+        save(); render(); detectCompletions();
       }
     }
   });
@@ -644,6 +695,7 @@ app.addEventListener('click', e=>{
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'admin'){ openAdmin(); }
+    else if(a === 'notif'){ requestNotif(); }
     else if(a === 'reset'){
       uiConfirm({
         title:'Tümünü sıfırla', danger:true, okText:'Sil',
@@ -685,6 +737,7 @@ if(useFirebase){
 } else {
   setStatus('local');
   render();
+  detectCompletions();
 }
 </script>
 </body>
