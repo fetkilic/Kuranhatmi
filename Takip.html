@@ -183,6 +183,16 @@
   .admin-dbl{flex:none;min-width:42px;padding:8px 10px;border-radius:8px;font-size:12.5px;font-weight:800;
     cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;}
   .admin-dbl.on{background:rgba(217,180,74,.16);border-color:#7a5f1f;color:#e9c45a;}
+  .row-right{display:flex;align-items:center;gap:8px;flex:none;}
+  .reassign-btn{flex:none;width:28px;height:28px;border-radius:7px;border:1px solid var(--line);
+    background:var(--bg2);color:var(--muted);font-size:13px;cursor:pointer;line-height:1;transition:all .15s;}
+  .reassign-btn:hover{border-color:#5b9dff;color:#9fc3ff;}
+  .pick-list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow-y:auto;padding-right:4px;}
+  .pick-btn{text-align:left;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+    padding:11px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+  .pick-btn:hover{background:var(--card-hover);border-color:#5b9dff;}
+  .pick-btn.cur{border-color:#3b82f6;color:#9fc3ff;}
+  .pick-btn.auto{color:var(--muted);border-style:dashed;}
   .admin-row.off .admin-input{opacity:.5;text-decoration:line-through;}
   .admin-add{margin-top:12px;width:100%;border-style:dashed;color:#9fc3ff;border-color:#2c4a7a;}
   .admin-add:hover{border-color:#3b82f6;color:#cfe0ff;}
@@ -285,10 +295,15 @@ function nameFor(i, h){
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
   return liveName(i);
 }
+/* Bu hatimde bu cüzü kim okuyacak: admin manuel atama (override) varsa o, yoksa otomatik */
+function effectiveIndex(c, h){
+  if(state.overrides && state.overrides[h] && state.overrides[h][c] != null) return state.overrides[h][c];
+  return assignedIndex(c, h);
+}
 /* Gösterilecek isim: cüz okunduysa onu okuyanın o anki adı (kilitli), değilse güncel atama */
 function displayName(c, h){
   if(isDone(h,c) && state.readers && state.readers[h] && state.readers[h][c] != null) return state.readers[h][c];
-  const i = assignedIndex(c,h);
+  const i = effectiveIndex(c,h);
   if(i == null) return '—';
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
   return liveName(i);
@@ -353,10 +368,11 @@ function load(){
   if(!st.readers) st.readers = {};
   if(!st.inactive) st.inactive = {};
   if(!st.double) st.double = {};
+  if(!st.overrides) st.overrides = {};
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, inactive:{}, double:{}, pcount:30};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, inactive:{}, double:{}, overrides:{}, pcount:30};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -382,6 +398,7 @@ function applySnap(val){
   state.readers = val.readers || {};
   state.inactive = val.inactive || {};
   state.double = val.double || {};
+  state.overrides = val.overrides || {};
   state.pcount = val.pcount || 30;
   if(state.hatimCount < 1) state.hatimCount = 1;
   render();
@@ -424,6 +441,7 @@ modal.addEventListener('click', function(e){
     if(a === 'adm-toggle'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].active = !adminRows[i].active; showAdminPanel(); return; }
     if(a === 'adm-double'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].double = !adminRows[i].double; showAdminPanel(); return; }
     if(a === 'adm-add'){ syncAdminInputs(); adminRows.push({name:'', active:true, double:false}); showAdminPanel(); return; }
+    if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); return; }
   }
   if(e.target === modal) closeModal();
 });
@@ -516,10 +534,13 @@ function rowHTML(name, cuz, done, interactive, h){
   const sec = SECDE[cuz];
   const icon = sec === 2 ? '<span class="secde-icon" title="Tilavet Secdesi">۩</span>' : "";
   const data = interactive ? (' data-h="'+h+'" data-cuz="'+cuz+'" role="button" tabindex="0"') : "";
+  const reassign = (interactive && isAdmin)
+    ? '<button class="reassign-btn" data-action="reassign" data-h="'+h+'" data-cuz="'+cuz+'" title="Bu cüzü başkasına ata">✎</button>'
+    : '';
   return '<div class="row'+(done?' done':'')+'"'+data+'>'
     + '<div class="left"><span class="check">✓</span><span class="name">'+name+'</span>'
     + '<span class="badge-okundu">✓ Okundu</span></div>'
-    + '<span class="badge'+(sec?' secde':'')+'">'+cuz+icon+'</span></div>';
+    + '<div class="row-right">'+reassign+'<span class="badge'+(sec?' secde':'')+'">'+cuz+icon+'</span></div></div>';
 }
 
 function sectionHTML(h){
@@ -579,6 +600,36 @@ function archiveHTML(){
   return '<div class="archive"><button class="arch-head" data-action="arch-toggle">'
     + '<span>📁 Arşiv · '+state.archived.length+' tamamlanmış hatim</span>'
     + '<span>'+(archiveOpen?'▾':'▸')+'</span></button>'+inner+'</div>';
+}
+
+/* ---- Cüz yeniden atama (admin) ---- */
+function reassign(h, cuz){
+  if(!isAdmin) return;
+  const list = activeList();
+  let rows = '<button class="pick-btn auto" data-action="pick-reader" data-h="'+h+'" data-cuz="'+cuz+'" data-i="-1">↺ Otomatik (varsayılan)</button>';
+  const cur = effectiveIndex(cuz, h);
+  list.forEach(function(i){
+    rows += '<button class="pick-btn'+(i===cur?' cur':'')+'" data-action="pick-reader" data-h="'+h+'" data-cuz="'+cuz+'" data-i="'+i+'">'+escAttr(liveName(i))+(i===cur?' ✓':'')+'</button>';
+  });
+  uiConfirm({
+    wide:true,
+    title:cuz+'. cüzü kim okuyacak?',
+    body:'<div class="admin-note">Bu atama yalnızca <b>'+h+'. hatim</b> için geçerlidir. Okunmuş cüzlerde değişmez.</div>'
+        +'<div class="pick-list">'+rows+'</div>',
+    okText:'Kapat', hideCancel:true
+  });
+}
+function setOverride(h, cuz, i){
+  if(useFirebase){
+    if(i < 0) fbPath('overrides/'+h+'/'+cuz).remove();
+    else fbPath('overrides/'+h+'/'+cuz).set(i);
+  } else {
+    state.overrides = state.overrides || {};
+    if(!state.overrides[h]) state.overrides[h] = {};
+    if(i < 0) delete state.overrides[h][cuz];
+    else state.overrides[h][cuz] = i;
+    save(); render();
+  }
 }
 
 /* ---- Hatim tamamlanma bildirimi ---- */
@@ -685,14 +736,14 @@ function toggle(h,cuz){
     onOk: function(){
       if(useFirebase){
         const u = {};
-        if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = liveName(assignedIndex(cuz,h)); }
+        if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = liveName(effectiveIndex(cuz,h)); }
         else { u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; }
         fbRoot().update(u);
       } else {
         setDone(h,cuz,willRead);
         state.readers = state.readers || {};
         if(!state.readers[h]) state.readers[h] = {};
-        if(willRead) state.readers[h][cuz] = liveName(assignedIndex(cuz,h));
+        if(willRead) state.readers[h][cuz] = liveName(effectiveIndex(cuz,h));
         else delete state.readers[h][cuz];
         save(); render(); detectCompletions();
       }
@@ -756,6 +807,7 @@ function doRemoveHatim(h){
     updates['archived/'+h] = null;
     updates['snapshots/'+h] = null;
     updates['readers/'+h] = null;
+    updates['overrides/'+h] = null;
     if(h === state.hatimCount){
       let nc = state.hatimCount - 1;
       while(nc > 0 && state.removed.indexOf(nc) !== -1){ updates['removed/'+nc] = null; nc--; }
@@ -771,6 +823,7 @@ function doRemoveHatim(h){
   state.archived = state.archived.filter(x=>x!==h);
   if(state.snapshots) delete state.snapshots[h];
   if(state.readers) delete state.readers[h];
+  if(state.overrides) delete state.overrides[h];
   if(h === state.hatimCount){
     state.hatimCount--;
     while(state.hatimCount > 0 && state.removed.indexOf(state.hatimCount) !== -1){
@@ -801,6 +854,7 @@ app.addEventListener('click', e=>{
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'admin'){ openAdmin(); }
     else if(a === 'admin-logout'){ isAdmin = false; render(); }
+    else if(a === 'reassign'){ reassign(h, +btn.dataset.cuz); }
     else if(a === 'notif'){ requestNotif(); }
     else if(a === 'reset'){
       uiConfirm({
@@ -809,7 +863,7 @@ app.addEventListener('click', e=>{
         onOk:function(){
           expanded = {}; archiveOpen = false;
           if(useFirebase){ fbRoot().remove(); }
-          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, inactive:{}, double:{}, pcount:30}; save(); render(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, inactive:{}, double:{}, overrides:{}, pcount:30}; save(); render(); }
         }
       });
     }
