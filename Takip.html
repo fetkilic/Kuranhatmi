@@ -193,8 +193,8 @@
   .pick-btn:hover{background:var(--card-hover);border-color:#5b9dff;}
   .pick-btn.cur{border-color:#3b82f6;color:#9fc3ff;}
   .pick-btn.auto{color:var(--muted);border-style:dashed;}
-  .name[data-action]{cursor:pointer;border-bottom:1px dashed transparent;}
-  .name[data-action]:hover{border-bottom-color:#5b9dff;}
+  .name.clickable{cursor:pointer;border-bottom:1px dashed transparent;}
+  .name.clickable:hover{border-bottom-color:#5b9dff;}
   .prof-summary{font-size:14px;color:var(--text);margin-bottom:14px;}
   .prof-summary b{color:#5b9dff;}
   .prof-empty{color:var(--muted);text-align:center;padding:20px 0;}
@@ -558,9 +558,12 @@ function rowHTML(name, cuz, done, interactive, h){
   const reassign = (interactive && isAdmin)
     ? '<button class="reassign-btn" data-action="reassign" data-h="'+h+'" data-cuz="'+cuz+'" title="Bu cüzü başkasına ata">✎</button>'
     : '';
+  const nameEl = done
+    ? '<span class="name clickable" data-action="profile" data-name="'+escAttr(name)+'">'+name+'</span>'
+    : '<span class="name">'+name+'</span>';
   return '<div class="row'+(done?' done':'')+'"'+data+'>'
     + '<div class="left"><span class="check">✓</span>'
-    + '<span class="name" data-action="profile" data-name="'+escAttr(name)+'">'+name+'</span>'
+    + nameEl
     + '<span class="badge-okundu">✓ Okundu</span></div>'
     + '<div class="row-right">'+reassign+'<span class="badge'+(sec?' secde':'')+'">'+cuz+icon+'</span></div></div>';
 }
