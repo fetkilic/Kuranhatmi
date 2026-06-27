@@ -311,9 +311,17 @@ function effectiveIndex(c, h){
   if(state.overrides && state.overrides[h] && state.overrides[h][c] != null) return state.overrides[h][c];
   return assignedIndex(c, h);
 }
-/* Gösterilecek isim: cüz okunduysa onu okuyanın o anki adı (kilitli), değilse güncel atama */
+/* Tamamlanmış bir cüzü okuyanın adı: kayıtlıysa kilitli ad; yoksa (eski kayıt)
+   orijinal rotasyona göre geri-doldur — böylece kişi profilinde/listede doğru görünür */
+function readerName(h, c){
+  if(state.readers && state.readers[h] && state.readers[h][c] != null && state.readers[h][c] !== "") return state.readers[h][c];
+  const i = personFor(c, h);
+  if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
+  return liveName(i);
+}
+/* Gösterilecek isim: cüz okunduysa onu okuyanın adı (kilitli/orijinal), değilse güncel atama */
 function displayName(c, h){
-  if(isDone(h,c) && state.readers && state.readers[h] && state.readers[h][c] != null) return state.readers[h][c];
+  if(isDone(h,c)) return readerName(h, c);
   const i = effectiveIndex(c,h);
   if(i == null) return '—';
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
@@ -632,7 +640,7 @@ function showProfile(name){
     for(const cstr in d){
       if(!d[cstr]) continue;
       const c = +cstr;
-      if(state.readers && state.readers[h] && state.readers[h][c] === name){
+      if(readerName(h, c) === name){
         const t = (state.times && state.times[h] && state.times[h][c]) || null;
         items.push({ h:h, c:c, t:t });
       }
