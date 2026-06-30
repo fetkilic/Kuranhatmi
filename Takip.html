@@ -198,20 +198,15 @@
   .row.locked{opacity:.5;}
   .row.locked .check{border-color:var(--line);}
   .lockmark{font-size:12px;opacity:.8;}
-  .admin-phone{flex:1 1 100%;margin-top:6px;background:var(--bg2);border:1px solid var(--line);
-    color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;}
-  .admin-phone:focus{outline:none;border-color:#25d366;}
   .btn.wa-rem{background:#0b3d2e;border-color:#1f7a55;color:#9ff0c4;margin-top:8px;}
   .btn.wa-rem:hover{background:#0e4a37;}
-  .wa-remind-list{display:flex;flex-direction:column;gap:8px;max-height:54vh;overflow-y:auto;padding-right:4px;}
-  .wa-remind{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;
-    background:#0b3d2e;border:1px solid #1f7a55;border-radius:10px;padding:11px 14px;transition:all .15s;}
-  .wa-remind:hover{background:#0e4a37;border-color:#25d366;}
-  .wa-remind .wr-name{font-weight:800;color:#9ff0c4;font-size:14px;}
-  .wa-remind .wr-cuz{color:#cfe9dd;font-size:12.5px;}
-  .wa-remind.no-phone{background:var(--bg2);border-color:var(--line);}
-  .wa-remind.no-phone .wr-name{color:var(--muted);}
-  .wa-remind.no-phone .wr-cuz{color:var(--muted);}
+  .rem-list{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow-y:auto;padding-right:4px;margin-bottom:14px;}
+  .rem-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;}
+  .rem-name{font-weight:700;color:var(--text);font-size:14px;}
+  .rem-cuz{color:#9fc3ff;font-size:12.5px;font-weight:700;}
+  .app-version{text-align:center;color:var(--muted);opacity:.55;font-size:11px;
+    letter-spacing:.5px;padding:6px 0 16px;}
   .btn.whoami{background:#1a2740;border-color:#2f4368;}
   .lg-list{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding-right:4px;margin-bottom:12px;}
   .lg-row{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
@@ -253,6 +248,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
+  <div class="app-version">V1.0.0</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -432,12 +428,11 @@ function load(){
   if(!st.times) st.times = {};
   if(!st.inactive) st.inactive = {};
   if(!st.double) st.double = {};
-  if(!st.phones) st.phones = {};
   if(!st.overrides) st.overrides = {};
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, double:{}, overrides:{}, phones:{}, pcount:30};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, double:{}, overrides:{}, pcount:30};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -464,7 +459,6 @@ function applySnap(val){
   state.times = val.times || {};
   state.inactive = val.inactive || {};
   state.double = val.double || {};
-  state.phones = val.phones || {};
   state.overrides = val.overrides || {};
   state.pcount = val.pcount || 30;
   if(state.hatimCount < 1) state.hatimCount = 1;
@@ -520,7 +514,7 @@ let adminRows = [];
 function initAdminRows(){
   adminRows = [];
   const M = participantCount();
-  for(let i=0;i<M;i++){ adminRows.push({ name: liveName(i), active: !isInactive(i), double: isDouble(i), phone: livePhone(i) }); }
+  for(let i=0;i<M;i++){ adminRows.push({ name: liveName(i), active: !isInactive(i), double: isDouble(i) }); }
 }
 function openAdmin(){
   if(isAdmin){ initAdminRows(); showAdminPanel(); return; }
@@ -541,9 +535,6 @@ function syncAdminInputs(){
   document.querySelectorAll('.admin-list input[data-ai]').forEach(function(inp){
     const i = +inp.dataset.ai; if(adminRows[i]) adminRows[i].name = inp.value;
   });
-  document.querySelectorAll('.admin-list input[data-aiphone]').forEach(function(inp){
-    const i = +inp.dataset.aiphone; if(adminRows[i]) adminRows[i].phone = inp.value;
-  });
 }
 function showAdminPanel(){
   const activeCount = adminRows.filter(function(r){ return r.active && (r.name||'').trim(); }).length;
@@ -556,7 +547,6 @@ function showAdminPanel(){
           + '<button class="admin-toggle'+(r.active?' on':'')+'" data-action="adm-toggle" data-ai="'+i+'">'
           + (r.active?'Aktif':'Pasif')+'</button>'
           + '<button class="admin-dbl'+(r.double?' on':'')+'" data-action="adm-double" data-ai="'+i+'" title="2 cüz okur">2×</button>'
-          + '<input class="admin-phone" data-aiphone="'+i+'" value="'+escAttr(r.phone||'')+'" placeholder="📱 WhatsApp no (ülke koduyla, örn. 316… / 905…)" inputmode="tel" autocomplete="off">'
           + '</div>';
   });
   uiConfirm({
@@ -589,19 +579,15 @@ function saveAdminParticipants(){
       updates['names/'+i] = (i < 30 && nm === names[i]) ? null : nm;
       updates['inactive/'+i] = adminRows[i].active ? null : true;
       updates['double/'+i] = adminRows[i].double ? true : null;
-      const ph = (adminRows[i].phone || '').trim();
-      updates['phones/'+i] = ph ? ph : null;
     }
     fbRoot().update(updates);
   } else {
-    state.pcount = M; state.names = state.names || {}; state.inactive = state.inactive || {}; state.double = state.double || {}; state.phones = state.phones || {};
+    state.pcount = M; state.names = state.names || {}; state.inactive = state.inactive || {}; state.double = state.double || {};
     for(let i=0;i<M;i++){
       const nm = (adminRows[i].name || '').trim() || ('Katılımcı '+(i+1));
       if(i < 30 && nm === names[i]) delete state.names[i]; else state.names[i] = nm;
       if(adminRows[i].active) delete state.inactive[i]; else state.inactive[i] = true;
       if(adminRows[i].double) state.double[i] = true; else delete state.double[i];
-      const ph = (adminRows[i].phone || '').trim();
-      if(ph) state.phones[i] = ph; else delete state.phones[i];
     }
     save(); render();
   }
@@ -690,16 +676,7 @@ function archiveHTML(){
     + '<span>'+(archiveOpen?'▾':'▸')+'</span></button>'+inner+'</div>';
 }
 
-/* ---- WhatsApp hatırlatma ---- */
-function livePhone(i){ return (state.phones && state.phones[i] != null) ? String(state.phones[i]) : ''; }
-function sanitizePhone(p){ return String(p || '').replace(/[^0-9]/g, ''); }
-function reminderText(nm, h, cuzList){
-  return 'Selamün aleyküm ' + nm + ' 🌙\n\n'
-    + 'Merhum HAFIZ HALİL KILIÇ (Hacıbabamız) ruhuna okuduğumuz hatimde ' + h + '. hatim devam ediyor. '
-    + cuzList.join(', ') + '. cüz henüz okunmadı.\n\n'
-    + 'Müsait olduğunda okuyup işaretler misin? Hatim duası ' + hatimDate(h) + ' akşamı yapılacaktır inşallah.\n\n'
-    + 'Allah razı olsun 🤲\n' + location.href;
-}
+/* ---- WhatsApp hatırlatma (numarasız grup mesajı) ---- */
 function remindUnread(h){
   const byIdx = {};
   for(let c = 1; c <= 30; c++){
@@ -710,27 +687,27 @@ function remindUnread(h){
   }
   const idxs = Object.keys(byIdx).map(Number).sort(function(a,b){ return a-b; });
   if(idxs.length === 0){ uiAlert(h+'. Hatim', 'Tüm cüzler okunmuş 🎉 Hatırlatılacak kimse yok.'); return; }
-  let list = '';
+
+  let preview = '';
+  let msg = '🌙 ' + h + '. Hatim hatırlatma\n\n'
+          + 'Merhum HAFIZ HALİL KILIÇ (Hacıbabamız) ruhuna okuduğumuz hatimde aşağıdaki cüzler henüz okunmadı:\n\n';
   idxs.forEach(function(i){
     const nm = nameFor(i, h);
     const cuzList = byIdx[i].sort(function(a,b){ return a-b; });
-    const phone = sanitizePhone(livePhone(i));
-    if(phone){
-      const url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(reminderText(nm, h, cuzList));
-      list += '<a class="wa-remind" href="'+url+'" target="_blank" rel="noopener">'
-            + '<span class="wr-name">📲 '+escAttr(nm)+'</span>'
-            + '<span class="wr-cuz">'+cuzList.join(', ')+'. cüz</span></a>';
-    } else {
-      list += '<div class="wa-remind no-phone">'
-            + '<span class="wr-name">'+escAttr(nm)+'</span>'
-            + '<span class="wr-cuz">'+cuzList.join(', ')+'. cüz · ☎️ no yok</span></div>';
-    }
+    msg += '• ' + nm + ' → ' + cuzList.join(', ') + '. cüz\n';
+    preview += '<div class="rem-row"><span class="rem-name">'+escAttr(nm)+'</span>'
+             + '<span class="rem-cuz">'+cuzList.join(', ')+'. cüz</span></div>';
   });
+  msg += '\nMüsait olduğunuzda okuyup işaretleyebilir misiniz? Hatim duası ' + hatimDate(h) + ' akşamı yapılacaktır inşallah.\n\n'
+       + 'Allah razı olsun 🤲\n' + location.href;
+
+  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
   uiConfirm({
     wide:true,
     title:'🔔 Hatırlat · '+h+'. Hatim',
-    body:'<div class="admin-note">Okumayanlara tek tek WhatsApp hatırlatması. İsme tıkla → WhatsApp numarayla birlikte açılır → <b>sen gönder</b>. Numarası olmayanları Admin → Katılımcılar’dan ekleyebilirsin.</div>'
-        +'<div class="wa-remind-list">'+list+'</div>',
+    body:'<div class="admin-note">Okunmayan cüzler aşağıda. Tek dokunuşla WhatsApp grubunda paylaşabilirsiniz.</div>'
+        +'<div class="rem-list">'+preview+'</div>'
+        +'<a class="btn wa" style="text-decoration:none;display:block;text-align:center;margin-top:4px" href="'+url+'" target="_blank" rel="noopener">📲 WhatsApp’ta paylaş</a>',
     okText:'Kapat', hideCancel:true
   });
 }
@@ -1136,7 +1113,7 @@ app.addEventListener('click', e=>{
         onOk:function(){
           expanded = {}; archiveOpen = false;
           if(useFirebase){ fbRoot().remove(); }
-          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, double:{}, overrides:{}, phones:{}, pcount:30}; save(); render(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, double:{}, overrides:{}, pcount:30}; save(); render(); }
         }
       });
     }
