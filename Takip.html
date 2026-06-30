@@ -195,6 +195,33 @@
   .pick-btn.auto{color:var(--muted);border-style:dashed;}
   .name.clickable{cursor:pointer;border-bottom:1px dashed transparent;}
   .name.clickable:hover{border-bottom-color:#5b9dff;}
+  .row.locked{opacity:.5;}
+  .row.locked .check{border-color:var(--line);}
+  .lockmark{font-size:12px;opacity:.8;}
+  .admin-phone{flex:1 1 100%;margin-top:6px;background:var(--bg2);border:1px solid var(--line);
+    color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;}
+  .admin-phone:focus{outline:none;border-color:#25d366;}
+  .btn.wa-rem{background:#0b3d2e;border-color:#1f7a55;color:#9ff0c4;margin-top:8px;}
+  .btn.wa-rem:hover{background:#0e4a37;}
+  .wa-remind-list{display:flex;flex-direction:column;gap:8px;max-height:54vh;overflow-y:auto;padding-right:4px;}
+  .wa-remind{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;
+    background:#0b3d2e;border:1px solid #1f7a55;border-radius:10px;padding:11px 14px;transition:all .15s;}
+  .wa-remind:hover{background:#0e4a37;border-color:#25d366;}
+  .wa-remind .wr-name{font-weight:800;color:#9ff0c4;font-size:14px;}
+  .wa-remind .wr-cuz{color:#cfe9dd;font-size:12.5px;}
+  .wa-remind.no-phone{background:var(--bg2);border-color:var(--line);}
+  .wa-remind.no-phone .wr-name{color:var(--muted);}
+  .wa-remind.no-phone .wr-cuz{color:var(--muted);}
+  .btn.whoami{background:#1a2740;border-color:#2f4368;}
+  .lg-list{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding-right:4px;margin-bottom:12px;}
+  .lg-row{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+  .lg-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:3px;}
+  .lg-name{font-weight:800;color:var(--text);font-size:14px;}
+  .lg-act{font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;}
+  .lg-act.ok{background:rgba(34,197,94,.16);color:var(--green-l);}
+  .lg-act.undo{background:rgba(239,68,68,.16);color:#fca5a5;}
+  .lg-mid{font-size:13px;color:#9fc3ff;font-weight:700;}
+  .lg-bot{font-size:12px;color:var(--muted);margin-top:2px;}
   .prof-summary{font-size:14px;color:var(--text);margin-bottom:14px;}
   .prof-summary b{color:#5b9dff;}
   .prof-empty{color:var(--muted);text-align:center;padding:20px 0;}
@@ -281,8 +308,17 @@ function assignedIndex(c, h){
   const reps = {};
   list.forEach(function(idx){ reps[idx] = base; });
   let extra = rem;
-  // 1) önce gönüllüler (2 cüz okurum diyenler)
-  for(let k = 0; k < N && extra > 0; k++){ if(isDouble(list[k])){ reps[list[k]]++; extra--; } }
+  // 1) önce gönüllüler (2 cüz okurum diyenler) — gönüllü sayısı fazlaysa haftaya göre DÖNDÜR,
+  //    böylece her hatim farklı gönüllü(ler) 2. cüzü okur
+  const dbls = list.filter(function(idx){ return isDouble(idx); });
+  const D = dbls.length;
+  if(D > 0){
+    const startD = (((h - 1) % D) + D) % D;
+    for(let k = 0; k < D && extra > 0; k++){
+      const idx = dbls[(startD + k) % D];
+      reps[idx]++; extra--;
+    }
+  }
   // 2) kalan fazlalık: en sondaki (gönüllü olmayan) okuyuculara
   for(let p = N - 1; p >= 0 && extra > 0; p--){
     const idx = list[(((p - rot) % N) + N) % N];
@@ -305,6 +341,14 @@ function assignedIndex(c, h){
 function nameFor(i, h){
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
   return liveName(i);
+}
+/* Kimlik seçilmişse kişi yalnızca kendi cüzüne dokunabilir (admin hariç) */
+function isMyCuz(h, c){
+  if(isAdmin) return true;
+  const me = myIdentity();
+  if(!me) return true;
+  if(isDone(h, c)) return readerName(h, c) === me.name;
+  return effectiveIndex(c, h) === me.idx;
 }
 /* Bu hatimde bu cüzü kim okuyacak: admin manuel atama (override) varsa o, yoksa otomatik */
 function effectiveIndex(c, h){
@@ -388,11 +432,12 @@ function load(){
   if(!st.times) st.times = {};
   if(!st.inactive) st.inactive = {};
   if(!st.double) st.double = {};
+  if(!st.phones) st.phones = {};
   if(!st.overrides) st.overrides = {};
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, double:{}, overrides:{}, pcount:30};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, double:{}, overrides:{}, phones:{}, pcount:30};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -419,6 +464,7 @@ function applySnap(val){
   state.times = val.times || {};
   state.inactive = val.inactive || {};
   state.double = val.double || {};
+  state.phones = val.phones || {};
   state.overrides = val.overrides || {};
   state.pcount = val.pcount || 30;
   if(state.hatimCount < 1) state.hatimCount = 1;
@@ -463,6 +509,8 @@ modal.addEventListener('click', function(e){
     if(a === 'adm-double'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].double = !adminRows[i].double; showAdminPanel(); return; }
     if(a === 'adm-add'){ syncAdminInputs(); adminRows.push({name:'', active:true, double:false}); showAdminPanel(); return; }
     if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); return; }
+    if(a === 'set-identity'){ setIdentity(+b.dataset.i); closeModal(); return; }
+    if(a === 'clear-identity'){ clearIdentity(); closeModal(); return; }
   }
   if(e.target === modal) closeModal();
 });
@@ -472,7 +520,7 @@ let adminRows = [];
 function initAdminRows(){
   adminRows = [];
   const M = participantCount();
-  for(let i=0;i<M;i++){ adminRows.push({ name: liveName(i), active: !isInactive(i), double: isDouble(i) }); }
+  for(let i=0;i<M;i++){ adminRows.push({ name: liveName(i), active: !isInactive(i), double: isDouble(i), phone: livePhone(i) }); }
 }
 function openAdmin(){
   if(isAdmin){ initAdminRows(); showAdminPanel(); return; }
@@ -493,6 +541,9 @@ function syncAdminInputs(){
   document.querySelectorAll('.admin-list input[data-ai]').forEach(function(inp){
     const i = +inp.dataset.ai; if(adminRows[i]) adminRows[i].name = inp.value;
   });
+  document.querySelectorAll('.admin-list input[data-aiphone]').forEach(function(inp){
+    const i = +inp.dataset.aiphone; if(adminRows[i]) adminRows[i].phone = inp.value;
+  });
 }
 function showAdminPanel(){
   const activeCount = adminRows.filter(function(r){ return r.active && (r.name||'').trim(); }).length;
@@ -505,6 +556,7 @@ function showAdminPanel(){
           + '<button class="admin-toggle'+(r.active?' on':'')+'" data-action="adm-toggle" data-ai="'+i+'">'
           + (r.active?'Aktif':'Pasif')+'</button>'
           + '<button class="admin-dbl'+(r.double?' on':'')+'" data-action="adm-double" data-ai="'+i+'" title="2 cüz okur">2×</button>'
+          + '<input class="admin-phone" data-aiphone="'+i+'" value="'+escAttr(r.phone||'')+'" placeholder="📱 WhatsApp no (ülke koduyla, örn. 316… / 905…)" inputmode="tel" autocomplete="off">'
           + '</div>';
   });
   uiConfirm({
@@ -537,15 +589,19 @@ function saveAdminParticipants(){
       updates['names/'+i] = (i < 30 && nm === names[i]) ? null : nm;
       updates['inactive/'+i] = adminRows[i].active ? null : true;
       updates['double/'+i] = adminRows[i].double ? true : null;
+      const ph = (adminRows[i].phone || '').trim();
+      updates['phones/'+i] = ph ? ph : null;
     }
     fbRoot().update(updates);
   } else {
-    state.pcount = M; state.names = state.names || {}; state.inactive = state.inactive || {}; state.double = state.double || {};
+    state.pcount = M; state.names = state.names || {}; state.inactive = state.inactive || {}; state.double = state.double || {}; state.phones = state.phones || {};
     for(let i=0;i<M;i++){
       const nm = (adminRows[i].name || '').trim() || ('Katılımcı '+(i+1));
       if(i < 30 && nm === names[i]) delete state.names[i]; else state.names[i] = nm;
       if(adminRows[i].active) delete state.inactive[i]; else state.inactive[i] = true;
       if(adminRows[i].double) state.double[i] = true; else delete state.double[i];
+      const ph = (adminRows[i].phone || '').trim();
+      if(ph) state.phones[i] = ph; else delete state.phones[i];
     }
     save(); render();
   }
@@ -561,11 +617,13 @@ function rowHTML(name, cuz, done, interactive, h){
   const nameEl = done
     ? '<span class="name clickable" data-action="profile" data-name="'+escAttr(name)+'">'+name+'</span>'
     : '<span class="name">'+name+'</span>';
-  return '<div class="row'+(done?' done':'')+'"'+data+'>'
+  const locked = interactive && !isMyCuz(h, cuz);
+  const lockMark = locked ? '<span class="lockmark" title="Sadece kendi cüzünüz">🔒</span>' : '';
+  return '<div class="row'+(done?' done':'')+(locked?' locked':'')+'"'+data+'>'
     + '<div class="left"><span class="check">✓</span>'
     + nameEl
     + '<span class="badge-okundu">✓ Okundu</span></div>'
-    + '<div class="row-right">'+reassign+'<span class="badge'+(sec?' secde':'')+'">'+cuz+icon+'</span></div></div>';
+    + '<div class="row-right">'+lockMark+reassign+'<span class="badge'+(sec?' secde':'')+'">'+cuz+icon+'</span></div></div>';
 }
 
 function sectionHTML(h){
@@ -585,15 +643,20 @@ function sectionHTML(h){
     + '<div class="mini"><div class="mini-row"><span class="mini-read">'+read+' okundu</span>'
     + '<span class="mini-left">'+left+' kaldı</span><span class="mini-pct">%'+pct+'</span></div>'
     + '<div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div>'
-    + '<button class="btn wa" data-action="share" data-h="'+h+'">📲 WhatsApp\'ta paylaş</button></div>'
+    + '<button class="btn wa" data-action="share" data-h="'+h+'">📲 WhatsApp\'ta paylaş</button>'
+    + (isAdmin ? '<button class="btn wa-rem" data-action="remind" data-h="'+h+'">🔔 Okumayanlara hatırlat</button>' : '')
+    + '</div>'
     + banner + '</section>';
 }
 
 function controlsHTML(){
+  const me = myIdentity();
   let h = '<div class="controls">';
+  h += '<button class="btn whoami" data-action="whoami">👤 '+(me ? escAttr(me.name) : 'Kim?')+'</button>';
   h += '<button class="btn" data-action="notif">🔔 Bildirim</button>';
   h += '<button class="btn" data-action="admin">'+(isAdmin ? '🔓 Admin' : '🔒 Admin')+'</button>';
   if(isAdmin){
+    h += '<button class="btn" data-action="showlog">📋 Kayıt defteri</button>';
     h += '<button class="btn" data-action="admin-logout">Admin’den çık</button>';
     h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
   }
@@ -625,6 +688,51 @@ function archiveHTML(){
   return '<div class="archive"><button class="arch-head" data-action="arch-toggle">'
     + '<span>📁 Arşiv · '+state.archived.length+' tamamlanmış hatim</span>'
     + '<span>'+(archiveOpen?'▾':'▸')+'</span></button>'+inner+'</div>';
+}
+
+/* ---- WhatsApp hatırlatma ---- */
+function livePhone(i){ return (state.phones && state.phones[i] != null) ? String(state.phones[i]) : ''; }
+function sanitizePhone(p){ return String(p || '').replace(/[^0-9]/g, ''); }
+function reminderText(nm, h, cuzList){
+  return 'Selamün aleyküm ' + nm + ' 🌙\n\n'
+    + 'Merhum HAFIZ HALİL KILIÇ (Hacıbabamız) ruhuna okuduğumuz hatimde ' + h + '. hatim devam ediyor. '
+    + cuzList.join(', ') + '. cüz henüz okunmadı.\n\n'
+    + 'Müsait olduğunda okuyup işaretler misin? Hatim duası ' + hatimDate(h) + ' akşamı yapılacaktır inşallah.\n\n'
+    + 'Allah razı olsun 🤲\n' + location.href;
+}
+function remindUnread(h){
+  const byIdx = {};
+  for(let c = 1; c <= 30; c++){
+    if(isDone(h, c)) continue;
+    const i = effectiveIndex(c, h);
+    if(i == null) continue;
+    (byIdx[i] = byIdx[i] || []).push(c);
+  }
+  const idxs = Object.keys(byIdx).map(Number).sort(function(a,b){ return a-b; });
+  if(idxs.length === 0){ uiAlert(h+'. Hatim', 'Tüm cüzler okunmuş 🎉 Hatırlatılacak kimse yok.'); return; }
+  let list = '';
+  idxs.forEach(function(i){
+    const nm = nameFor(i, h);
+    const cuzList = byIdx[i].sort(function(a,b){ return a-b; });
+    const phone = sanitizePhone(livePhone(i));
+    if(phone){
+      const url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(reminderText(nm, h, cuzList));
+      list += '<a class="wa-remind" href="'+url+'" target="_blank" rel="noopener">'
+            + '<span class="wr-name">📲 '+escAttr(nm)+'</span>'
+            + '<span class="wr-cuz">'+cuzList.join(', ')+'. cüz</span></a>';
+    } else {
+      list += '<div class="wa-remind no-phone">'
+            + '<span class="wr-name">'+escAttr(nm)+'</span>'
+            + '<span class="wr-cuz">'+cuzList.join(', ')+'. cüz · ☎️ no yok</span></div>';
+    }
+  });
+  uiConfirm({
+    wide:true,
+    title:'🔔 Hatırlat · '+h+'. Hatim',
+    body:'<div class="admin-note">Okumayanlara tek tek WhatsApp hatırlatması. İsme tıkla → WhatsApp numarayla birlikte açılır → <b>sen gönder</b>. Numarası olmayanları Admin → Katılımcılar’dan ekleyebilirsin.</div>'
+        +'<div class="wa-remind-list">'+list+'</div>',
+    okText:'Kapat', hideCancel:true
+  });
 }
 
 /* ---- Okuyucu profili (okuma geçmişi) ---- */
@@ -787,8 +895,98 @@ function render(){
   app.innerHTML = out;
 }
 
+/* ---- Cihaz kimliği (yalnızca bu cihazda saklanır) ---- */
+/* Hiçbir şey Firebase'e yazılmaz: ne IP, ne şehir, ne cihaz bilgisi.
+   Sadece "bu cihaz kime ait" seçimi localStorage'da tutulur. */
+let myUser = null;            // { idx, name }
+let identityPrompted = false;
+function loadMe(){
+  try{ myUser = JSON.parse(localStorage.getItem('hatim_me') || 'null'); }catch(e){ myUser = null; }
+}
+function saveMe(){
+  try{
+    if(myUser) localStorage.setItem('hatim_me', JSON.stringify(myUser));
+    else localStorage.removeItem('hatim_me');
+  }catch(e){}
+}
+function myIdentity(){
+  if(!myUser) return null;
+  /* isim admin tarafından değişmiş olabilir → güncel adı index'ten türet */
+  const nm = liveName(myUser.idx) || myUser.name;
+  return { idx: myUser.idx, name: nm };
+}
+function setIdentity(idx){
+  myUser = { idx: idx, name: liveName(idx) };
+  saveMe();
+  render();
+}
+function clearIdentity(){
+  myUser = null; saveMe(); render();
+}
+function pickIdentity(){
+  try{ sessionStorage.setItem('hatim_idprompt','1'); }catch(e){}
+  const me = myIdentity();
+  let rows = '';
+  const M = participantCount();
+  for(let i=0;i<M;i++){
+    if(isInactive(i)) continue;
+    const cur = me && me.idx === i;
+    rows += '<button class="pick-btn'+(cur?' cur':'')+'" data-action="set-identity" data-i="'+i+'">'+escAttr(liveName(i))+(cur?' ✓':'')+'</button>';
+  }
+  const clearBtn = me ? '<button class="pick-btn auto" data-action="clear-identity">✕ Bu cihazdan çık</button>' : '';
+  uiConfirm({
+    wide:true,
+    title:'ALTTAKİ LİSTEDEN KENDİNİZİ SEÇİN',
+    body:'<div class="pick-list">'+clearBtn+rows+'</div>',
+    okText:'Şimdi değil', hideCancel:true
+  });
+}
+
+/* ---- Kayıt defteri (mevcut veriden türetilir, ek depolama yok) ---- */
+function buildLog(){
+  const arr = [];
+  for(let h=1; h<=state.hatimCount; h++){
+    if(isRemoved(h)) continue;
+    const d = state.done[h] || {};
+    for(const cstr in d){
+      if(!d[cstr]) continue;
+      const c = +cstr;
+      const t = (state.times && state.times[h] && state.times[h][c]) || null;
+      arr.push({ name: readerName(h, c), h:h, cuz:c, t:t });
+    }
+  }
+  arr.sort(function(a,b){ return (b.t||0) - (a.t||0); });
+  return arr;
+}
+function showLog(){
+  if(!isAdmin) return;
+  const arr = buildLog();
+  let rows = '';
+  if(arr.length === 0){ rows = '<div class="prof-empty">Henüz okunmuş cüz kaydı yok.</div>'; }
+  arr.forEach(function(e){
+    rows += '<div class="lg-row"><div class="lg-top"><span class="lg-name">'+escAttr(e.name||'?')+'</span>'
+          + '<span class="lg-act ok">okundu</span></div>'
+          + '<div class="lg-mid">'+e.h+'. hatim · '+e.cuz+'. cüz</div>'
+          + '<div class="lg-bot">'+fmtTime(e.t)+'</div></div>';
+  });
+  uiConfirm({
+    wide:true,
+    title:'📋 Kayıt Defteri ('+arr.length+')',
+    body:'<div class="admin-note">Hangi cüzü kim, ne zaman okudu. Cihaz/konum gibi bilgi tutulmaz; bu liste yalnızca '
+        +'mevcut okuma kayıtlarından oluşturulur. Eski kayıtlarda saat olmayabilir.</div>'
+        +'<div class="lg-list">'+rows+'</div>',
+    okText:'Kapat', hideCancel:true
+  });
+}
+
 /* ---- İşlemler ---- */
 function toggle(h,cuz){
+  if(!isMyCuz(h, cuz)){
+    const me = myIdentity();
+    uiAlert('Sadece kendi cüzünüz',
+      'Şu an <b>'+escAttr(me ? me.name : '')+'</b> olarak giriş yaptınız. Yalnızca size atanan cüzleri işaretleyebilir veya geri alabilirsiniz.<br><br>Başka birinin cüzünü işaretlemek için üstteki <b>👤</b> butonundan kişiyi değiştirin.');
+    return;
+  }
   userPicked = true;
   const willRead = !isDone(h,cuz);
   const kisi = displayName(cuz,h);
@@ -800,9 +998,11 @@ function toggle(h,cuz){
         + (willRead ? 'Bu cüz <b>OKUNDU</b> olarak işaretlensin mi?'
                     : 'Bu cüzün işareti kaldırılsın mı? (okunmadı yapılacak)'),
     onOk: function(){
+      const me = myIdentity();
+      const lockName = me ? me.name : liveName(effectiveIndex(cuz,h));
       if(useFirebase){
         const u = {};
-        if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = liveName(effectiveIndex(cuz,h)); u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP; }
+        if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = lockName; u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP; }
         else { u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; u['times/'+h+'/'+cuz] = null; }
         fbRoot().update(u);
       } else {
@@ -810,7 +1010,7 @@ function toggle(h,cuz){
         state.readers = state.readers || {}; state.times = state.times || {};
         if(!state.readers[h]) state.readers[h] = {};
         if(!state.times[h]) state.times[h] = {};
-        if(willRead){ state.readers[h][cuz] = liveName(effectiveIndex(cuz,h)); state.times[h][cuz] = Date.now(); }
+        if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); }
         else { delete state.readers[h][cuz]; delete state.times[h][cuz]; }
         save(); render(); detectCompletions();
       }
@@ -922,9 +1122,12 @@ app.addEventListener('click', e=>{
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'admin'){ openAdmin(); }
+    else if(a === 'whoami'){ pickIdentity(); }
+    else if(a === 'showlog'){ showLog(); }
     else if(a === 'admin-logout'){ isAdmin = false; render(); }
     else if(a === 'reassign'){ reassign(h, +btn.dataset.cuz); }
     else if(a === 'profile'){ showProfile(btn.dataset.name); }
+    else if(a === 'remind'){ remindUnread(h); }
     else if(a === 'notif'){ requestNotif(); }
     else if(a === 'reset'){
       uiConfirm({
@@ -933,7 +1136,7 @@ app.addEventListener('click', e=>{
         onOk:function(){
           expanded = {}; archiveOpen = false;
           if(useFirebase){ fbRoot().remove(); }
-          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, double:{}, overrides:{}, pcount:30}; save(); render(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, double:{}, overrides:{}, phones:{}, pcount:30}; save(); render(); }
         }
       });
     }
@@ -954,20 +1157,30 @@ app.addEventListener('keydown', e=>{
 });
 
 /* ---- Başlatma ---- */
+function maybePromptIdentity(){
+  if(identityPrompted || myIdentity()) return;
+  let skip = false;
+  try{ skip = sessionStorage.getItem('hatim_idprompt') === '1'; }catch(e){}
+  if(skip) return;
+  identityPrompted = true;
+  setTimeout(pickIdentity, 900);
+}
+loadMe();
 if(useFirebase){
   setStatus('connecting');
   try{
     firebase.initializeApp(firebaseConfig);
     db = firebase.database();
     db.ref('.info/connected').on('value', s=>{ setStatus(s.val() ? 'ok' : 'offline'); });
-    fbRoot().on('value', snap=>{ applySnap(snap.val()); });
+    fbRoot().on('value', snap=>{ applySnap(snap.val()); maybePromptIdentity(); });
   }catch(err){
-    state = load(); setStatus('local'); render();
+    state = load(); setStatus('local'); render(); maybePromptIdentity();
   }
 } else {
   setStatus('local');
   render();
   detectCompletions();
+  maybePromptIdentity();
 }
 </script>
 </body>
