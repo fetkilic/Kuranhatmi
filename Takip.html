@@ -254,7 +254,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.0.6</div>
+  <div class="app-version">V1.0.7</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -531,6 +531,8 @@ modal.addEventListener('click', function(e){
     if(a === 'adm-vol'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].volunteer = !adminRows[i].volunteer; if(adminRows[i].volunteer) adminRows[i].placeholder = false; showAdminPanel(); return; }
     if(a === 'adm-add'){ syncAdminInputs(); adminRows.push({name:'', active:true}); showAdminPanel(); return; }
     if(a === 'adm-add-place'){ syncAdminInputs(); adminRows.push({name:'Gönüllü', active:true, placeholder:true}); showAdminPanel(); return; }
+    if(a === 'adm-to-place'){ syncAdminInputs(); showToPlacePicker(); return; }
+    if(a === 'adm-set-place'){ const i = +b.dataset.ai; if(adminRows[i]){ adminRows[i].placeholder = true; adminRows[i].volunteer = false; } showAdminPanel(); return; }
     if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); return; }
     if(a === 'set-identity'){ setIdentity(+b.dataset.i); closeModal(); return; }
     if(a === 'clear-identity'){ clearIdentity(); closeModal(); return; }
@@ -593,9 +595,25 @@ function showAdminPanel(){
         +'<div class="admin-add-row">'
         +'<button class="btn admin-add" data-action="adm-add">＋ Kişi ekle</button>'
         +'<button class="btn admin-add place" data-action="adm-add-place">＋ Gönüllü yeri ekle</button>'
+        +'<button class="btn admin-add" data-action="adm-to-place">⇄ Kişiyi yer’e çevir</button>'
         +'</div>',
     okText:'Kaydet',
     onOk:saveAdminParticipants
+  });
+}
+function showToPlacePicker(){
+  let rows = '';
+  adminRows.forEach(function(r, i){
+    if(r.placeholder) return;
+    rows += '<button class="pick-btn" data-action="adm-set-place" data-ai="'+i+'">'+escAttr((r.name||'').trim() || ('Katılımcı '+(i+1)))+'</button>';
+  });
+  if(!rows) rows = '<div class="prof-empty">Çevrilecek kişi yok.</div>';
+  uiConfirm({
+    wide:true,
+    title:'Hangi kişi gönüllü yeri olsun?',
+    body:'<div class="admin-note">Seçtiğin kişi <b>yerinde</b> gönüllü yerine (placeholder) çevrilir — pasife alınmaz, slotu/sırası değişmez, <b>kayma olmaz</b>. Cüzü bundan sonra otomatik gönüllülere dağıtılır. Elle atadığın haftalar korunur.</div>'
+        +'<div class="pick-list">'+rows+'</div>',
+    okText:'Geri', hideCancel:true, onOk: showAdminPanel
   });
 }
 function saveAdminParticipants(){
