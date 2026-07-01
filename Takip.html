@@ -86,6 +86,26 @@
   .badge-extra{display:inline-block;font-size:11px;font-weight:800;color:#e9c45a;
     background:rgba(217,180,74,.14);border:1px solid #7a5f1f;
     padding:2px 7px;border-radius:6px;margin-left:8px;white-space:nowrap;}
+  .btn.pdf{background:#26324a;border-color:#3a4a6b;color:#cfe0ff;}
+  .btn.pdf:hover{background:#2f3e5c;}
+  #printArea{display:none;}
+  @media print{
+    @page{ size:A4 landscape; margin:10mm; }
+    html,body{ background:#fff !important; }
+    body > *:not(#printArea){ display:none !important; }
+    #printArea{ display:block !important; color:#000; font-family:Arial,Helvetica,sans-serif; }
+    #printArea .pt-head{ text-align:center; margin-bottom:6mm; }
+    #printArea .pt-title{ font-size:20pt; font-weight:800; letter-spacing:.5px; }
+    #printArea .pt-ded{ font-size:12pt; color:#8a6d1f; margin-top:2mm; }
+    #printArea .pt-sub{ font-size:10pt; color:#333; margin-top:1.5mm; }
+    #printArea table.pt{ width:100%; border-collapse:collapse; table-layout:fixed; }
+    #printArea table.pt th, #printArea table.pt td{ border:1px solid #444; padding:5px 8px; font-size:11pt; }
+    #printArea table.pt th{ background:#eee; font-size:10pt; text-transform:uppercase; letter-spacing:.5px; }
+    #printArea table.pt td.cz{ text-align:center; font-weight:800; width:7%; }
+    #printArea table.pt td.rd{ width:26.3%; }
+    #printArea .s{ color:#8a6d1f; }
+    #printArea .pt-foot{ text-align:center; margin-top:6mm; font-size:9pt; color:#666; }
+  }
 
   .mini{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
   .mini-row{display:flex;align-items:center;gap:14px;font-size:14px;font-weight:700;margin-bottom:10px;}
@@ -257,7 +277,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.0.9</div>
+  <div class="app-version">V1.1.0</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -708,6 +728,7 @@ function sectionHTML(h){
     + '<span class="mini-left">'+left+' kaldı</span><span class="mini-pct">%'+pct+'</span></div>'
     + '<div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div>'
     + '<button class="btn wa" data-action="share" data-h="'+h+'">📲 WhatsApp\'ta paylaş</button>'
+    + (read === 30 ? '<button class="btn pdf" data-action="printpdf" data-h="'+h+'">🖨️ PDF Cetveli</button>' : '')
     + (isAdmin ? '<button class="btn wa-rem" data-action="remind" data-h="'+h+'">🔔 Okumayanlara hatırlat</button>' : '')
     + '</div>'
     + banner + '</section>';
@@ -744,6 +765,7 @@ function archiveHTML(){
         + '<span class="arch-date">'+hatimDate(h)+'</span>'
         + '<div class="arch-actions">'
         + '<button class="btn" data-action="arch-show" data-h="'+h+'">'+(show?'Gizle':'Detay')+'</button>'
+        + '<button class="btn pdf" data-action="printpdf" data-h="'+h+'">🖨️ PDF</button>'
         + '<button class="btn" data-action="arch-restore" data-h="'+h+'">Geri al</button>'
         + (isAdmin ? '<button class="btn" data-action="del" data-h="'+h+'">Sil</button>' : '')
         + '</div></div>'+detail+'</div>';
@@ -752,6 +774,32 @@ function archiveHTML(){
   return '<div class="archive"><button class="arch-head" data-action="arch-toggle">'
     + '<span>📁 Arşiv · '+state.archived.length+' tamamlanmış hatim</span>'
     + '<span>'+(archiveOpen?'▾':'▸')+'</span></button>'+inner+'</div>';
+}
+
+/* ---- Hatim cetveli PDF (yazdır → PDF, tek sayfa yatay) ---- */
+function printHatim(h){
+  const area = document.getElementById('printArea');
+  if(!area) return;
+  let body = '';
+  for(let r=1;r<=10;r++){
+    body += '<tr>';
+    [r, r+10, r+20].forEach(function(c){
+      const sec = SECDE[c] ? ' <span class="s">۩</span>' : '';
+      body += '<td class="cz">'+c+sec+'</td><td class="rd">'+escAttr(readerName(h, c))+'</td>';
+    });
+    body += '</tr>';
+  }
+  area.innerHTML =
+      '<div class="pt-head">'
+    + '<div class="pt-title">'+h+'. HATİM — HATİM CETVELİ</div>'
+    + '<div class="pt-ded">Merhum HÂFIZ HALİL KILIÇ (Hacıbabamız) ruhuna — El-Fâtiha</div>'
+    + '<div class="pt-sub">Tamamlanma tarihi: '+hatimDate(h)+' · 30/30 hatmedildi</div>'
+    + '</div>'
+    + '<table class="pt"><thead><tr>'
+    + '<th>Cüz</th><th>Okuyan</th><th>Cüz</th><th>Okuyan</th><th>Cüz</th><th>Okuyan</th>'
+    + '</tr></thead><tbody>'+body+'</tbody></table>'
+    + '<div class="pt-foot">۩ = tilavet secdesi · Kılıç Ailesi Hatim Takip</div>';
+  window.print();
 }
 
 /* ---- WhatsApp hatırlatma (numarasız grup mesajı) ---- */
@@ -1190,6 +1238,7 @@ app.addEventListener('click', e=>{
     else if(a === 'reassign'){ reassign(h, +btn.dataset.cuz); }
     else if(a === 'profile'){ showProfile(btn.dataset.name); }
     else if(a === 'remind'){ remindUnread(h); }
+    else if(a === 'printpdf'){ printHatim(h); }
     else if(a === 'notif'){ requestNotif(); }
     else if(a === 'reset'){
       uiConfirm({
@@ -1245,5 +1294,6 @@ if(useFirebase){
   maybePromptIdentity();
 }
 </script>
+<div id="printArea"></div>
 </body>
 </html>
