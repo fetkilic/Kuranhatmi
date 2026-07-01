@@ -156,13 +156,15 @@
     display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000;}
   .modal-overlay[hidden]{display:none;}
   .modal-card{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:400px;width:100%;
-    padding:22px 22px 18px;box-shadow:0 24px 70px rgba(0,0,0,.55);animation:pop .15s ease;}
+    padding:22px 22px 18px;box-shadow:0 24px 70px rgba(0,0,0,.55);animation:pop .15s ease;
+    display:flex;flex-direction:column;max-height:calc(100vh - 40px);}
   @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
-  .modal-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:12px;}
-  .modal-body{font-size:15px;color:var(--muted);line-height:1.55;margin-bottom:22px;}
+  .modal-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:12px;flex:none;}
+  .modal-body{font-size:15px;color:var(--muted);line-height:1.55;margin-bottom:16px;
+    overflow-y:auto;flex:1 1 auto;min-height:0;}
   .modal-body .hl{color:#5b9dff;font-weight:800;}
   .modal-body .nm{color:var(--text);font-weight:700;}
-  .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;flex:none;}
   .modal-actions .btn{min-width:96px;padding:11px 16px;}
   .modal-ok{background:var(--green);border-color:var(--green);color:#fff;}
   .modal-ok:hover{background:var(--green-l);border-color:var(--green-l);color:#fff;}
@@ -174,12 +176,19 @@
   .admin-input:focus{outline:none;border-color:#5b9dff;}
   .admin-note{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px;
     background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
-  .admin-list{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;}
+  .admin-list{display:flex;flex-direction:column;gap:8px;padding-right:4px;margin-bottom:12px;}
   .admin-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .admin-no{flex:none;width:26px;text-align:right;color:var(--muted);font-weight:700;font-size:13px;}
   .admin-toggle{flex:none;min-width:62px;padding:8px 10px;border-radius:8px;font-size:12.5px;font-weight:800;
     cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;}
   .admin-toggle.on{background:rgba(34,197,94,.12);border-color:#1f6b3a;color:var(--green-l);}
+  .admin-flag{flex:none;min-width:44px;padding:8px 9px;border-radius:8px;font-size:12px;font-weight:800;
+    cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;}
+  .admin-flag.place.on{background:rgba(217,180,74,.16);border-color:#7a5f1f;color:#e9c45a;}
+  .admin-flag.vol.on{background:rgba(59,130,246,.16);border-color:#2f4f88;color:#9fc3ff;}
+  .admin-row.ph{background:rgba(217,180,74,.05);border-radius:8px;padding:2px 4px;}
+  .admin-add-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .admin-add.place{background:rgba(217,180,74,.12);border-color:#7a5f1f;color:#e9c45a;}
   .row-right{display:flex;align-items:center;gap:8px;flex:none;}
   .reassign-btn{flex:none;width:28px;height:28px;border-radius:7px;border:1px solid var(--line);
     background:var(--bg2);color:var(--muted);font-size:13px;cursor:pointer;line-height:1;transition:all .15s;}
@@ -245,7 +254,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.0.3</div>
+  <div class="app-version">V1.0.6</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -323,6 +332,32 @@ function nameFor(i, h){
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
   return liveName(i);
 }
+/* Placeholder (gönüllü yeri): 30'u tamamlayan ama gerçek okuyucu olmayan slot.
+   Gönüllü: placeholder'a düşen cüzü sırayla üstlenen gerçek kişiler. */
+function isPlaceholder(i){ return !!(state.placeholder && state.placeholder[i]); }
+function isVolunteer(i){ return !!(state.volunteer && state.volunteer[i]); }
+function activeVolunteers(){
+  const a = []; const M = participantCount();
+  for(let i=0;i<M;i++){ if(!isInactive(i) && !isPlaceholder(i) && isVolunteer(i)) a.push(i); }
+  return a;
+}
+/* Bu hatimde placeholder slot'a düşen cüz numaraları (küçükten büyüğe) */
+function placeholderCuzList(h){
+  const arr = [];
+  for(let c=1;c<=30;c++){ if(isPlaceholder(assignedIndex(c,h))) arr.push(c); }
+  return arr;
+}
+/* Placeholder cüzü, seçili gönüllüler arasından haftaya göre dönerek otomatik atanır */
+function volunteerFor(c, h){
+  const vols = activeVolunteers();
+  const V = vols.length;
+  if(V === 0) return assignedIndex(c, h); // gönüllü yoksa yer olarak kalır (elle atanır)
+  const list = placeholderCuzList(h);
+  const rank = list.indexOf(c);
+  if(rank < 0) return assignedIndex(c, h);
+  const startV = (((h - 1) % V) + V) % V;
+  return vols[(startV + rank) % V];
+}
 /* Kimlik seçilmişse kişi yalnızca kendi cüzüne dokunabilir (admin hariç) */
 function isMyCuz(h, c){
   if(isAdmin) return true;
@@ -331,10 +366,12 @@ function isMyCuz(h, c){
   if(isDone(h, c)) return readerName(h, c) === me.name;
   return effectiveIndex(c, h) === me.idx;
 }
-/* Bu hatimde bu cüzü kim okuyacak: admin manuel atama (override) varsa o, yoksa otomatik */
+/* Bu hatimde bu cüzü kim okuyacak: elle atama (override) > gönüllü otomatik > normal */
 function effectiveIndex(c, h){
   if(state.overrides && state.overrides[h] && state.overrides[h][c] != null) return state.overrides[h][c];
-  return assignedIndex(c, h);
+  const i = assignedIndex(c, h);
+  if(isPlaceholder(i)) return volunteerFor(c, h);
+  return i;
 }
 /* Tamamlanmış bir cüzü okuyanın adı: kayıtlıysa kilitli ad; yoksa (eski kayıt)
    orijinal rotasyona göre geri-doldur — böylece kişi profilinde/listede doğru görünür */
@@ -412,11 +449,13 @@ function load(){
   if(!st.readers) st.readers = {};
   if(!st.times) st.times = {};
   if(!st.inactive) st.inactive = {};
+  if(!st.placeholder) st.placeholder = {};
+  if(!st.volunteer) st.volunteer = {};
   if(!st.overrides) st.overrides = {};
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, overrides:{}, pcount:30};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -442,6 +481,8 @@ function applySnap(val){
   state.readers = val.readers || {};
   state.times = val.times || {};
   state.inactive = val.inactive || {};
+  state.placeholder = val.placeholder || {};
+  state.volunteer = val.volunteer || {};
   state.overrides = val.overrides || {};
   state.pcount = val.pcount || 30;
   if(state.hatimCount < 1) state.hatimCount = 1;
@@ -486,7 +527,10 @@ modal.addEventListener('click', function(e){
   if(b){
     const a = b.dataset.action;
     if(a === 'adm-toggle'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].active = !adminRows[i].active; showAdminPanel(); return; }
+    if(a === 'adm-place'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].placeholder = !adminRows[i].placeholder; if(adminRows[i].placeholder) adminRows[i].volunteer = false; showAdminPanel(); return; }
+    if(a === 'adm-vol'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].volunteer = !adminRows[i].volunteer; if(adminRows[i].volunteer) adminRows[i].placeholder = false; showAdminPanel(); return; }
     if(a === 'adm-add'){ syncAdminInputs(); adminRows.push({name:'', active:true}); showAdminPanel(); return; }
+    if(a === 'adm-add-place'){ syncAdminInputs(); adminRows.push({name:'Gönüllü', active:true, placeholder:true}); showAdminPanel(); return; }
     if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); return; }
     if(a === 'set-identity'){ setIdentity(+b.dataset.i); closeModal(); return; }
     if(a === 'clear-identity'){ clearIdentity(); closeModal(); return; }
@@ -499,7 +543,7 @@ let adminRows = [];
 function initAdminRows(){
   adminRows = [];
   const M = participantCount();
-  for(let i=0;i<M;i++){ adminRows.push({ name: liveName(i), active: !isInactive(i) }); }
+  for(let i=0;i<M;i++){ adminRows.push({ name: liveName(i), active: !isInactive(i), placeholder: isPlaceholder(i), volunteer: isVolunteer(i) }); }
 }
 function openAdmin(){
   if(isAdmin){ initAdminRows(); showAdminPanel(); return; }
@@ -523,23 +567,33 @@ function syncAdminInputs(){
 }
 function showAdminPanel(){
   const activeCount = adminRows.filter(function(r){ return r.active && (r.name||'').trim(); }).length;
+  const placeCount = adminRows.filter(function(r){ return r.active && r.placeholder; }).length;
+  const volCount = adminRows.filter(function(r){ return r.active && r.volunteer; }).length;
   let rows = '';
   adminRows.forEach(function(r, i){
-    rows += '<div class="admin-row'+(r.active?'':' off')+'">'
+    const ctrl = r.placeholder
+      ? '<button class="admin-flag place on" data-action="adm-place" data-ai="'+i+'" title="Gönüllü yeri — normal kişiye çevirmek için dokun">Yer ✓</button>'
+      : '<button class="admin-flag vol'+(r.volunteer?' on':'')+'" data-action="adm-vol" data-ai="'+i+'" title="Gönüllü havuzu">Gön.</button>';
+    rows += '<div class="admin-row'+(r.active?'':' off')+(r.placeholder?' ph':'')+'">'
           + '<span class="admin-no">'+(i+1)+'.</span>'
           + '<input class="admin-input" data-ai="'+i+'" value="'+escAttr(r.name)+'" placeholder="İsim">'
           + '<button class="admin-toggle'+(r.active?' on':'')+'" data-action="adm-toggle" data-ai="'+i+'">'
           + (r.active?'Aktif':'Pasif')+'</button>'
+          + ctrl
           + '</div>';
   });
   uiConfirm({
     wide:true,
     title:'Admin · Katılımcılar',
-    body:'<div class="admin-note">Aktif: <b>'+activeCount+'</b> · toplam 30 cüz.<br>'
-        +'30’dan azsa fazladan cüzler her hatim <b>dönüşümlü</b> olarak okuyuculara dağıtılır. '
-        +'“Pasif” kişiye cüz verilmez. Değişiklik aktif/sonraki hatimlere yansır; okunmuş cüzler ve arşiv eski haliyle kalır.</div>'
+    body:'<div class="admin-note">Aktif: <b>'+activeCount+'</b> · Gönüllü yeri: <b>'+placeCount+'</b> · Gönüllü: <b>'+volCount+'</b> · aktif toplam 30 olmalı.<br>'
+        +'<b>Yer</b> = 30’u tamamlayan boş slot (aşağıdaki “Gönüllü yeri ekle” ile eklenir, gerçek okuyucu değildir). '
+        +'<b>Gön.</b> = o boş slotun cüzünü sırayla üstlenecek gerçek gönüllüler; her hatim otomatik farklı birine atanır. '
+        +'Biri pasife alınınca fazladan “Gönüllü yeri” ekleyerek aktifi tekrar 30’a tamamla. Okunmuş cüzler ve arşiv eski haliyle kalır.</div>'
         +'<div class="admin-list">'+rows+'</div>'
-        +'<button class="btn admin-add" data-action="adm-add">＋ Yeni katılımcı ekle</button>',
+        +'<div class="admin-add-row">'
+        +'<button class="btn admin-add" data-action="adm-add">＋ Kişi ekle</button>'
+        +'<button class="btn admin-add place" data-action="adm-add-place">＋ Gönüllü yeri ekle</button>'
+        +'</div>',
     okText:'Kaydet',
     onOk:saveAdminParticipants
   });
@@ -561,14 +615,18 @@ function saveAdminParticipants(){
       const nm = (adminRows[i].name || '').trim() || ('Katılımcı '+(i+1));
       updates['names/'+i] = (i < 30 && nm === names[i]) ? null : nm;
       updates['inactive/'+i] = adminRows[i].active ? null : true;
+      updates['placeholder/'+i] = adminRows[i].placeholder ? true : null;
+      updates['volunteer/'+i] = adminRows[i].volunteer ? true : null;
     }
     fbRoot().update(updates);
   } else {
-    state.pcount = M; state.names = state.names || {}; state.inactive = state.inactive || {};
+    state.pcount = M; state.names = state.names || {}; state.inactive = state.inactive || {}; state.placeholder = state.placeholder || {}; state.volunteer = state.volunteer || {};
     for(let i=0;i<M;i++){
       const nm = (adminRows[i].name || '').trim() || ('Katılımcı '+(i+1));
       if(i < 30 && nm === names[i]) delete state.names[i]; else state.names[i] = nm;
       if(adminRows[i].active) delete state.inactive[i]; else state.inactive[i] = true;
+      if(adminRows[i].placeholder) state.placeholder[i] = true; else delete state.placeholder[i];
+      if(adminRows[i].volunteer) state.volunteer[i] = true; else delete state.volunteer[i];
     }
     save(); render();
   }
@@ -737,7 +795,7 @@ function showProfile(name){
 /* ---- Cüz yeniden atama (admin) ---- */
 function reassign(h, cuz){
   if(!isAdmin) return;
-  const list = activeList();
+  const list = activeList().filter(function(i){ return !isPlaceholder(i); });
   let rows = '<button class="pick-btn auto" data-action="pick-reader" data-h="'+h+'" data-cuz="'+cuz+'" data-i="-1">↺ Otomatik (varsayılan)</button>';
   const cur = effectiveIndex(cuz, h);
   list.forEach(function(i){
@@ -887,7 +945,7 @@ function pickIdentity(){
   let rows = '';
   const M = participantCount();
   for(let i=0;i<M;i++){
-    if(isInactive(i)) continue;
+    if(isInactive(i) || isPlaceholder(i)) continue;
     const cur = me && me.idx === i;
     rows += '<button class="pick-btn'+(cur?' cur':'')+'" data-action="set-identity" data-i="'+i+'">'+escAttr(liveName(i))+(cur?' ✓':'')+'</button>';
   }
@@ -1100,7 +1158,7 @@ app.addEventListener('click', e=>{
         onOk:function(){
           expanded = {}; archiveOpen = false;
           if(useFirebase){ fbRoot().remove(); }
-          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, overrides:{}, pcount:30}; save(); render(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30}; save(); render(); }
         }
       });
     }
