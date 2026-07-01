@@ -257,7 +257,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.0.8</div>
+  <div class="app-version">V1.0.9</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -376,10 +376,25 @@ function effectiveIndex(c, h){
   if(isPlaceholder(i)) return volunteerFor(c, h);
   return i;
 }
-/* Tamamlanmış bir cüzü okuyanın adı: kayıtlıysa kilitli ad; yoksa (eski kayıt)
-   orijinal rotasyona göre geri-doldur — böylece kişi profilinde/listede doğru görünür */
+/* İsim, mevcut bir placeholder (gönüllü yeri) katılımcısına mı ait? */
+function isPlaceholderName(nm){
+  if(nm == null || nm === '') return false;
+  const M = participantCount();
+  for(let i=0;i<M;i++){ if(isPlaceholder(i) && liveName(i) === nm) return true; }
+  return false;
+}
+/* Tamamlanmış bir cüzü okuyanın adı. Kilitli ad geçerliyse onu döndür; ama ad bir
+   placeholder'a (gönüllü yeri) aitse geçersiz say → gerçek atanana (override/gönüllü) çöz. */
 function readerName(h, c){
-  if(state.readers && state.readers[h] && state.readers[h][c] != null && state.readers[h][c] !== "") return state.readers[h][c];
+  const stored = (state.readers && state.readers[h] && state.readers[h][c] != null && state.readers[h][c] !== "") ? state.readers[h][c] : null;
+  if(stored && !isPlaceholderName(stored)) return stored;
+  // kilitli ad yok ya da placeholder adı → efektif atanan kişiye çöz
+  const ei = effectiveIndex(c, h);
+  if(ei != null && !isPlaceholder(ei)){
+    if(state.snapshots && state.snapshots[h] && state.snapshots[h][ei] != null) return state.snapshots[h][ei];
+    return liveName(ei);
+  }
+  // efektif hâlâ placeholder (gönüllü atanmamış) → orijinal rotasyona göre geri-doldur
   const i = personFor(c, h);
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
   return liveName(i);
@@ -1045,7 +1060,8 @@ function toggle(h,cuz){
                     : 'Bu cüzün işareti kaldırılsın mı? (okunmadı yapılacak)'),
     onOk: function(){
       const me = myIdentity();
-      const lockName = me ? me.name : liveName(effectiveIndex(cuz,h));
+      const ei = effectiveIndex(cuz, h);
+      const lockName = me ? me.name : (isPlaceholder(ei) ? readerName(h, cuz) : liveName(ei));
       if(useFirebase){
         const u = {};
         if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = lockName; u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP; }
