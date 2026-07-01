@@ -83,6 +83,9 @@
     padding:2px 7px;border-radius:6px;margin-left:8px;white-space:nowrap;
   }
   .row.done .badge-okundu{display:inline-block;}
+  .badge-extra{display:inline-block;font-size:11px;font-weight:800;color:#e9c45a;
+    background:rgba(217,180,74,.14);border:1px solid #7a5f1f;
+    padding:2px 7px;border-radius:6px;margin-left:8px;white-space:nowrap;}
 
   .mini{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
   .mini-row{display:flex;align-items:center;gap:14px;font-size:14px;font-weight:700;margin-bottom:10px;}
@@ -254,7 +257,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.0.7</div>
+  <div class="app-version">V1.0.8</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -662,9 +665,12 @@ function rowHTML(name, cuz, done, interactive, h){
     : '<span class="name">'+name+'</span>';
   const locked = interactive && !isMyCuz(h, cuz);
   const lockMark = locked ? '<span class="lockmark" title="Sadece kendi cüzünüz">🔒</span>' : '';
-  return '<div class="row'+(done?' done':'')+(locked?' locked':'')+'"'+data+'>'
+  const extra = interactive && isPlaceholder(assignedIndex(cuz, h));
+  const extraBadge = extra ? '<span class="badge-extra" title="Bu, bir gönüllünün ekstra üstlendiği cüzdür">🤝 Gönüllü</span>' : '';
+  return '<div class="row'+(done?' done':'')+(locked?' locked':'')+(extra?' extra':'')+'"'+data+'>'
     + '<div class="left"><span class="check">✓</span>'
     + nameEl
+    + extraBadge
     + '<span class="badge-okundu">✓ Okundu</span></div>'
     + '<div class="row-right">'+lockMark+reassign+'<span class="badge'+(sec?' secde':'')+'">'+cuz+icon+'</span></div></div>';
 }
