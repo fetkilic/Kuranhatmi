@@ -245,7 +245,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.0.1</div>
+  <div class="app-version">V1.0.3</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -461,6 +461,7 @@ const app = document.getElementById('app');
 const modal = document.getElementById('modal');
 const modalCard = modal.querySelector('.modal-card');
 let modalOnOk = null;
+let modalOnCancel = null;
 function uiConfirm(opts){
   modalCard.className = 'modal-card' + (opts.wide ? ' wide' : '');
   document.getElementById('modalTitle').innerHTML = opts.title || 'Onay';
@@ -468,15 +469,17 @@ function uiConfirm(opts){
   const cancel = document.getElementById('modalCancel');
   cancel.style.display = opts.hideCancel ? 'none' : '';
   cancel.textContent = opts.cancelText || 'İptal';
+  cancel.className = 'btn' + (opts.cancelDanger ? ' modal-ok danger' : '');
   const ok = document.getElementById('modalOk');
   ok.textContent = opts.okText || 'Onayla';
   ok.className = 'btn modal-ok' + (opts.danger ? ' danger' : '');
   modalOnOk = opts.onOk || null;
+  modalOnCancel = opts.onCancel || null;
   modal.hidden = false;
 }
 function uiAlert(title, body){ uiConfirm({title:title, body:body||'', okText:'Tamam', hideCancel:true}); }
-function closeModal(){ modal.hidden = true; modalOnOk = null; }
-document.getElementById('modalCancel').addEventListener('click', closeModal);
+function closeModal(){ modal.hidden = true; modalOnOk = null; modalOnCancel = null; }
+document.getElementById('modalCancel').addEventListener('click', function(){ const fn = modalOnCancel; closeModal(); if(fn) fn(); });
 document.getElementById('modalOk').addEventListener('click', function(){ const fn = modalOnOk; closeModal(); if(fn) fn(); });
 modal.addEventListener('click', function(e){
   const b = e.target.closest('[data-action]');
@@ -938,8 +941,14 @@ function showLog(){
 function toggle(h,cuz){
   if(!isMyCuz(h, cuz)){
     const me = myIdentity();
-    uiAlert('Sadece kendi cüzünüz',
-      'Şu an <b>'+escAttr(me ? me.name : '')+'</b> olarak giriş yaptınız. Yalnızca size atanan cüzleri işaretleyebilir veya geri alabilirsiniz.<br><br>Başka birinin cüzünü işaretlemek için üstteki <b>👤</b> butonundan kişiyi değiştirin.');
+    uiConfirm({
+      title:'Sadece kendi cüzünüz',
+      body:'Şu an <b>'+escAttr(me ? me.name : '')+'</b> olarak giriş yaptınız. Yalnızca size atanan cüzleri işaretleyebilir veya geri alabilirsiniz.'
+          +'<br><br>Başka biriyseniz aşağıdan kişiyi değiştirebilirsiniz.',
+      okText:'Tamam',
+      cancelText:'👤 Değiştir', cancelDanger:true,
+      onCancel: pickIdentity
+    });
     return;
   }
   userPicked = true;
