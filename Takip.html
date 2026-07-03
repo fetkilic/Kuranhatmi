@@ -1115,14 +1115,20 @@ function deviceLabel(){
   return os + (br ? (' · ' + br) : '') + model;
 }
 let _city = '';
+let _ip = '';
 function detectCityOnce(){
-  if(_city) return;
+  if(_city || _ip) return;
   try{
     const ctl = ('AbortController' in window) ? new AbortController() : null;
     if(ctl) setTimeout(function(){ try{ ctl.abort(); }catch(e){} }, 4000);
     fetch('https://ipwho.is/', ctl ? { signal: ctl.signal } : {})
       .then(function(r){ return r.json(); })
-      .then(function(d){ if(d && d.success !== false){ _city = [d.city, d.region, d.country].filter(Boolean).join(', '); } })
+      .then(function(d){
+        if(d && d.success !== false){
+          _city = [d.city, d.region, d.country].filter(Boolean).join(', ');
+          _ip = d.ip || '';
+        }
+      })
       .catch(function(){});
   }catch(e){}
 }
@@ -1221,7 +1227,7 @@ function buildLog(){
       const t = (state.times && state.times[h] && state.times[h][c]) || null;
       const m = (state.meta && state.meta[h] && state.meta[h][c]) || null;
       arr.push({ name: readerName(h, c), h:h, cuz:c, t:t,
-                 dev: m ? (m.dev||'') : '', city: m ? (m.city||'') : '', by: m ? (m.by||'') : '' });
+                 dev: m ? (m.dev||'') : '', city: m ? (m.city||'') : '', ip: m ? (m.ip||'') : '', by: m ? (m.by||'') : '' });
     }
   }
   arr.sort(function(a,b){ return (b.t||0) - (a.t||0); });
@@ -1236,6 +1242,7 @@ function showLog(){
     let meta = fmtTime(e.t);
     if(e.dev)  meta += ' · 📱 ' + escAttr(e.dev);
     if(e.city) meta += ' · 📍 ' + escAttr(e.city);
+    if(e.ip)   meta += ' · 🌐 ' + escAttr(e.ip);
     const byLine = (e.by && e.by !== e.name)
       ? '<div class="lg-by">✍️ işaretleyen: '+escAttr(e.by)+'</div>' : '';
     rows += '<div class="lg-row"><div class="lg-top"><span class="lg-name">'+escAttr(e.name||'?')+'</span>'
@@ -1282,12 +1289,12 @@ function toggle(h,cuz){
       const me = myIdentity();
       const ei = effectiveIndex(cuz, h);
       const lockName = me ? me.name : (isPlaceholder(ei) ? readerName(h, cuz) : liveName(ei));
-      const meta = { dev: deviceLabel(), city: (_city || ''), by: (me ? me.name : '') };
+      const meta = { dev: deviceLabel(), city: (_city || ''), ip: (_ip || ''), by: (me ? me.name : '') };
       if(useFirebase){
         const u = {};
         if(willRead){
           u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = lockName; u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP;
-          u['meta/'+h+'/'+cuz] = { dev: meta.dev, city: meta.city, by: meta.by, t: firebase.database.ServerValue.TIMESTAMP };
+          u['meta/'+h+'/'+cuz] = { dev: meta.dev, city: meta.city, ip: meta.ip, by: meta.by, t: firebase.database.ServerValue.TIMESTAMP };
         } else {
           u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; u['times/'+h+'/'+cuz] = null; u['meta/'+h+'/'+cuz] = null;
         }
@@ -1298,7 +1305,7 @@ function toggle(h,cuz){
         if(!state.readers[h]) state.readers[h] = {};
         if(!state.times[h]) state.times[h] = {};
         if(!state.meta[h]) state.meta[h] = {};
-        if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); state.meta[h][cuz] = { dev:meta.dev, city:meta.city, by:meta.by, t:Date.now() }; }
+        if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); state.meta[h][cuz] = { dev:meta.dev, city:meta.city, ip:meta.ip, by:meta.by, t:Date.now() }; }
         else { delete state.readers[h][cuz]; delete state.times[h][cuz]; delete state.meta[h][cuz]; }
         save(); render(); detectCompletions();
       }
