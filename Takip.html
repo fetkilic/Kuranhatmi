@@ -94,6 +94,18 @@
     color:var(--text);font-weight:700;font-size:15px;display:flex;align-items:center;gap:12px;}
   #pdfLoading .spin{width:18px;height:18px;border:3px solid var(--line);border-top-color:#5b9dff;border-radius:50%;animation:sp .8s linear infinite;}
   @keyframes sp{to{transform:rotate(360deg)}}
+  #congrats{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:rgba(6,11,20,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:10000;}
+  #congrats.on{opacity:1;pointer-events:auto;}
+  #congrats .cg-card{background:linear-gradient(160deg,#132238,#0c1526);border:1px solid #2f6b45;
+    border-radius:18px;padding:26px 28px;max-width:340px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6);
+    transform:scale(.9);transition:transform .25s;}
+  #congrats.on .cg-card{transform:scale(1);}
+  #congrats .cg-title{font-size:19px;font-weight:800;color:var(--green-l);margin-bottom:8px;}
+  #congrats .cg-body{font-size:15px;color:var(--text);line-height:1.55;}
+  #congrats .cg-card.remind{border-color:#2f4f88;background:linear-gradient(160deg,#132038,#0c1526);}
+  #congrats .cg-card.remind .cg-title{color:#9fc3ff;}
+  #congrats .cg-card.remind .cg-body b{color:#e9c45a;}
 
   .mini{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
   .mini-row{display:flex;align-items:center;gap:14px;font-size:14px;font-weight:700;margin-bottom:10px;}
@@ -233,6 +245,7 @@
   .lg-act.ok{background:rgba(34,197,94,.16);color:var(--green-l);}
   .lg-act.undo{background:rgba(239,68,68,.16);color:#fca5a5;}
   .lg-mid{font-size:13px;color:#9fc3ff;font-weight:700;}
+  .lg-by{font-size:12.5px;color:#e9c45a;font-weight:700;margin-top:2px;}
   .lg-bot{font-size:12px;color:var(--muted);margin-top:2px;}
   .prof-summary{font-size:14px;color:var(--text);margin-bottom:14px;}
   .prof-summary b{color:#5b9dff;}
@@ -265,7 +278,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.1.2</div>
+  <div class="app-version">V1.1.7</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -282,6 +295,28 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
+/* ---- Sürüm & otomatik güncelleme ---- */
+const APP_VERSION = '1.1.7';
+(function(){
+  try{
+    const vEl = document.querySelector('.app-version');
+    if(vEl) vEl.textContent = 'V' + APP_VERSION;
+  }catch(e){}
+  // version.json'ı önbelleksiz çek; farklı sürüm varsa önbelleği atlayarak bir kez yenile
+  fetch('version.json?ts=' + Date.now(), { cache: 'no-store' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      const latest = (data && data.v) ? String(data.v) : null;
+      if(!latest || latest === APP_VERSION) return;
+      let tried = '';
+      try{ tried = sessionStorage.getItem('hatim_upd_try') || ''; }catch(e){}
+      if(tried === latest) return;                 // bu sürüme zaten yenilemeyi denedik → döngüye girme
+      try{ sessionStorage.setItem('hatim_upd_try', latest); }catch(e){}
+      location.replace(location.pathname + '?v=' + encodeURIComponent(latest));
+    })
+    .catch(function(){ /* version.json yoksa/erişilemezse normal devam */ });
+})();
+
 /* ---- İsimler (1. hatim sırası: ilk kişi 1. cüz, son kişi 30. cüz) ---- */
 const names = [
   "BÜNYAMİN KILIÇ","MERYEM KILIÇ","HAFIZ HÜSEYİN KILIÇ","GÜLFİKAR KAYA","ZEYNEP KILIÇ ÇABUK",
@@ -474,6 +509,7 @@ function load(){
   if(!st.snapshots) st.snapshots = {};
   if(!st.readers) st.readers = {};
   if(!st.times) st.times = {};
+  if(!st.meta) st.meta = {};
   if(!st.inactive) st.inactive = {};
   if(!st.placeholder) st.placeholder = {};
   if(!st.volunteer) st.volunteer = {};
@@ -481,7 +517,7 @@ function load(){
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -506,6 +542,7 @@ function applySnap(val){
   state.snapshots = val.snapshots || {};
   state.readers = val.readers || {};
   state.times = val.times || {};
+  state.meta = val.meta || {};
   state.inactive = val.inactive || {};
   state.placeholder = val.placeholder || {};
   state.volunteer = val.volunteer || {};
@@ -1053,9 +1090,44 @@ function render(){
   app.innerHTML = out;
 }
 
+/* ---- Cihaz & şehir (işaretleme kaydı için) ---- */
+function deviceLabel(){
+  const ua = navigator.userAgent || '';
+  let os = 'Bilinmeyen';
+  if(/iPhone/i.test(ua)) os = 'iPhone';
+  else if(/iPad/i.test(ua)) os = 'iPad';
+  else if(/Android/i.test(ua)) os = 'Android';
+  else if(/Windows/i.test(ua)) os = 'Windows';
+  else if(/Macintosh|Mac OS X/i.test(ua)) os = 'Mac';
+  else if(/Linux/i.test(ua)) os = 'Linux';
+  let br = '';
+  if(/Edg\//i.test(ua)) br = 'Edge';
+  else if(/OPR\//i.test(ua)||/Opera/i.test(ua)) br = 'Opera';
+  else if(/CriOS/i.test(ua)) br = 'Chrome';
+  else if(/Chrome\//i.test(ua)) br = 'Chrome';
+  else if(/FxiOS/i.test(ua)||/Firefox\//i.test(ua)) br = 'Firefox';
+  else if(/Safari/i.test(ua)) br = 'Safari';
+  let model = '';
+  if(os === 'Android'){
+    const m = ua.match(/Android\s[\d.]+;\s*([^;)]+?)\s*(?:Build|;|\))/i);
+    if(m && m[1] && !/^[a-z]{2}-[a-z]{2}$/i.test(m[1].trim())) model = ' (' + m[1].trim() + ')';
+  }
+  return os + (br ? (' · ' + br) : '') + model;
+}
+let _city = '';
+function detectCityOnce(){
+  if(_city) return;
+  try{
+    const ctl = ('AbortController' in window) ? new AbortController() : null;
+    if(ctl) setTimeout(function(){ try{ ctl.abort(); }catch(e){} }, 4000);
+    fetch('https://ipwho.is/', ctl ? { signal: ctl.signal } : {})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if(d && d.success !== false){ _city = [d.city, d.region, d.country].filter(Boolean).join(', '); } })
+      .catch(function(){});
+  }catch(e){}
+}
+
 /* ---- Cihaz kimliği (yalnızca bu cihazda saklanır) ---- */
-/* Hiçbir şey Firebase'e yazılmaz: ne IP, ne şehir, ne cihaz bilgisi.
-   Sadece "bu cihaz kime ait" seçimi localStorage'da tutulur. */
 let myUser = null;            // { idx, name }
 let identityPrompted = false;
 function loadMe(){
@@ -1072,6 +1144,43 @@ function myIdentity(){
   /* isim admin tarafından değişmiş olabilir → güncel adı index'ten türet */
   const nm = liveName(myUser.idx) || myUser.name;
   return { idx: myUser.idx, name: nm };
+}
+/* Bu hatimde bana ait cüzler ve kaçının okunmadığı.
+   dönüş: {mine, pending}  (mine=0 ise bu hatimde cüzüm yok) */
+function myCuzStatus(h){
+  const me = myIdentity();
+  if(!me) return { mine:0, pending:0, pendingCuz:[] };
+  let mine = 0; const pendingCuz = [];
+  for(let c=1;c<=30;c++){
+    const done = isDone(h, c);
+    const isMine = done ? (readerName(h, c) === me.name) : (effectiveIndex(c, h) === me.idx);
+    if(isMine){ mine++; if(!done) pendingCuz.push(c); }
+  }
+  return { mine:mine, pending:pendingCuz.length, pendingCuz:pendingCuz };
+}
+function checkMyCompletion(h){
+  const me = myIdentity();
+  if(!me) return;
+  if(isRemoved(h)) return;
+  const st = myCuzStatus(h);
+  if(st.mine === 0) return;                       // bu hatimde cüzü yok
+  if(st.pending === 0){
+    const cuzWord = st.mine > 1 ? 'cüzlerinizi' : 'cüzünüzü';
+    showCongrats('🎉 Mâşâallah, '+me.name+'!', 'Bu haftaki '+h+'. hatim için '+cuzWord+' okudunuz.<br>Allah kabul etsin 🤲', 'done');
+  } else {
+    const cuzWord = st.pending > 1 ? 'cüzler' : 'cüz';
+    showCongrats('👋 Sıra sizde, '+me.name, 'Bu haftaki '+h+'. hatim için okumanız gereken '+cuzWord+': <b>'+st.pendingCuz.join(', ')+'</b>. cüz<br>Okuyunca işaretlemeyi unutmayın 🤲', 'remind');
+  }
+}
+function showCongrats(title, body, variant){
+  const el = document.getElementById('congrats');
+  if(!el) return;
+  el.innerHTML = '<div class="cg-card '+(variant||'')+'"><div class="cg-title">'+title+'</div><div class="cg-body">'+body+'</div></div>';
+  el.classList.add('on');
+  clearTimeout(showCongrats._t);
+  const hide = function(){ el.classList.remove('on'); };
+  showCongrats._t = setTimeout(hide, variant === 'remind' ? 4200 : 3200);
+  el.onclick = hide;
 }
 function setIdentity(idx){
   myUser = { idx: idx, name: liveName(idx) };
@@ -1110,7 +1219,9 @@ function buildLog(){
       if(!d[cstr]) continue;
       const c = +cstr;
       const t = (state.times && state.times[h] && state.times[h][c]) || null;
-      arr.push({ name: readerName(h, c), h:h, cuz:c, t:t });
+      const m = (state.meta && state.meta[h] && state.meta[h][c]) || null;
+      arr.push({ name: readerName(h, c), h:h, cuz:c, t:t,
+                 dev: m ? (m.dev||'') : '', city: m ? (m.city||'') : '', by: m ? (m.by||'') : '' });
     }
   }
   arr.sort(function(a,b){ return (b.t||0) - (a.t||0); });
@@ -1122,16 +1233,22 @@ function showLog(){
   let rows = '';
   if(arr.length === 0){ rows = '<div class="prof-empty">Henüz okunmuş cüz kaydı yok.</div>'; }
   arr.forEach(function(e){
+    let meta = fmtTime(e.t);
+    if(e.dev)  meta += ' · 📱 ' + escAttr(e.dev);
+    if(e.city) meta += ' · 📍 ' + escAttr(e.city);
+    const byLine = (e.by && e.by !== e.name)
+      ? '<div class="lg-by">✍️ işaretleyen: '+escAttr(e.by)+'</div>' : '';
     rows += '<div class="lg-row"><div class="lg-top"><span class="lg-name">'+escAttr(e.name||'?')+'</span>'
           + '<span class="lg-act ok">okundu</span></div>'
           + '<div class="lg-mid">'+e.h+'. hatim · '+e.cuz+'. cüz</div>'
-          + '<div class="lg-bot">'+fmtTime(e.t)+'</div></div>';
+          + byLine
+          + '<div class="lg-bot">'+meta+'</div></div>';
   });
   uiConfirm({
     wide:true,
     title:'📋 Kayıt Defteri ('+arr.length+')',
-    body:'<div class="admin-note">Hangi cüzü kim, ne zaman okudu. Cihaz/konum gibi bilgi tutulmaz; bu liste yalnızca '
-        +'mevcut okuma kayıtlarından oluşturulur. Eski kayıtlarda saat olmayabilir.</div>'
+    body:'<div class="admin-note">Hangi cüzü kim, ne zaman okudu. <b>Yeni</b> işaretlemelerde cihaz türü ve (mümkünse) yaklaşık şehir de kaydedilir. '
+        +'“işaretleyen” satırı, o cihazda seçili kimliği gösterir. Eski kayıtlarda bu bilgiler ve saat olmayabilir.</div>'
         +'<div class="lg-list">'+rows+'</div>',
     okText:'Kapat', hideCancel:true
   });
@@ -1165,18 +1282,24 @@ function toggle(h,cuz){
       const me = myIdentity();
       const ei = effectiveIndex(cuz, h);
       const lockName = me ? me.name : (isPlaceholder(ei) ? readerName(h, cuz) : liveName(ei));
+      const meta = { dev: deviceLabel(), city: (_city || ''), by: (me ? me.name : '') };
       if(useFirebase){
         const u = {};
-        if(willRead){ u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = lockName; u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP; }
-        else { u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; u['times/'+h+'/'+cuz] = null; }
+        if(willRead){
+          u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = lockName; u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP;
+          u['meta/'+h+'/'+cuz] = { dev: meta.dev, city: meta.city, by: meta.by, t: firebase.database.ServerValue.TIMESTAMP };
+        } else {
+          u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; u['times/'+h+'/'+cuz] = null; u['meta/'+h+'/'+cuz] = null;
+        }
         fbRoot().update(u);
       } else {
         setDone(h,cuz,willRead);
-        state.readers = state.readers || {}; state.times = state.times || {};
+        state.readers = state.readers || {}; state.times = state.times || {}; state.meta = state.meta || {};
         if(!state.readers[h]) state.readers[h] = {};
         if(!state.times[h]) state.times[h] = {};
-        if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); }
-        else { delete state.readers[h][cuz]; delete state.times[h][cuz]; }
+        if(!state.meta[h]) state.meta[h] = {};
+        if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); state.meta[h][cuz] = { dev:meta.dev, city:meta.city, by:meta.by, t:Date.now() }; }
+        else { delete state.readers[h][cuz]; delete state.times[h][cuz]; delete state.meta[h][cuz]; }
         save(); render(); detectCompletions();
       }
     }
@@ -1283,7 +1406,7 @@ app.addEventListener('click', e=>{
       if(useFirebase){ fbPath('meta/hatimCount').set(state.hatimCount + 1); }
       else { state.hatimCount++; save(); render(); }
     }
-    else if(a === 'tab'){ userPicked = true; activeHatim = h; window.scrollTo(0,0); render(); }
+    else if(a === 'tab'){ userPicked = true; activeHatim = h; window.scrollTo(0,0); render(); checkMyCompletion(h); }
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'admin'){ openAdmin(); }
@@ -1302,7 +1425,7 @@ app.addEventListener('click', e=>{
         onOk:function(){
           expanded = {}; archiveOpen = false;
           if(useFirebase){ fbRoot().remove(); }
-          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30}; save(); render(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30}; save(); render(); }
         }
       });
     }
@@ -1332,6 +1455,7 @@ function maybePromptIdentity(){
   setTimeout(pickIdentity, 900);
 }
 loadMe();
+detectCityOnce();
 if(useFirebase){
   setStatus('connecting');
   try{
@@ -1350,5 +1474,6 @@ if(useFirebase){
 }
 </script>
 <div id="pdfLoading"><div class="box"><span class="spin"></span><span>PDF hazırlanıyor…</span></div></div>
+<div id="congrats"></div>
 </body>
 </html>
