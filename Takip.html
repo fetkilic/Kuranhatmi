@@ -229,6 +229,10 @@
   .lockmark{font-size:12px;opacity:.8;}
   .btn.wa-rem{background:#0b3d2e;border-color:#1f7a55;color:#9ff0c4;margin-top:8px;}
   .btn.wa-rem:hover{background:#0e4a37;}
+  .btn.wa-start{background:#1e2a44;border-color:#3a4f7a;color:#cfe0ff;}
+  .btn.wa-start:hover{background:#26355a;}
+  .share-row{display:flex;gap:8px;margin-top:14px;}
+  .mini .share-row .btn{flex:1 1 0;min-width:0;width:auto;margin-top:0;padding:11px 10px;text-align:center;}
   .rem-list{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow-y:auto;padding-right:4px;margin-bottom:14px;}
   .rem-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
     background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;}
@@ -752,7 +756,10 @@ function sectionHTML(h){
     + '<div class="mini"><div class="mini-row"><span class="mini-read">'+read+' okundu</span>'
     + '<span class="mini-left">'+left+' kaldı</span><span class="mini-pct">%'+pct+'</span></div>'
     + '<div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div>'
+    + '<div class="share-row">'
+    + '<button class="btn wa-start" data-action="sharestart" data-h="'+h+'">🌙 Başlangıç mesajı</button>'
     + '<button class="btn wa" data-action="share" data-h="'+h+'">📲 WhatsApp\'ta paylaş</button>'
+    + '</div>'
     + (read === 30 ? '<button class="btn pdf" data-action="printpdf" data-h="'+h+'">🖨️ PDF Cetveli</button>' : '')
     + (isAdmin ? '<button class="btn wa-rem" data-action="remind" data-h="'+h+'">🔔 Okumayanlara hatırlat</button>' : '')
     + '</div>'
@@ -1335,6 +1342,17 @@ function shareText(h){
 function shareWhatsApp(h){
   window.open("https://wa.me/?text=" + encodeURIComponent(shareText(h)), "_blank");
 }
+function startText(h){
+  let t = "🌙 " + h + ". HATİM BAŞLADI\n";
+  t += "Merhum HAFIZ HALİL KILIÇ (Hacıbabamız) ruhuna\n\n";
+  t += "Yeni hatmimize başladık. Cüzünüzü uygulamadan görüp okuyabilir ve okuduğunuzda işaretleyebilirsiniz.\n\n";
+  t += "🗓️ Hatim duası " + hatimDate(h) + " akşamı yapılacaktır inşallah.\nAllah kabul etsin 🤲\n";
+  t += "\n🔗 " + location.href;
+  return t;
+}
+function shareStart(h){
+  window.open("https://wa.me/?text=" + encodeURIComponent(startText(h)), "_blank");
+}
 
 function snapNames(){ const s = {}; const M = participantCount(); for(let i=0;i<M;i++) s[i] = liveName(i); return s; }
 function archiveHatim(h){
@@ -1416,6 +1434,7 @@ app.addEventListener('click', e=>{
     else if(a === 'tab'){ userPicked = true; activeHatim = h; window.scrollTo(0,0); render(); checkMyCompletion(h); }
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
+    else if(a === 'sharestart'){ shareStart(h); }
     else if(a === 'admin'){ openAdmin(); }
     else if(a === 'whoami'){ pickIdentity(); }
     else if(a === 'showlog'){ showLog(); }
