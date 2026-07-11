@@ -77,6 +77,13 @@
     background:rgba(70,201,138,.14);border:1px solid #2f6b45;padding:2px 8px;border-radius:999px;margin-top:5px;white-space:nowrap;}
   .row.done .badge-okundu{display:inline-block;}
   .badge-extra{display:inline-block;font-size:13px;line-height:1;margin-top:3px;}
+  .row.mine{border-color:var(--gold);background:#2a2114;
+    box-shadow:0 0 0 2px rgba(217,180,74,.30),0 8px 22px rgba(217,180,74,.16);}
+  .row.mine .t-no{color:var(--gold2);}
+  .row.mine .t-lbl{color:var(--gold2);font-weight:800;text-transform:none;letter-spacing:.2px;}
+  .row.mine.done{background:var(--green-bg);}
+  .row.mine.done .t-no{color:var(--green-l);}
+  .row.mine.done .t-lbl{color:var(--green-l);}
   .tab.tab-mine{color:var(--gold2);border-color:#6a5528;}
   .mine-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
   .mine-head .avatar{flex:none;width:44px;height:44px;border-radius:50%;background:#2a2013;border:1px solid #6a5528;
@@ -300,7 +307,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.4.0</div>
+  <div class="app-version">V1.4.1</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -318,7 +325,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -433,6 +440,12 @@ function isMyCuz(h, c){
   if(!me) return true;
   if(isDone(h, c)) return readerName(h, c) === me.name;
   return effectiveIndex(c, h) === me.idx;
+}
+/* Vurgu için: bu cüz gerçekten seçili kişiye mi ait (admin baypası yok, kimlik şart) */
+function isMyOwnCuz(h, c){
+  const me = myIdentity();
+  if(!me) return false;
+  return isDone(h, c) ? (readerName(h, c) === me.name) : (effectiveIndex(c, h) === me.idx);
 }
 /* Bu hatimde bu cüzü kim okuyacak: elle atama (override) > gönüllü otomatik > normal */
 function effectiveIndex(c, h){
@@ -750,10 +763,12 @@ function rowHTML(name, cuz, done, interactive, h){
   const lockMark = locked ? '<span class="lockmark" title="Sadece kendi cüzünüz">🔒</span>' : '';
   const extra = interactive && isPlaceholder(assignedIndex(cuz, h));
   const extraBadge = extra ? '<span class="badge-extra" title="Bir gönüllünün ekstra üstlendiği cüz">🤝</span>' : '';
-  return '<div class="row'+(done?' done':'')+(locked?' locked':'')+(extra?' extra':'')+'"'+data+'>'
+  const mine = interactive && isMyOwnCuz(h, cuz);
+  const lbl = mine ? '★ sizin cüzünüz' : 'cüz';
+  return '<div class="row'+(done?' done':'')+(locked?' locked':'')+(extra?' extra':'')+(mine?' mine':'')+'"'+data+'>'
     + secMark + lockMark + reassign
     + '<span class="t-no">'+cuz+'</span>'
-    + '<span class="t-lbl">cüz</span>'
+    + '<span class="t-lbl">'+lbl+'</span>'
     + nameEl
     + extraBadge
     + '<span class="badge-okundu">✓ okundu</span></div>';
