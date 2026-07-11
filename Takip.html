@@ -250,6 +250,18 @@
   .lg-act.undo{background:rgba(239,68,68,.16);color:#fca5a5;}
   .lg-mid{font-size:13px;color:#9fc3ff;font-weight:700;}
   .lg-by{font-size:12.5px;color:#e9c45a;font-weight:700;margin-top:2px;}
+  .vc-list{display:flex;flex-direction:column;gap:14px;max-height:56vh;overflow-y:auto;padding-right:4px;}
+  .vc-hatim{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .vc-h-title{font-size:15px;font-weight:800;color:#9fc3ff;margin-bottom:8px;}
+  .vc-count{font-size:12px;font-weight:600;color:var(--muted);}
+  .vc-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);}
+  .vc-row:first-of-type{border-top:none;}
+  .vc-cuz{flex:none;min-width:66px;font-weight:800;color:#e9c45a;font-size:14px;}
+  .vc-name{flex:1;color:var(--text);font-weight:700;font-size:14.5px;}
+  .vc-ok{flex:none;font-size:11px;font-weight:800;color:var(--green-l);background:rgba(34,197,94,.14);border:1px solid #2f6b45;border-radius:20px;padding:2px 8px;}
+  .vc-wait{flex:none;font-size:11px;font-weight:800;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2px 8px;}
+  .vc-edit{flex:none;font-size:12px;font-weight:800;color:#9fc3ff;background:#16233f;border:1px solid #2c4a7a;border-radius:8px;padding:5px 10px;cursor:pointer;}
+  .vc-edit:hover{background:#1c2e52;border-color:#3b82f6;}
   .lg-bot{font-size:12px;color:var(--muted);margin-top:2px;}
   .prof-summary{font-size:14px;color:var(--text);margin-bottom:14px;}
   .prof-summary b{color:#5b9dff;}
@@ -282,7 +294,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.2.0</div>
+  <div class="app-version">V1.2.2</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -300,7 +312,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.2';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -600,7 +612,8 @@ modal.addEventListener('click', function(e){
     if(a === 'adm-add-place'){ syncAdminInputs(); adminRows.push({name:'Gönüllü', active:true, placeholder:true}); showAdminPanel(); return; }
     if(a === 'adm-to-place'){ syncAdminInputs(); showToPlacePicker(); return; }
     if(a === 'adm-set-place'){ const i = +b.dataset.ai; if(adminRows[i]){ adminRows[i].placeholder = true; adminRows[i].volunteer = false; } showAdminPanel(); return; }
-    if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); return; }
+    if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); if(_volReturn){ _volReturn = false; setTimeout(showVolunteerCuz, 60); } return; }
+    if(a === 'vc-reassign'){ _volReturn = true; reassign(+b.dataset.h, +b.dataset.cuz); return; }
     if(a === 'set-identity'){ setIdentity(+b.dataset.i); closeModal(); return; }
     if(a === 'clear-identity'){ clearIdentity(); closeModal(); return; }
   }
@@ -774,6 +787,7 @@ function controlsHTML(){
   h += '<button class="btn" data-action="admin">'+(isAdmin ? '🔓 Admin' : '🔒 Admin')+'</button>';
   if(isAdmin){
     h += '<button class="btn" data-action="showlog">📋 Kayıt defteri</button>';
+    h += '<button class="btn" data-action="volcuz">🤝 Gönüllü cüzleri</button>';
     h += '<button class="btn" data-action="admin-logout">Admin’den çık</button>';
     h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
   }
@@ -983,6 +997,7 @@ function showProfile(name){
 }
 
 /* ---- Cüz yeniden atama (admin) ---- */
+let _volReturn = false;
 function reassign(h, cuz){
   if(!isAdmin) return;
   const list = activeList().filter(function(i){ return !isPlaceholder(i); });
@@ -1271,6 +1286,35 @@ function showLog(){
     okText:'Kapat', hideCancel:true
   });
 }
+function showVolunteerCuz(){
+  if(!isAdmin) return;
+  let sections = '';
+  let any = false;
+  for(let h=1; h<=state.hatimCount; h++){
+    if(isRemoved(h) || isArchived(h)) continue;
+    const pc = placeholderCuzList(h);
+    if(pc.length === 0) continue;
+    any = true;
+    let rows = '';
+    pc.forEach(function(c){
+      const done = isDone(h, c);
+      rows += '<div class="vc-row"><span class="vc-cuz">'+c+'. cüz</span>'
+            + '<span class="vc-name">'+escAttr(displayName(c, h))+'</span>'
+            + (done ? '<span class="vc-ok">✓ okudu</span>' : '<span class="vc-wait">bekliyor</span>')
+            + '<button class="vc-edit" data-action="vc-reassign" data-h="'+h+'" data-cuz="'+c+'">değiştir</button>'
+            + '</div>';
+    });
+    sections += '<div class="vc-hatim"><div class="vc-h-title">'+h+'. Hatim <span class="vc-count">('+pc.length+' ekstra cüz)</span></div>'+rows+'</div>';
+  }
+  if(!any) sections = '<div class="prof-empty">Gönüllü (ekstra) cüz yok. Admin → Katılımcılar’dan bir kişiyi “Yer” yapıp gerçek kişileri “Gön.” yaparsan burada görünür.</div>';
+  uiConfirm({
+    wide:true,
+    title:'🤝 Gönüllü Cüzleri',
+    body:'<div class="admin-note">Her hatimde <b>kendi cüzü dışında</b> ekstra (placeholder) cüz okuyacak kişiler. Otomatik dağıtılır; ✎ ile elle değiştirdiklerin de burada görünür.</div>'
+        +'<div class="vc-list">'+sections+'</div>',
+    okText:'Kapat', hideCancel:true
+  });
+}
 
 /* ---- İşlemler ---- */
 function toggle(h,cuz){
@@ -1442,8 +1486,9 @@ app.addEventListener('click', e=>{
     else if(a === 'admin'){ openAdmin(); }
     else if(a === 'whoami'){ pickIdentity(); }
     else if(a === 'showlog'){ showLog(); }
+    else if(a === 'volcuz'){ showVolunteerCuz(); }
     else if(a === 'admin-logout'){ isAdmin = false; render(); }
-    else if(a === 'reassign'){ reassign(h, +btn.dataset.cuz); }
+    else if(a === 'reassign'){ _volReturn = false; reassign(h, +btn.dataset.cuz); }
     else if(a === 'profile'){ showProfile(btn.dataset.name); }
     else if(a === 'remind'){ remindUnread(h); }
     else if(a === 'printpdf'){ printHatim(h); }
