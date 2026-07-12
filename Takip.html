@@ -307,7 +307,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.4.1</div>
+  <div class="app-version">V1.4.2</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -325,7 +325,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.4.2';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1328,7 +1328,7 @@ function buildLog(){
       const t = (state.times && state.times[h] && state.times[h][c]) || null;
       const m = (state.meta && state.meta[h] && state.meta[h][c]) || null;
       arr.push({ name: readerName(h, c), h:h, cuz:c, t:t,
-                 dev: m ? (m.dev||'') : '', city: m ? (m.city||'') : '', ip: m ? (m.ip||'') : '', by: m ? (m.by||'') : '' });
+                 dev: m ? (m.dev||'') : '', city: m ? (m.city||'') : '', ip: m ? (m.ip||'') : '', by: m ? (m.by||'') : '', ver: m ? (m.ver||'') : '' });
     }
   }
   arr.sort(function(a,b){ return (b.t||0) - (a.t||0); });
@@ -1344,6 +1344,7 @@ function showLog(){
     if(e.dev)  meta += ' · 📱 ' + escAttr(e.dev);
     if(e.city) meta += ' · 📍 ' + escAttr(e.city);
     if(e.ip)   meta += ' · 🌐 ' + escAttr(e.ip);
+    if(e.ver)  meta += ' · 🏷️ v' + escAttr(e.ver);
     const byLine = (e.by && e.by !== e.name)
       ? '<div class="lg-by">✍️ işaretleyen: '+escAttr(e.by)+'</div>' : '';
     rows += '<div class="lg-row"><div class="lg-top"><span class="lg-name">'+escAttr(e.name||'?')+'</span>'
@@ -1355,7 +1356,7 @@ function showLog(){
   uiConfirm({
     wide:true,
     title:'📋 Kayıt Defteri ('+arr.length+')',
-    body:'<div class="admin-note">Hangi cüzü kim, ne zaman okudu. <b>Yeni</b> işaretlemelerde cihaz türü ve (mümkünse) yaklaşık şehir de kaydedilir. '
+    body:'<div class="admin-note">Hangi cüzü kim, ne zaman okudu. <b>Yeni</b> işaretlemelerde cihaz türü, (mümkünse) yaklaşık şehir ve o anki uygulama sürümü de kaydedilir. '
         +'“işaretleyen” satırı, o cihazda seçili kimliği gösterir. Eski kayıtlarda bu bilgiler ve saat olmayabilir.</div>'
         +'<div class="lg-list">'+rows+'</div>',
     okText:'Kapat', hideCancel:true
@@ -1419,12 +1420,12 @@ function toggle(h,cuz){
       const me = myIdentity();
       const ei = effectiveIndex(cuz, h);
       const lockName = me ? me.name : (isPlaceholder(ei) ? readerName(h, cuz) : liveName(ei));
-      const meta = { dev: deviceLabel(), city: (_city || ''), ip: (_ip || ''), by: (me ? me.name : '') };
+      const meta = { dev: deviceLabel(), city: (_city || ''), ip: (_ip || ''), by: (me ? me.name : ''), ver: APP_VERSION };
       if(useFirebase){
         const u = {};
         if(willRead){
           u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = lockName; u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP;
-          u['meta/'+h+'/'+cuz] = { dev: meta.dev, city: meta.city, ip: meta.ip, by: meta.by, t: firebase.database.ServerValue.TIMESTAMP };
+          u['meta/'+h+'/'+cuz] = { dev: meta.dev, city: meta.city, ip: meta.ip, by: meta.by, ver: meta.ver, t: firebase.database.ServerValue.TIMESTAMP };
         } else {
           u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; u['times/'+h+'/'+cuz] = null; u['meta/'+h+'/'+cuz] = null;
         }
@@ -1435,7 +1436,7 @@ function toggle(h,cuz){
         if(!state.readers[h]) state.readers[h] = {};
         if(!state.times[h]) state.times[h] = {};
         if(!state.meta[h]) state.meta[h] = {};
-        if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); state.meta[h][cuz] = { dev:meta.dev, city:meta.city, ip:meta.ip, by:meta.by, t:Date.now() }; }
+        if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); state.meta[h][cuz] = { dev:meta.dev, city:meta.city, ip:meta.ip, by:meta.by, ver:meta.ver, t:Date.now() }; }
         else { delete state.readers[h][cuz]; delete state.times[h][cuz]; delete state.meta[h][cuz]; }
         save(); render(); detectCompletions();
       }
