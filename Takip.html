@@ -11,7 +11,7 @@
     --bg:#130f09;--bg2:#1c1610;--card:#221a11;--card-hover:#2c2115;
     --text:#f1e6cd;--muted:#b4a179;--blue:#2f9c94;--yellow:#e6b93f;
     --green:#1f9d57;--green-l:#46c98a;--green-bg:#16281b;--line:#3c3020;
-    --gold:#d9b44a;--gold-2:#e9c45a;--teal:#33ada4;
+    --gold:#d9b44a;--gold-2:#e9c45a;--gold2:#e9c45a;--teal:#33ada4;--sec:#c98be6;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
@@ -64,7 +64,9 @@
   .t-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
   .name{font-size:13px;font-weight:700;letter-spacing:.2px;margin-top:4px;max-width:100%;line-height:1.15;
     overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-  .t-secde{position:absolute;top:5px;left:8px;color:var(--gold);font-size:12px;line-height:1;}
+  .sec-corner{position:absolute;top:0;left:0;background:#6d4a86;color:#fff;font-size:10px;font-weight:800;
+    padding:2px 7px 3px;border-bottom-right-radius:10px;line-height:1;z-index:2;}
+  .row.secde::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--sec);z-index:1;}
   .lockmark{position:absolute;top:5px;right:8px;font-size:11px;line-height:1;}
   .reassign-btn{position:absolute;top:4px;right:5px;width:22px;height:22px;border-radius:6px;border:1px solid var(--line);
     background:var(--bg2);color:var(--muted);font-size:11px;cursor:pointer;line-height:1;padding:0;transition:all .15s;}
@@ -299,7 +301,7 @@
     <h1>HATİM TAKİP LİSTESİ</h1>
     <p class="dedication">Merhum <strong>HAFIZ HALİL KILIÇ</strong> <span class="nick">(HACIBABAMIZ)</span> ruhuna ithafen
       <span class="fatiha">El-Fâtiha</span></p>
-    <p class="warn">⚠️ Sarı renkli cüzlerde Tilavet Secdesi bulunmaktadır. (19. ve 30. cüzlerde 2 adet secde vardır)</p>
+    <p class="warn">۩ işaretli cüzlerde tilavet secdesi vardır — 19. ve 30. cüzde 2 secde (۩2) bulunur. · Altın çerçeveli kart sizin cüzünüzdür.</p>
     <div class="status connecting" id="status">🟡 Bağlanıyor…</div>
   </header>
   <div class="divider"></div>
@@ -307,7 +309,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.4.2</div>
+  <div class="app-version">V1.4.3</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -325,7 +327,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.4.2';
+const APP_VERSION = '1.4.3';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -751,7 +753,7 @@ function saveAdminParticipants(){
 
 function rowHTML(name, cuz, done, interactive, h){
   const sec = SECDE[cuz];
-  const secMark = sec ? '<span class="t-secde" title="Tilavet Secdesi">۩</span>' : '';
+  const secMark = sec ? '<span class="sec-corner" title="Tilavet Secdesi'+(sec>=2?' (2 secde)':'')+'">۩'+(sec>=2?'2':'')+'</span>' : '';
   const data = interactive ? (' data-h="'+h+'" data-cuz="'+cuz+'" role="button" tabindex="0"') : "";
   const reassign = (interactive && isAdmin)
     ? '<button class="reassign-btn" data-action="reassign" data-h="'+h+'" data-cuz="'+cuz+'" title="Bu cüzü başkasına ata">✎</button>'
@@ -765,7 +767,7 @@ function rowHTML(name, cuz, done, interactive, h){
   const extraBadge = extra ? '<span class="badge-extra" title="Bir gönüllünün ekstra üstlendiği cüz">🤝</span>' : '';
   const mine = interactive && isMyOwnCuz(h, cuz);
   const lbl = mine ? '★ sizin cüzünüz' : 'cüz';
-  return '<div class="row'+(done?' done':'')+(locked?' locked':'')+(extra?' extra':'')+(mine?' mine':'')+'"'+data+'>'
+  return '<div class="row'+(done?' done':'')+(locked?' locked':'')+(extra?' extra':'')+(mine?' mine':'')+(sec?' secde':'')+'"'+data+'>'
     + secMark + lockMark + reassign
     + '<span class="t-no">'+cuz+'</span>'
     + '<span class="t-lbl">'+lbl+'</span>'
@@ -1169,10 +1171,11 @@ function mineHTML(){
     const interactive = !it.arch;
     const data = interactive ? (' data-h="'+it.h+'" data-cuz="'+it.c+'" role="button" tabindex="0"') : '';
     const isExtra = isPlaceholder(assignedIndex(it.c, it.h));
-    const sec = SECDE[it.c] ? '<span class="t-secde" title="Tilavet Secdesi">۩</span>' : '';
+    const secN = SECDE[it.c];
+    const sec = secN ? '<span class="sec-corner" title="Tilavet Secdesi'+(secN>=2?' (2 secde)':'')+'">۩'+(secN>=2?'2':'')+'</span>' : '';
     const st = it.done ? '<span class="m-st ok">✓ okundu</span>' : '<span class="m-st wait">okunmadı</span>';
     const extra = isExtra ? '<span class="m-extra">🤝 gönüllü</span>' : '';
-    tiles += '<div class="row mtile'+(it.done?' done':'')+'"'+data+'>'
+    tiles += '<div class="row mtile'+(it.done?' done':'')+(secN?' secde':'')+'"'+data+'>'
       + sec
       + '<span class="m-hatim">'+it.h+'. Hatim</span>'
       + '<span class="t-no">'+it.c+'</span>'
