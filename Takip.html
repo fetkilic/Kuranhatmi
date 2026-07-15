@@ -79,8 +79,16 @@
     background:rgba(70,201,138,.14);border:1px solid #2f6b45;padding:2px 8px;border-radius:999px;margin-top:5px;white-space:nowrap;}
   .row.done .badge-okundu{display:inline-block;}
   .badge-extra{display:inline-block;font-size:13px;line-height:1;margin-top:3px;}
-  .row.mine{border-color:var(--gold);background:#2a2114;
-    box-shadow:0 0 0 2px rgba(217,180,74,.30),0 8px 22px rgba(217,180,74,.16);}
+  .row.open{border:2px dashed #d97706;background:#2c1d0c;animation:openPulse 2.4s ease-in-out infinite;}
+  .row.open .t-no{color:#fbbf24;}
+  .row.open .t-lbl{color:#fbbf24;font-weight:800;text-transform:none;letter-spacing:.2px;}
+  .row.open .open-nm{font-size:11.5px;font-weight:700;color:#fcd34d;margin-top:4px;}
+  .row.open .open-badge{font-size:9px;font-weight:800;color:#fcd34d;background:rgba(217,119,6,.18);
+    border:1px solid #b45309;border-radius:999px;padding:2px 7px;margin-top:5px;line-height:1.2;}
+  @keyframes openPulse{0%,100%{box-shadow:0 0 0 0 rgba(217,119,6,0);}50%{box-shadow:0 0 0 3px rgba(217,119,6,.22);}}
+  .btn.rel-btn{display:block;width:100%;margin-top:16px;background:#2c1d0c;border-color:#b45309;color:#fcd34d;font-size:13px;}
+  .btn.rel-btn:hover{background:#3a2710;border-color:#d97706;color:#fde68a;}
+  .row.mine{border-color:var(--gold);background:#2a2114;    box-shadow:0 0 0 2px rgba(217,180,74,.30),0 8px 22px rgba(217,180,74,.16);}
   .row.mine .t-no{color:var(--gold2);}
   .row.mine .t-lbl{color:var(--gold2);font-weight:800;text-transform:none;letter-spacing:.2px;}
   .row.mine.done{background:var(--green-bg);}
@@ -98,9 +106,12 @@
   .mtile .m-st{margin-top:5px;font-size:10px;font-weight:800;padding:2px 9px;border-radius:999px;}
   .mtile .m-st.ok{color:var(--green-l);background:rgba(70,201,138,.14);border:1px solid #2f6b45;}
   .mtile .m-st.wait{color:var(--gold2);background:rgba(217,180,74,.14);border:1px solid #6a5528;}
+  .mtile .m-st.open{color:#fcd34d;background:rgba(217,119,6,.18);border:1px solid #b45309;}
   .mtile .m-extra{font-size:9.5px;font-weight:800;color:var(--gold2);background:rgba(217,180,74,.16);
     border:1px solid #6a5528;border-radius:5px;padding:1px 6px;margin-top:3px;}
   .mine-hint{text-align:center;color:var(--muted);font-size:12px;font-style:italic;margin-top:18px;}
+  .btn.open-ann{background:#2c1d0c;border-color:#b45309;color:#fcd34d;margin-top:8px;width:100%;}
+  .btn.open-ann:hover{background:#3a2710;border-color:#d97706;}
   .btn.pdf{background:#2a2013;border-color:#5a4a26;color:#f0e2b8;}
   .btn.pdf:hover{background:#2f3e5c;}
   #pdfLoading{position:fixed;inset:0;background:rgba(6,11,20,.7);display:none;align-items:center;justify-content:center;z-index:9999;}
@@ -267,6 +278,8 @@
   .lg-by{font-size:12.5px;color:#e9c45a;font-weight:700;margin-top:2px;}
   .vc-list{display:flex;flex-direction:column;gap:14px;max-height:56vh;overflow-y:auto;padding-right:4px;}
   .vc-hatim{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .vc-hatim.open{border-color:#b45309;background:#2c1d0c;}
+  .vc-hatim.open .vc-h-title{color:#fcd34d;}
   .vc-h-title{font-size:15px;font-weight:800;color:#e6c877;margin-bottom:8px;}
   .vc-count{font-size:12px;font-weight:600;color:var(--muted);}
   .vc-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);}
@@ -309,7 +322,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.4.4</div>
+  <div class="app-version">V1.5.0</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -327,7 +340,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.4.4';
+const APP_VERSION = '1.5.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -443,6 +456,60 @@ function isMyCuz(h, c){
   if(isDone(h, c)) return readerName(h, c) === me.name;
   return effectiveIndex(c, h) === me.idx;
 }
+/* ---- Boşta (havuza bırakılmış) cüzler ---- */
+/* open[h][c] = {by:"AD", idx:orijinalIndex, t:zaman} — okunmuş cüz asla boşta sayılmaz */
+function openRec(h, c){
+  if(isDone(h, c)) return null;
+  const r = state.open && state.open[h] && state.open[h][c];
+  return r ? r : null;
+}
+function isOpenCuz(h, c){ return !!openRec(h, c); }
+function openCuzList(h){
+  const arr = [];
+  for(let c=1;c<=30;c++){ if(isOpenCuz(h, c)) arr.push(c); }
+  return arr;
+}
+/* Cüzü havuza bırak (sahibi veya admin) */
+function releaseCuz(h, cuz){
+  const me = myIdentity();
+  const ei = effectiveIndex(cuz, h);
+  const rec = { by: (me ? me.name : (ei != null ? liveName(ei) : '')), idx: (ei != null ? ei : -1) };
+  if(useFirebase){
+    rec.t = firebase.database.ServerValue.TIMESTAMP;
+    fbPath('open/'+h+'/'+cuz).set(rec);
+  } else {
+    rec.t = Date.now();
+    state.open = state.open || {};
+    if(!state.open[h]) state.open[h] = {};
+    state.open[h][cuz] = rec;
+    save(); render();
+  }
+}
+/* Bırakılan cüzü sahibi geri alır */
+function unreleaseCuz(h, cuz){
+  if(useFirebase){ fbPath('open/'+h+'/'+cuz).remove(); }
+  else {
+    if(state.open && state.open[h]) delete state.open[h][cuz];
+    save(); render();
+  }
+}
+/* Boştaki cüzü üstlen: bana atanır ve havuzdan çıkar */
+function takeCuz(h, cuz){
+  const me = myIdentity();
+  if(!me){ pickIdentity(); return; }
+  if(useFirebase){
+    const u = {};
+    u['overrides/'+h+'/'+cuz] = me.idx;
+    u['open/'+h+'/'+cuz] = null;
+    fbRoot().update(u);
+  } else {
+    state.overrides = state.overrides || {};
+    if(!state.overrides[h]) state.overrides[h] = {};
+    state.overrides[h][cuz] = me.idx;
+    if(state.open && state.open[h]) delete state.open[h][cuz];
+    save(); render();
+  }
+}
 /* Vurgu için: bu cüz gerçekten seçili kişiye mi ait (admin baypası yok, kimlik şart) */
 function isMyOwnCuz(h, c){
   const me = myIdentity();
@@ -547,6 +614,7 @@ function load(){
   if(!st.readers) st.readers = {};
   if(!st.times) st.times = {};
   if(!st.meta) st.meta = {};
+  if(!st.open) st.open = {};
   if(!st.inactive) st.inactive = {};
   if(!st.placeholder) st.placeholder = {};
   if(!st.volunteer) st.volunteer = {};
@@ -554,7 +622,7 @@ function load(){
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -584,6 +652,7 @@ function applySnap(val){
   state.placeholder = val.placeholder || {};
   state.volunteer = val.volunteer || {};
   state.overrides = val.overrides || {};
+  state.open = val.open || {};
   state.pcount = val.pcount || 30;
   if(state.hatimCount < 1) state.hatimCount = 1;
   render();
@@ -635,6 +704,21 @@ modal.addEventListener('click', function(e){
     if(a === 'adm-set-place'){ const i = +b.dataset.ai; if(adminRows[i]){ adminRows[i].placeholder = true; adminRows[i].volunteer = false; } showAdminPanel(); return; }
     if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); if(_volReturn){ _volReturn = false; setTimeout(showVolunteerCuz, 60); } return; }
     if(a === 'vc-reassign'){ _volReturn = true; reassign(+b.dataset.h, +b.dataset.cuz); return; }
+    if(a === 'rel-cuz'){
+      const rh = +b.dataset.h, rc = +b.dataset.cuz;
+      closeModal();
+      setTimeout(function(){
+        uiConfirm({
+          title:'🙏 Havuza bırak',
+          body:'<span class="hl">'+rh+'. hatim · '+rc+'. cüz</span><br><br>'
+              +'Bu cüz <b>“boşta”</b> olarak işaretlenecek ve gönüllülerden biri üstlenebilecek.<br><br>'
+              +'<span style="color:var(--muted);font-size:13px;">Kimin bıraktığı grupta duyurulmaz. Üstlenen çıkmazsa fikriniz değişirse geri alabilirsiniz.</span>',
+          okText:'🙏 Havuza bırak', cancelText:'Vazgeç',
+          onOk: function(){ releaseCuz(rh, rc); }
+        });
+      }, 60);
+      return;
+    }
     if(a === 'rem-img'){ shareRemindImage(+b.dataset.h); return; }
     if(a === 'set-identity'){ setIdentity(+b.dataset.i); closeModal(); return; }
     if(a === 'clear-identity'){ clearIdentity(); closeModal(); return; }
@@ -767,7 +851,16 @@ function rowHTML(name, cuz, done, interactive, h){
   const extra = interactive && isPlaceholder(assignedIndex(cuz, h));
   const extraBadge = extra ? '<span class="badge-extra" title="Bir gönüllünün ekstra üstlendiği cüz">🤝</span>' : '';
   const mine = interactive && isMyOwnCuz(h, cuz);
-  const lbl = mine ? '★ sizin cüzünüz' : 'cüz';
+  const isOpen = interactive && isOpenCuz(h, cuz);
+  const lbl = isOpen ? '🙋 boşta' : (mine ? '★ sizin cüzünüz' : 'cüz');
+  if(isOpen){
+    return '<div class="row open'+(sec?' secde':'')+'"'+data+'>'
+      + secMark + reassign
+      + '<span class="t-no">'+cuz+'</span>'
+      + '<span class="t-lbl">'+lbl+'</span>'
+      + '<span class="name open-nm">Üstlenmek için dokun</span>'
+      + '<span class="open-badge">🙋 sahibi okuyamıyor</span></div>';
+  }
   return '<div class="row'+(done?' done':'')+(locked?' locked':'')+(extra?' extra':'')+(mine?' mine':'')+(sec?' secde':'')+'"'+data+'>'
     + secMark + lockMark + reassign
     + '<span class="t-no">'+cuz+'</span>'
@@ -798,6 +891,7 @@ function sectionHTML(h){
     + '<button class="btn wa-start" data-action="sharestart" data-h="'+h+'">🌙 Başlangıç mesajı</button>'
     + '<button class="btn wa" data-action="share" data-h="'+h+'">📲 WhatsApp\'ta paylaş</button>'
     + '</div>'
+    + (openCuzList(h).length ? '<button class="btn open-ann" data-action="openann" data-h="'+h+'">🙋 Boşta cüz duyur ('+openCuzList(h).length+')</button>' : '')
     + (read === 30 ? '<button class="btn pdf" data-action="printpdf" data-h="'+h+'">🖨️ PDF Cetveli</button>' : '')
     + (isAdmin ? '<button class="btn wa-rem" data-action="remind" data-h="'+h+'">🔔 Okumayanlara hatırlat</button>' : '')
     + '</div>'
@@ -1115,13 +1209,16 @@ function reassign(h, cuz){
 }
 function setOverride(h, cuz, i){
   if(useFirebase){
-    if(i < 0) fbPath('overrides/'+h+'/'+cuz).remove();
-    else fbPath('overrides/'+h+'/'+cuz).set(i);
+    const u = {};
+    u['overrides/'+h+'/'+cuz] = (i < 0) ? null : i;
+    u['open/'+h+'/'+cuz] = null;          // elle atama boşta durumunu çözer
+    fbRoot().update(u);
   } else {
     state.overrides = state.overrides || {};
     if(!state.overrides[h]) state.overrides[h] = {};
     if(i < 0) delete state.overrides[h][cuz];
     else state.overrides[h][cuz] = i;
+    if(state.open && state.open[h]) delete state.open[h][cuz];
     save(); render();
   }
 }
@@ -1248,7 +1345,8 @@ function mineHTML(){
     const isExtra = isPlaceholder(assignedIndex(it.c, it.h));
     const secN = SECDE[it.c];
     const sec = secN ? '<span class="sec-corner" title="Tilavet Secdesi'+(secN>=2?' (2 secde)':'')+'">۩'+(secN>=2?'2':'')+'</span>' : '';
-    const st = it.done ? '<span class="m-st ok">✓ okundu</span>' : '<span class="m-st wait">okunmadı</span>';
+    const st = it.done ? '<span class="m-st ok">✓ okundu</span>'
+             : (isOpenCuz(it.h, it.c) ? '<span class="m-st open">🙋 havuzda</span>' : '<span class="m-st wait">okunmadı</span>');
     const extra = isExtra ? '<span class="m-extra">🤝 gönüllü</span>' : '';
     tiles += '<div class="row mtile'+(it.done?' done':'')+(secN?' secde':'')+'"'+data+'>'
       + sec
@@ -1444,6 +1542,23 @@ function showVolunteerCuz(){
   if(!isAdmin) return;
   let sections = '';
   let any = false;
+  /* Önce: havuzda bekleyen (boşta) cüzler — güvenlik ağı */
+  let openSec = '';
+  for(let h=1; h<=state.hatimCount; h++){
+    if(isRemoved(h) || isArchived(h)) continue;
+    const ol = openCuzList(h);
+    if(ol.length === 0) continue;
+    let rows = '';
+    ol.forEach(function(c){
+      const r = openRec(h, c) || {};
+      rows += '<div class="vc-row"><span class="vc-cuz">'+c+'. cüz</span>'
+            + '<span class="vc-name" style="color:#fcd34d;">🙋 boşta'+(r.by?' <span style="color:var(--muted);font-weight:600;font-size:12px;">('+escAttr(r.by)+' bıraktı)</span>':'')+'</span>'
+            + '<button class="vc-edit" data-action="vc-reassign" data-h="'+h+'" data-cuz="'+c+'">ata</button>'
+            + '</div>';
+    });
+    openSec += '<div class="vc-hatim open"><div class="vc-h-title">'+h+'. Hatim <span class="vc-count">('+ol.length+' cüz havuzda)</span></div>'+rows+'</div>';
+  }
+  if(openSec){ any = true; sections += openSec; }
   for(let h=1; h<=state.hatimCount; h++){
     if(isRemoved(h) || isArchived(h)) continue;
     const pc = placeholderCuzList(h);
@@ -1463,7 +1578,7 @@ function showVolunteerCuz(){
   if(!any) sections = '<div class="prof-empty">Gönüllü (ekstra) cüz yok. Admin → Katılımcılar’dan bir kişiyi “Yer” yapıp gerçek kişileri “Gön.” yaparsan burada görünür.</div>';
   uiConfirm({
     wide:true,
-    title:'🤝 Gönüllü Cüzleri',
+    title:'🤝 Gönüllü & Boşta Cüzler',
     body:'<div class="admin-note">Her hatimde <b>kendi cüzü dışında</b> ekstra (placeholder) cüz okuyacak kişiler. Otomatik dağıtılır; ✎ ile elle değiştirdiklerin de burada görünür.</div>'
         +'<div class="vc-list">'+sections+'</div>',
     okText:'Kapat', hideCancel:true
@@ -1472,6 +1587,31 @@ function showVolunteerCuz(){
 
 /* ---- İşlemler ---- */
 function toggle(h,cuz){
+  /* Boştaki cüz: herkes üstlenebilir; sahibi geri alabilir */
+  if(isOpenCuz(h, cuz)){
+    const me = myIdentity();
+    const rec = openRec(h, cuz);
+    const owner = me && rec && (rec.by === me.name || rec.idx === me.idx);
+    if(owner){
+      uiConfirm({
+        title:'🙋 Bu cüz havuzda',
+        body:'<span class="hl">'+h+'. hatim · '+cuz+'. cüz</span><br><br>'
+            +'Bu cüzü havuza bıraktınız; üstlenen olursa o okuyacak.<br><br>Fikriniz değiştiyse geri alabilirsiniz.',
+        okText:'↩︎ Geri al (ben okuyacağım)', cancelText:'Kapat',
+        onOk: function(){ unreleaseCuz(h, cuz); }
+      });
+      return;
+    }
+    uiConfirm({
+      title:'🤝 Bu cüzü üstlen',
+      body:'<span class="hl">'+h+'. hatim · '+cuz+'. cüz</span><br><br>'
+          +'Bu cüzün sahibi bu hafta okuma fırsatı bulamamış ve havuza bırakmış.<br><br>'
+          +(me ? 'Bu cüzü <b>'+escAttr(me.name)+'</b> olarak üstlenmek ister misiniz?' : 'Üstlenmek için önce kim olduğunuzu seçmeniz gerekiyor.'),
+      okText: me ? '🤝 Üstleniyorum' : '👤 Kim olduğumu seç', cancelText:'Vazgeç',
+      onOk: function(){ takeCuz(h, cuz); }
+    });
+    return;
+  }
   if(!isMyCuz(h, cuz)){
     const me = myIdentity();
     uiConfirm({
@@ -1487,13 +1627,18 @@ function toggle(h,cuz){
   userPicked = true;
   const willRead = !isDone(h,cuz);
   const kisi = displayName(cuz,h);
+  const canRelease = willRead && (isAdmin || isMyOwnCuz(h, cuz));
+  const relBtn = canRelease
+    ? '<button class="btn rel-btn" data-action="rel-cuz" data-h="'+h+'" data-cuz="'+cuz+'">🙏 Okumaya fırsatım yok — havuza bırak</button>'
+    : '';
   uiConfirm({
     title: willRead ? 'Okundu olarak işaretle' : 'İşareti kaldır',
-    okText: willRead ? '✓ Okundu' : 'Kaldır',
+    okText: willRead ? '✓ Okudum' : 'Kaldır',
     danger: !willRead,
     body: '<span class="hl">'+h+'. hatim · '+cuz+'. cüz</span><br><span class="nm">'+kisi+'</span><br><br>'
         + (willRead ? 'Bu cüz <b>OKUNDU</b> olarak işaretlensin mi?'
-                    : 'Bu cüzün işareti kaldırılsın mı? (okunmadı yapılacak)'),
+                    : 'Bu cüzün işareti kaldırılsın mı? (okunmadı yapılacak)')
+        + relBtn,
     onOk: function(){
       const me = myIdentity();
       const ei = effectiveIndex(cuz, h);
@@ -1554,6 +1699,17 @@ function startText(h){
 }
 function shareStart(h){
   window.open("https://wa.me/?text=" + encodeURIComponent(startText(h)), "_blank");
+}
+/* Boştaki cüzleri duyur — kimin bıraktığı yazılmaz */
+function openAnnounce(h){
+  const list = openCuzList(h);
+  if(list.length === 0){ uiAlert(h+'. Hatim', 'Şu an boşta cüz yok.'); return; }
+  let t = '🙋 ' + h + '. Hatim — üstlenecek var mı?\n\n';
+  t += (list.length > 1 ? 'Aşağıdaki cüzler' : 'Aşağıdaki cüz') + ' bu hafta boşta kaldı:\n\n';
+  list.forEach(function(c){ t += '• ' + c + '. cüz\n'; });
+  t += '\nOkumaya müsait olan üstlenebilir — uygulamada cüze dokunup “Üstleniyorum” demeniz yeterli.\n';
+  t += 'Hatim duası ' + hatimDate(h) + ' akşamı yapılacaktır inşallah.\n\nAllah razı olsun 🤲\n' + location.href;
+  window.open("https://wa.me/?text=" + encodeURIComponent(t), "_blank");
 }
 
 function snapNames(){ const s = {}; const M = participantCount(); for(let i=0;i<M;i++) s[i] = liveName(i); return s; }
@@ -1638,6 +1794,7 @@ app.addEventListener('click', e=>{
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'sharestart'){ shareStart(h); }
+    else if(a === 'openann'){ openAnnounce(h); }
     else if(a === 'admin'){ openAdmin(); }
     else if(a === 'whoami'){ pickIdentity(); }
     else if(a === 'showlog'){ showLog(); }
@@ -1655,7 +1812,7 @@ app.addEventListener('click', e=>{
         onOk:function(){
           expanded = {}; archiveOpen = false;
           if(useFirebase){ fbRoot().remove(); }
-          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30}; save(); render(); }
+          else { state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30}; save(); render(); }
         }
       });
     }
