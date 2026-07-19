@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hatim Navigasyonu — 3 Tasarım Prototipi</title>
+<style>
+/* ── Tema (Takip.html ile aynı) ─────────────────────────────────────── */
+:root{
+  --bg:#130f09;--bg2:#1c1610;--card:#221a11;--card-hover:#2c2115;
+  --text:#f1e6cd;--muted:#b4a179;--blue:#2f9c94;--yellow:#e6b93f;
+  --green:#1f9d57;--green-l:#46c98a;--green-bg:#16281b;--line:#3c3020;
+  --gold:#d9b44a;--gold-2:#e9c45a;--teal:#33ada4;--sec:#c98be6;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:radial-gradient(1200px 640px at 50% -12%,#2a1d10 0%,var(--bg) 58%);
+  color:var(--text);min-height:100vh;
+}
+
+/* ── Üst tasarım seçici ──────────────────────────────────────────────── */
+.design-switcher{
+  position:sticky;top:0;z-index:200;background:var(--bg2);
+  border-bottom:2px solid var(--line);padding:10px 16px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.design-switcher h1{
+  font-family:Georgia,serif;font-size:14px;font-weight:800;
+  color:var(--gold);flex:0 0 auto;white-space:nowrap;letter-spacing:.3px;
+}
+.ds-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.ds-tab{
+  padding:7px 14px;border-radius:20px;border:1px solid var(--line);
+  background:var(--card);color:var(--muted);font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.ds-tab:hover{border-color:var(--gold);color:var(--gold);}
+.ds-tab.active{background:#241a10;border-color:#cc9a33;color:#e6c877;box-shadow:0 0 0 1px #cc9a33 inset;}
+.badge-new{
+  display:inline-block;font-size:9px;font-weight:800;padding:1px 5px;
+  border-radius:6px;background:#2f9c94;color:#fff;margin-left:5px;vertical-align:middle;
+}
+
+/* ── Panel ───────────────────────────────────────────────────────────── */
+.panel{display:none;padding:20px 16px 60px;}
+.panel.active{display:block;}
+.proto-label{
+  text-align:center;margin-bottom:22px;
+}
+.proto-label h2{
+  font-family:Georgia,serif;font-size:20px;font-weight:800;color:var(--gold);margin-bottom:4px;
+}
+.proto-label p{font-size:13px;color:var(--muted);line-height:1.5;max-width:520px;margin:0 auto;}
+.tag{
+  display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;margin-top:6px;
+}
+.tag.green{background:rgba(70,201,138,.18);border:1px solid #2f6b45;color:var(--green-l);}
+.tag.blue{background:rgba(47,156,148,.18);border:1px solid #2f6b45;color:#5ad4cc;}
+.tag.gold{background:rgba(217,180,74,.18);border:1px solid #6a5528;color:#e9c45a;}
+
+/* ── Sayfa çerçevesi (simüle) ────────────────────────────────────────── */
+.phone-frame{
+  max-width:420px;margin:0 auto;background:var(--bg);
+  border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);
+}
+.phone-header{padding:16px 16px 0;text-align:center;}
+.phone-header h3{font-family:Georgia,serif;font-size:18px;color:var(--gold);font-weight:800;}
+.phone-header p{font-size:12px;color:var(--muted);margin-top:2px;}
+
+/* ── Hatim içerik (cüz grid) ─────────────────────────────────────────── */
+.cuz-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;
+  padding:16px;
+}
+.cuz-card{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:10px 6px;text-align:center;cursor:pointer;
+  transition:background .15s,border-color .15s,transform .08s;
+}
+.cuz-card:hover{background:var(--card-hover);}
+.cuz-card:active{transform:scale(.97);}
+.cuz-card.done{background:var(--green-bg);border-color:#2f6b45;}
+.cuz-card .cn{font-size:18px;font-weight:800;color:var(--teal);line-height:1;}
+.cuz-card.done .cn{color:var(--green-l);}
+.cuz-card .cl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
+.cuz-card .cm{font-size:10px;font-weight:700;margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;
+}
+.cuz-card.done .cm{color:var(--green-l);}
+.cuz-card .cb{display:none;font-size:8px;color:var(--green-l);margin-top:2px;}
+.cuz-card.done .cb{display:block;}
+
+/* ════════════════════════════════════════════════════════════════════
+   TASARIM 1 — Açılır Seçici (Dropdown)
+   ════════════════════════════════════════════════════════════════════ */
+.d1-nav{
+  position:sticky;top:0;z-index:100;background:var(--bg);
+  border-bottom:1px solid var(--line);padding:10px 14px;
+  display:flex;align-items:center;gap:10px;
+}
+.d1-selector{
+  flex:1;position:relative;
+}
+.d1-btn{
+  width:100%;background:var(--card);border:1px solid #cc9a33;
+  border-radius:12px;padding:10px 14px;color:#e6c877;font-size:14px;font-weight:800;
+  cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  transition:all .15s;text-align:left;
+}
+.d1-btn:hover{background:var(--card-hover);}
+.d1-btn.open{border-radius:12px 12px 0 0;border-bottom-color:var(--line);}
+.d1-btn-left{display:flex;align-items:center;gap:10px;}
+.d1-btn-no{font-size:16px;font-weight:800;color:#e6c877;}
+.d1-btn-prog{font-size:11px;color:var(--muted);font-weight:700;}
+.d1-btn-prog .pct{color:var(--green-l);}
+.d1-btn-prog .done-tag{color:var(--green-l);}
+.d1-mini-bar{width:52px;height:4px;background:var(--bg2);border-radius:999px;overflow:hidden;flex:none;}
+.d1-mini-fill{height:100%;background:linear-gradient(90deg,#cc9a33,#e6c877);border-radius:999px;}
+.d1-arrow{font-size:11px;transition:transform .2s;}
+.d1-btn.open .d1-arrow{transform:rotate(180deg);}
+.d1-drop{
+  display:none;position:absolute;top:100%;left:0;right:0;
+  background:var(--card);border:1px solid #cc9a33;border-top:none;border-radius:0 0 12px 12px;
+  max-height:260px;overflow-y:auto;z-index:200;
+  box-shadow:0 12px 32px rgba(0,0,0,.5);
+}
+.d1-drop.show{display:block;}
+.d1-item{
+  display:flex;align-items:center;gap:12px;padding:11px 14px;
+  cursor:pointer;border-top:1px solid rgba(255,255,255,.04);transition:background .1s;
+}
+.d1-item:hover{background:var(--card-hover);}
+.d1-item.active{background:#241a10;}
+.d1-item-no{min-width:52px;font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;}
+.d1-item.active .d1-item-no{color:#e6c877;}
+.d1-item-wrap{flex:1;min-width:0;}
+.d1-item-bar-bg{height:5px;background:var(--bg2);border-radius:999px;overflow:hidden;}
+.d1-item-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#16a34a,#22c55e);transition:width .3s;}
+.d1-item.active .d1-item-bar-fill{background:linear-gradient(90deg,#cc9a33,#e6c877);}
+.d1-item-info{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:3px;}
+.d1-item-prog{font-size:10.5px;font-weight:700;color:var(--muted);}
+.d1-item.active .d1-item-prog{color:#e6c877;}
+.d1-item-done-tag{font-size:10px;font-weight:800;color:var(--green-l);}
+.d1-check{font-size:13px;}
+.d1-add{
+  width:36px;height:36px;flex:none;background:var(--card);border:1px dashed var(--line);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:18px;font-weight:800;cursor:pointer;transition:all .15s;
+}
+.d1-add:hover{border-color:#cc9a33;color:#e6c877;}
+.d1-mine-btn{
+  width:36px;height:36px;flex:none;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;cursor:pointer;transition:all .15s;
+}
+.d1-mine-btn:hover{border-color:#cc9a33;}
+
+/* ════════════════════════════════════════════════════════════════════
+   TASARIM 2 — Alt Panel Grid (Bottom Sheet)
+   ════════════════════════════════════════════════════════════════════ */
+.d2-nav{
+  position:sticky;top:0;z-index:100;background:var(--bg);
+  border-bottom:1px solid var(--line);padding:10px 14px;
+  display:flex;align-items:center;gap:10px;
+}
+.d2-active-pill{
+  flex:1;display:flex;align-items:center;gap:10px;
+  background:var(--card);border:1px solid #cc9a33;border-radius:12px;padding:9px 13px;
+}
+.d2-pill-left{flex:1;min-width:0;}
+.d2-pill-title{font-size:14px;font-weight:800;color:#e6c877;}
+.d2-pill-sub{font-size:11px;color:var(--muted);font-weight:700;margin-top:1px;}
+.d2-pill-bar{width:100%;height:4px;background:var(--bg2);border-radius:999px;overflow:hidden;margin-top:5px;}
+.d2-pill-fill{height:100%;background:linear-gradient(90deg,#cc9a33,#e6c877);border-radius:999px;transition:width .3s;}
+.d2-grid-btn{
+  flex:none;background:#241a10;border:1px solid #6b5427;border-radius:10px;
+  padding:8px 12px;color:#e6c877;font-size:12px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;
+}
+.d2-grid-btn:hover{border-color:#cc9a33;background:#2f2311;}
+.d2-grid-btn .count-bubble{
+  display:inline-block;background:#cc9a33;color:#130f09;font-size:10px;font-weight:800;
+  padding:1px 6px;border-radius:999px;
+}
+.d2-mine-btn{
+  width:36px;height:36px;flex:none;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;cursor:pointer;transition:all .15s;
+}
+.d2-mine-btn:hover{border-color:#cc9a33;}
+
+/* Bottom sheet */
+.d2-overlay{
+  display:none;position:fixed;inset:0;background:rgba(5,8,18,.7);
+  backdrop-filter:blur(4px);z-index:500;align-items:flex-end;
+}
+.d2-overlay.show{display:flex;}
+.d2-sheet{
+  width:100%;background:var(--bg2);border-radius:20px 20px 0 0;
+  border-top:1px solid var(--line);border-left:1px solid var(--line);border-right:1px solid var(--line);
+  max-height:82vh;display:flex;flex-direction:column;
+  animation:sheetUp .22s ease;
+}
+@keyframes sheetUp{from{transform:translateY(30px);opacity:.6}to{transform:translateY(0);opacity:1}}
+.d2-sheet-handle{
+  width:36px;height:4px;background:var(--line);border-radius:2px;
+  margin:10px auto 0;flex:none;cursor:pointer;
+}
+.d2-sheet-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 10px;border-bottom:1px solid var(--line);flex:none;
+}
+.d2-sheet-title{font-family:Georgia,serif;font-size:16px;font-weight:800;color:var(--gold);}
+.d2-sheet-close{
+  width:30px;height:30px;background:var(--card);border:1px solid var(--line);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;color:var(--muted);transition:all .15s;
+}
+.d2-sheet-close:hover{border-color:#ff6b6b;color:#ff6b6b;}
+.d2-sheet-body{flex:1;overflow-y:auto;padding:12px 14px 20px;}
+.d2-htgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.d2-htcard{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px;cursor:pointer;transition:all .15s;
+}
+.d2-htcard:hover{background:var(--card-hover);}
+.d2-htcard.active{border-color:#cc9a33;background:#241a10;box-shadow:0 0 0 1px #cc9a33 inset;}
+.d2-htcard.done-ht{border-color:#2f6b45;background:var(--green-bg);}
+.d2-htcard.active.done-ht{border-color:#cc9a33;background:#1a2e1a;}
+.d2-ht-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.d2-ht-no{font-size:15px;font-weight:800;color:var(--text);}
+.d2-htcard.active .d2-ht-no{color:#e6c877;}
+.d2-htcard.done-ht .d2-ht-no{color:var(--green-l);}
+.d2-ht-badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;}
+.d2-ht-badge.done-b{background:rgba(70,201,138,.18);border:1px solid #2f6b45;color:var(--green-l);}
+.d2-ht-badge.act-b{background:rgba(217,180,74,.18);border:1px solid #7a5f1f;color:#e6c877;}
+.d2-ht-badge.pend-b{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--muted);}
+.d2-ht-bar{height:6px;background:var(--bg);border-radius:999px;overflow:hidden;}
+.d2-ht-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#16a34a,#22c55e);transition:width .3s;}
+.d2-htcard.active .d2-ht-fill{background:linear-gradient(90deg,#cc9a33,#e6c877);}
+.d2-ht-prog{font-size:11px;font-weight:700;color:var(--muted);margin-top:4px;}
+.d2-htcard.active .d2-ht-prog{color:#e6c877;}
+.d2-htcard.done-ht .d2-ht-prog{color:var(--green-l);}
+.d2-add-card{
+  background:transparent;border:1px dashed var(--line);border-radius:12px;
+  padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:8px;color:var(--muted);font-size:13px;font-weight:700;transition:all .15s;
+}
+.d2-add-card:hover{border-color:#cc9a33;color:#e6c877;}
+
+/* ════════════════════════════════════════════════════════════════════
+   TASARIM 3 — Oklu Sekmeler + Atlama (Paginated Tabs)
+   ════════════════════════════════════════════════════════════════════ */
+.d3-nav{
+  position:sticky;top:0;z-index:100;background:var(--bg);
+  border-bottom:1px solid var(--line);
+}
+.d3-tab-row{
+  display:flex;align-items:center;gap:0;padding:8px 10px;
+}
+.d3-arrow{
+  flex:none;width:34px;height:44px;background:transparent;border:none;
+  color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;border-radius:8px;transition:all .15s;
+}
+.d3-arrow:hover:not(:disabled){background:var(--card);color:var(--gold);}
+.d3-arrow:disabled{opacity:.2;cursor:default;}
+.d3-tab-viewport{flex:1;overflow:hidden;}
+.d3-tab-track{
+  display:flex;gap:6px;transition:transform .25s ease;
+}
+.d3-tab{
+  flex:0 0 calc((100% - 12px) / 3);background:var(--card);border:1px solid var(--line);
+  border-radius:11px;padding:9px 10px 8px;cursor:pointer;
+  display:flex;flex-direction:column;gap:4px;align-items:flex-start;
+  transition:background .15s,border-color .15s;
+}
+.d3-tab:hover{background:var(--card-hover);}
+.d3-tab.active{border-color:#cc9a33;background:#241a10;box-shadow:0 0 0 1px #cc9a33 inset;}
+.d3-tab.done-tab{border-color:#2f6b45;}
+.d3-tab-no{font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;}
+.d3-tab.active .d3-tab-no{color:#e6c877;}
+.d3-tab-prog{font-size:10.5px;font-weight:700;color:var(--muted);white-space:nowrap;}
+.d3-tab.done-tab .d3-tab-prog{color:var(--green-l);}
+.d3-tab-bar{width:100%;height:3px;background:var(--bg2);border-radius:999px;overflow:hidden;}
+.d3-tab-fill{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px;}
+.d3-tab.active .d3-tab-fill{background:linear-gradient(90deg,#cc9a33,#e6c877);}
+
+.d3-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 12px 8px;border-top:1px solid rgba(255,255,255,.04);
+}
+.d3-counter-btn{
+  background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:5px 12px;color:var(--muted);font-size:12px;font-weight:800;
+  cursor:pointer;transition:all .15s;
+}
+.d3-counter-btn:hover{border-color:#cc9a33;color:#e6c877;}
+.d3-extra-actions{display:flex;gap:6px;}
+.d3-mine-btn,.d3-add-btn{
+  background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:5px 10px;color:var(--muted);font-size:12px;font-weight:800;
+  cursor:pointer;transition:all .15s;
+}
+.d3-mine-btn:hover,.d3-add-btn:hover{border-color:#cc9a33;color:#e6c877;}
+.d3-add-btn{border-style:dashed;}
+
+/* Jump-to popup */
+.d3-jump-overlay{
+  display:none;position:fixed;inset:0;background:rgba(5,8,18,.7);
+  backdrop-filter:blur(4px);z-index:500;align-items:center;justify-content:center;padding:20px;
+}
+.d3-jump-overlay.show{display:flex;}
+.d3-jump-card{
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:20px;max-width:360px;width:100%;
+  box-shadow:0 24px 70px rgba(0,0,0,.6);animation:pop .15s ease;
+}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.d3-jump-title{
+  font-family:Georgia,serif;font-size:16px;font-weight:800;color:var(--gold);
+  margin-bottom:12px;text-align:center;
+}
+.d3-jump-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;max-height:250px;overflow-y:auto;}
+.d3-jump-item{
+  background:var(--bg2);border:1px solid var(--line);border-radius:9px;
+  padding:9px 6px;text-align:center;cursor:pointer;transition:all .15s;
+}
+.d3-jump-item:hover{background:var(--card-hover);border-color:var(--gold);}
+.d3-jump-item.active{background:#241a10;border-color:#cc9a33;color:#e6c877;}
+.d3-jump-item.done-j{border-color:#2f6b45;}
+.d3-ji-no{font-size:14px;font-weight:800;color:var(--text);}
+.d3-jump-item.active .d3-ji-no{color:#e6c877;}
+.d3-jump-item.done-j .d3-ji-no{color:var(--green-l);}
+.d3-ji-prog{font-size:10px;font-weight:700;color:var(--muted);}
+.d3-jump-close{
+  margin-top:14px;width:100%;background:var(--bg2);border:1px solid var(--line);
+  border-radius:10px;padding:10px;color:var(--muted);font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .15s;
+}
+.d3-jump-close:hover{border-color:#ff6b6b;color:#ff6b6b;}
+
+/* ── Ortak yardımcılar ───────────────────────────────────────────────── */
+.hatim-label{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 6px;
+}
+.hatim-label-no{font-family:Georgia,serif;font-size:17px;font-weight:800;color:var(--gold);}
+.hatim-label-prog{font-size:12.5px;color:var(--muted);font-weight:700;}
+.hatim-label-prog .ok{color:var(--green-l);}
+.progress-bar-wrap{padding:0 16px 10px;}
+.progress-bar{height:8px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px;transition:width .4s;}
+</style>
+</head>
+<body>
+
+<!-- ── Tasarım seçici ──────────────────────────────────────────────── -->
+<div class="design-switcher">
+  <h1>🎨 3 Tasarım Prototipi</h1>
+  <div class="ds-tabs">
+    <button class="ds-tab active" onclick="showDesign(1,this)">1 — Açılır Seçici</button>
+    <button class="ds-tab" onclick="showDesign(2,this)">2 — Alt Panel Grid <span class="badge-new">ÖNERİ</span></button>
+    <button class="ds-tab" onclick="showDesign(3,this)">3 — Oklu Sekmeler</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TASARIM 1 — Açılır Seçici (Dropdown)
+     ════════════════════════════════════════════════════════════════ -->
+<div class="panel active" id="panel-1">
+  <div class="proto-label">
+    <h2>Tasarım 1 — Açılır Seçici</h2>
+    <p>Tüm hatimler tek bir kompakt açılır menüde toplanır. Kaydırma yok, tek dokunuşla istediğin hatimi seç.</p>
+    <span class="tag gold">⚡ Hızlı Erişim</span>
+    <span class="tag green">✓ Sonsuz Hatim</span>
+  </div>
+  <div class="phone-frame">
+    <div class="phone-header">
+      <h3>HATİM TAKİP LİSTESİ</h3>
+      <p>El-Fâtiha · Hacibabanın Ruhuna</p>
+    </div>
+    <!-- NAV -->
+    <div class="d1-nav">
+      <div class="d1-selector" id="d1sel">
+        <button class="d1-btn" id="d1btn" onclick="toggleD1()">
+          <div class="d1-btn-left">
+            <span class="d1-btn-no" id="d1BtnNo">3. Hatim</span>
+            <div>
+              <div class="d1-mini-bar"><div class="d1-mini-fill" id="d1BtnBar" style="width:53%"></div></div>
+              <div class="d1-btn-prog"><span id="d1BtnProg">16/30</span></div>
+            </div>
+          </div>
+          <span class="d1-arrow" id="d1arrow">▼</span>
+        </button>
+        <div class="d1-drop" id="d1drop"></div>
+      </div>
+      <div class="d1-mine-btn" title="👤 Cüzlerim">👤</div>
+      <div class="d1-add" title="Yeni Hatim" id="d1addBtn">＋</div>
+    </div>
+    <!-- CÜZ GRID -->
+    <div class="hatim-label">
+      <span class="hatim-label-no" id="d1HatimTitle">3. Hatim</span>
+      <span class="hatim-label-prog"><span class="ok" id="d1DoneCount">16</span> / 30 okundu</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="d1ProgFill" style="width:53%"></div></div>
+    </div>
+    <div class="cuz-grid" id="d1grid"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TASARIM 2 — Alt Panel Grid (Bottom Sheet)
+     ════════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-2">
+  <div class="proto-label">
+    <h2>Tasarım 2 — Alt Panel Grid</h2>
+    <p>Aktif hatim sürekli görünür. "Tüm Hatimler" düğmesine basınca güzel bir kart gridi aşağıdan yukarı kayar.</p>
+    <span class="tag blue">📱 Mobil Öncelikli</span>
+    <span class="tag green">✓ Görsel Tarama</span>
+    <span class="tag gold">🏆 Önerilen</span>
+  </div>
+  <div class="phone-frame" id="d2frame">
+    <div class="phone-header">
+      <h3>HATİM TAKİP LİSTESİ</h3>
+      <p>El-Fâtiha · Hacibabanın Ruhuna</p>
+    </div>
+    <!-- NAV -->
+    <div class="d2-nav">
+      <div class="d2-active-pill">
+        <div class="d2-pill-left">
+          <div class="d2-pill-title" id="d2PillTitle">3. Hatim</div>
+          <div class="d2-pill-sub" id="d2PillSub">16 / 30 okundu · %53</div>
+          <div class="d2-pill-bar"><div class="d2-pill-fill" id="d2PillFill" style="width:53%"></div></div>
+        </div>
+      </div>
+      <button class="d2-grid-btn" onclick="openD2Sheet()">
+        ⊞ Tüm Hatimler <span class="count-bubble" id="d2CountBubble">8</span>
+      </button>
+      <div class="d2-mine-btn" title="👤 Cüzlerim">👤</div>
+    </div>
+    <!-- CÜZ GRID -->
+    <div class="hatim-label">
+      <span class="hatim-label-no" id="d2HatimTitle">3. Hatim</span>
+      <span class="hatim-label-prog"><span class="ok" id="d2DoneCount">16</span> / 30 okundu</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="d2ProgFill" style="width:53%"></div></div>
+    </div>
+    <div class="cuz-grid" id="d2grid"></div>
+  </div>
+</div>
+
+<!-- Bottom Sheet Overlay (D2) — outside phone frame for full-screen feel -->
+<div class="d2-overlay" id="d2overlay" onclick="maybeCloseD2(event)">
+  <div class="d2-sheet">
+    <div class="d2-sheet-handle" onclick="closeD2Sheet()"></div>
+    <div class="d2-sheet-head">
+      <div class="d2-sheet-title">🗂 Hatimler</div>
+      <button class="d2-sheet-close" onclick="closeD2Sheet()">✕</button>
+    </div>
+    <div class="d2-sheet-body">
+      <div class="d2-htgrid" id="d2htgrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TASARIM 3 — Oklu Sekmeler + Atlama
+     ════════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-3">
+  <div class="proto-label">
+    <h2>Tasarım 3 — Oklu Sekmeler</h2>
+    <p>Aynı anda 3 sekme görünür; sol/sağ oklarla kaydır, ortadaki sayaça bas ve direkt hatim numarasına atla.</p>
+    <span class="tag gold">⬅ Yön Kontrollü</span>
+    <span class="tag green">✓ Hızlı Atlama</span>
+  </div>
+  <div class="phone-frame">
+    <div class="phone-header">
+      <h3>HATİM TAKİP LİSTESİ</h3>
+      <p>El-Fâtiha · Hacibabanın Ruhuna</p>
+    </div>
+    <!-- NAV -->
+    <div class="d3-nav">
+      <div class="d3-tab-row">
+        <button class="d3-arrow" id="d3prev" onclick="d3Scroll(-1)">‹</button>
+        <div class="d3-tab-viewport">
+          <div class="d3-tab-track" id="d3track"></div>
+        </div>
+        <button class="d3-arrow" id="d3next" onclick="d3Scroll(1)">›</button>
+      </div>
+      <div class="d3-footer">
+        <button class="d3-counter-btn" id="d3counter" onclick="openD3Jump()">
+          <span id="d3counterTxt">3 / 8 hatim</span> · ↕ Atla
+        </button>
+        <div class="d3-extra-actions">
+          <button class="d3-mine-btn">👤 Cüzlerim</button>
+          <button class="d3-add-btn">＋ Yeni</button>
+        </div>
+      </div>
+    </div>
+    <!-- CÜZ GRID -->
+    <div class="hatim-label">
+      <span class="hatim-label-no" id="d3HatimTitle">3. Hatim</span>
+      <span class="hatim-label-prog"><span class="ok" id="d3DoneCount">16</span> / 30 okundu</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="d3ProgFill" style="width:53%"></div></div>
+    </div>
+    <div class="cuz-grid" id="d3grid"></div>
+  </div>
+</div>
+
+<!-- Jump-to overlay (D3) -->
+<div class="d3-jump-overlay" id="d3jumpOverlay" onclick="maybeCloseD3Jump(event)">
+  <div class="d3-jump-card">
+    <div class="d3-jump-title">🎯 Hatim Seç</div>
+    <div class="d3-jump-grid" id="d3jumpGrid"></div>
+    <button class="d3-jump-close" onclick="closeD3Jump()">Kapat</button>
+  </div>
+</div>
+
+<script>
+/* ── Veri: 8 simüle hatim ───────────────────────────────────────────── */
+const HATIMLER = [
+  {h:1, done:30, total:30},   // tamamlandı
+  {h:2, done:30, total:30},   // tamamlandı
+  {h:3, done:16, total:30},   // aktif
+  {h:4, done:4,  total:30},
+  {h:5, done:0,  total:30},
+  {h:6, done:0,  total:30},
+  {h:7, done:0,  total:30},
+  {h:8, done:0,  total:30},
+];
+const NAMES = [
+  "BÜNYAMİN","MERYEM","HÜSEYİN","GÜLFİKAR","ZEYNEP","RUKİYE","NİGAR","RECEP",
+  "EMİNE","SEYFULLAH","ASİYE","YAHYA","ELİF","SAFURA","FAHREDDİN","ELMAS",
+  "FETULLAH","ABDURRAHMAN","HASAN","FATMA","AYŞE","SEVDA","GÜLSEN","LÜTFULLAH",
+  "GÜLSENEM","AHMED","YUSUF","ZELİHA","GÜLSÜM","ZEYNEP K."
+];
+
+let d1Active = 3, d2Active = 3, d3Active = 3;
+let d3Offset = 0;
+const D3_VISIBLE = 3;
+
+/* ── Yardımcılar ─────────────────────────────────────────────────── */
+function pct(h){ const ht = HATIMLER.find(x=>x.h===h); return ht ? Math.round(ht.done/ht.total*100) : 0; }
+function doneCount(h){ const ht = HATIMLER.find(x=>x.h===h); return ht ? ht.done : 0; }
+function isDoneHt(h){ return doneCount(h) === 30; }
+
+function cuzGridHTML(activeHatim, idPrefix){
+  const done = doneCount(activeHatim);
+  let html = '';
+  for(let c=1; c<=30; c++){
+    const isRead = c <= done;
+    html += `<div class="cuz-card${isRead?' done':''}" onclick="${idPrefix}CuzClick(${c})">
+      <div class="cn">${c}</div>
+      <div class="cl">Cüz</div>
+      <div class="cm">${NAMES[c-1]}</div>
+      <div class="cb">✓ okundu</div>
+    </div>`;
+  }
+  return html;
+}
+
+/* ── Tasarım paneli seçici ─────────────────────────────────────────── */
+function showDesign(n, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ds-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+n).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TASARIM 1 — Dropdown logic
+   ════════════════════════════════════════════════════════════════════ */
+function renderD1(){
+  const ht = HATIMLER.find(x=>x.h===d1Active);
+  const p = Math.round(ht.done/ht.total*100);
+  document.getElementById('d1BtnNo').textContent = d1Active + '. Hatim';
+  document.getElementById('d1BtnBar').style.width = p + '%';
+  document.getElementById('d1BtnProg').textContent = ht.done + '/30';
+  document.getElementById('d1HatimTitle').textContent = d1Active + '. Hatim';
+  document.getElementById('d1DoneCount').textContent = ht.done;
+  document.getElementById('d1ProgFill').style.width = p + '%';
+  document.getElementById('d1grid').innerHTML = cuzGridHTML(d1Active, 'd1');
+
+  // Dropdown items
+  let items = '';
+  HATIMLER.forEach(function(ht){
+    const p2 = Math.round(ht.done/ht.total*100);
+    const active = ht.h === d1Active;
+    const done = ht.done === 30;
+    items += `<div class="d1-item${active?' active':''}" onclick="d1Select(${ht.h})">
+      <div class="d1-item-no">${ht.h}. Hatim</div>
+      <div class="d1-item-wrap">
+        <div class="d1-item-bar-bg"><div class="d1-item-bar-fill" style="width:${p2}%"></div></div>
+        <div class="d1-item-info">
+          <span class="d1-item-prog">${ht.done}/30${done?' ✓':''}</span>
+          ${done?'<span class="d1-item-done-tag">Tamam</span>':''}
+        </div>
+      </div>
+      ${active?'<span class="d1-check">✓</span>':''}
+    </div>`;
+  });
+  document.getElementById('d1drop').innerHTML = items;
+}
+function toggleD1(){
+  const btn = document.getElementById('d1btn');
+  const drop = document.getElementById('d1drop');
+  const open = drop.classList.contains('show');
+  if(open){ closeD1(); } else { btn.classList.add('open'); drop.classList.add('show'); }
+}
+function closeD1(){
+  document.getElementById('d1btn').classList.remove('open');
+  document.getElementById('d1drop').classList.remove('show');
+}
+function d1Select(h){
+  d1Active = h; closeD1(); renderD1();
+}
+function d1CuzClick(c){ /* sadece görsel demo */ }
+document.addEventListener('click', function(e){
+  if(!document.getElementById('d1sel').contains(e.target)) closeD1();
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   TASARIM 2 — Bottom Sheet logic
+   ════════════════════════════════════════════════════════════════════ */
+function renderD2(){
+  const ht = HATIMLER.find(x=>x.h===d2Active);
+  const p = Math.round(ht.done/ht.total*100);
+  document.getElementById('d2PillTitle').textContent = d2Active + '. Hatim';
+  document.getElementById('d2PillSub').textContent = ht.done + ' / 30 okundu · %' + p;
+  document.getElementById('d2PillFill').style.width = p + '%';
+  document.getElementById('d2CountBubble').textContent = HATIMLER.length;
+  document.getElementById('d2HatimTitle').textContent = d2Active + '. Hatim';
+  document.getElementById('d2DoneCount').textContent = ht.done;
+  document.getElementById('d2ProgFill').style.width = p + '%';
+  document.getElementById('d2grid').innerHTML = cuzGridHTML(d2Active, 'd2');
+  renderD2Sheet();
+}
+function renderD2Sheet(){
+  let cards = '';
+  HATIMLER.forEach(function(ht){
+    const p = Math.round(ht.done/ht.total*100);
+    const active = ht.h === d2Active;
+    const done = ht.done === 30;
+    const badge = done
+      ? '<span class="d2-ht-badge done-b">✓ Tamam</span>'
+      : (active ? '<span class="d2-ht-badge act-b">Aktif</span>' : '<span class="d2-ht-badge pend-b">Bekliyor</span>');
+    cards += `<div class="d2-htcard${active?' active':''}${done?' done-ht':''}" onclick="d2Select(${ht.h})">
+      <div class="d2-ht-top">
+        <span class="d2-ht-no">${ht.h}. Hatim</span>
+        ${badge}
+      </div>
+      <div class="d2-ht-bar"><div class="d2-ht-fill" style="width:${p}%"></div></div>
+      <div class="d2-ht-prog">${ht.done}/30 okundu · %${p}</div>
+    </div>`;
+  });
+  cards += `<div class="d2-add-card">＋ Yeni Hatim</div>`;
+  document.getElementById('d2htgrid').innerHTML = cards;
+}
+function openD2Sheet(){
+  renderD2Sheet();
+  document.getElementById('d2overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeD2Sheet(){
+  document.getElementById('d2overlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function maybeCloseD2(e){
+  if(e.target === document.getElementById('d2overlay')) closeD2Sheet();
+}
+function d2Select(h){
+  d2Active = h; closeD2Sheet(); renderD2();
+}
+function d2CuzClick(c){ /* demo */ }
+
+/* ════════════════════════════════════════════════════════════════════
+   TASARIM 3 — Paginated Tabs logic
+   ════════════════════════════════════════════════════════════════════ */
+function renderD3(){
+  const ht = HATIMLER.find(x=>x.h===d3Active);
+  const p = Math.round(ht.done/ht.total*100);
+  document.getElementById('d3HatimTitle').textContent = d3Active + '. Hatim';
+  document.getElementById('d3DoneCount').textContent = ht.done;
+  document.getElementById('d3ProgFill').style.width = p + '%';
+  document.getElementById('d3grid').innerHTML = cuzGridHTML(d3Active, 'd3');
+  document.getElementById('d3counterTxt').textContent = d3Active + ' / ' + HATIMLER.length + ' hatim';
+  renderD3Tabs();
+  renderD3JumpGrid();
+}
+function renderD3Tabs(){
+  const track = document.getElementById('d3track');
+  let html = '';
+  HATIMLER.forEach(function(ht){
+    const p = Math.round(ht.done/ht.total*100);
+    const active = ht.h === d3Active;
+    const done = ht.done === 30;
+    html += `<button class="d3-tab${active?' active':''}${done?' done-tab':''}" onclick="d3Select(${ht.h})">
+      <span class="d3-tab-no">${ht.h}. Hatim</span>
+      <span class="d3-tab-prog">${done?'✓ 30/30':ht.done+'/30'}</span>
+      <span class="d3-tab-bar"><span class="d3-tab-fill" style="width:${p}%"></span></span>
+    </button>`;
+  });
+  track.innerHTML = html;
+  applyD3Offset();
+}
+function applyD3Offset(){
+  const track = document.getElementById('d3track');
+  const tabs = track.children;
+  if(!tabs.length) return;
+  const max = Math.max(0, HATIMLER.length - D3_VISIBLE);
+  d3Offset = Math.min(Math.max(0, d3Offset), max);
+  // ensure active is in view
+  const ai = HATIMLER.findIndex(x=>x.h===d3Active);
+  if(ai >= 0){
+    if(ai < d3Offset) d3Offset = ai;
+    if(ai >= d3Offset + D3_VISIBLE) d3Offset = ai - D3_VISIBLE + 1;
+  }
+  const viewportW = document.getElementById('d3track').parentElement.offsetWidth;
+  const tabW = (viewportW - 12) / D3_VISIBLE;
+  track.style.transform = `translateX(-${d3Offset * (tabW + 6)}px)`;
+  document.getElementById('d3prev').disabled = d3Offset === 0;
+  document.getElementById('d3next').disabled = d3Offset >= max;
+}
+function d3Scroll(dir){
+  d3Offset += dir; applyD3Offset();
+}
+function d3Select(h){
+  d3Active = h;
+  const ai = HATIMLER.findIndex(x=>x.h===h);
+  d3Offset = Math.max(0, ai - 1);
+  renderD3();
+}
+function d3CuzClick(c){ /* demo */ }
+
+function renderD3JumpGrid(){
+  let html = '';
+  HATIMLER.forEach(function(ht){
+    const active = ht.h === d3Active;
+    const done = ht.done === 30;
+    const p = Math.round(ht.done/ht.total*100);
+    html += `<div class="d3-jump-item${active?' active':''}${done?' done-j':''}" onclick="d3JumpSelect(${ht.h})">
+      <div class="d3-ji-no">${ht.h}</div>
+      <div class="d3-ji-prog">${ht.done}/30</div>
+    </div>`;
+  });
+  document.getElementById('d3jumpGrid').innerHTML = html;
+}
+function openD3Jump(){
+  renderD3JumpGrid();
+  document.getElementById('d3jumpOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeD3Jump(){
+  document.getElementById('d3jumpOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function maybeCloseD3Jump(e){
+  if(e.target === document.getElementById('d3jumpOverlay')) closeD3Jump();
+}
+function d3JumpSelect(h){
+  closeD3Jump(); d3Select(h);
+}
+
+/* ── Başlangıç render ─────────────────────────────────────────────── */
+renderD1();
+renderD2();
+renderD3();
+
+/* ── Resize → D3 offset yenile ────────────────────────────────────── */
+window.addEventListener('resize', function(){ applyD3Offset(); });
+</script>
+</body>
+</html>
