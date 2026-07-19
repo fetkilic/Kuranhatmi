@@ -322,7 +322,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.5.0</div>
+  <div class="app-version">V1.5.4</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -340,7 +340,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.4';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -389,12 +389,19 @@ function participantCount(){ return (state.pcount && state.pcount > 30) ? state.
 function isInactive(i){ return !!(state.inactive && state.inactive[i]); }
 function activeList(){ const a = []; const M = participantCount(); for(let i=0;i<M;i++){ if(!isInactive(i)) a.push(i); } return a; }
 /* h. hatimde c. cüzü okuyan katılımcının index'i.
-   N<30 ise fazladan cüzler, her hatim dönüşümlü olarak en sondaki okuyuculara verilir. */
+   N<30 ise fazladan cüzler, her hatim dönüşümlü olarak en sondaki okuyuculara verilir.
+   Her 30-hatim cycle'ının başında (h=1,31,61,91...) rastgele offset uygulanır (rotSeeds). */
 function assignedIndex(c, h){
   const list = activeList();
   const N = list.length;
   if(N === 0) return null;
-  const rot = (((h - 1) % N) + N) % N;
+  
+  // Kaçıncı 30-hatim döngüsündeyiz (0: h=1-30, 1: h=31-60, 2: h=61-90...)
+  const cycle = Math.floor((h - 1) / 30);
+  // Rastgele offset her cycle başında (h=31, h=61, h=91... de dağıtım yenilenir)
+  const randomOffset = (cycle >= 1 && state.rotSeeds && state.rotSeeds[cycle]) ? state.rotSeeds[cycle] : 0;
+  // Rotasyon: h'nin pozisyonunu N'ye göre bulup, random offset ekle
+  const rot = (((h - 1) % N) + randomOffset) % N;
   const base = Math.floor(30 / N), rem = 30 % N;
   const reps = {};
   list.forEach(function(idx){ reps[idx] = base; });
@@ -622,7 +629,7 @@ function load(){
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, overrides:{}, pcount:30, rotSeeds:{}};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -654,7 +661,20 @@ function applySnap(val){
   state.overrides = val.overrides || {};
   state.open = val.open || {};
   state.pcount = val.pcount || 30;
+  state.rotSeeds = val.rotSeeds || {};
   if(state.hatimCount < 1) state.hatimCount = 1;
+  // Her 30-hatim cycle başında rastgele dağıtım (cycle 1, 2, 3... için seed oluştur)
+  const currentCycle = Math.floor((state.hatimCount - 1) / 30);
+  if(currentCycle >= 1){
+    for(let c = 1; c <= currentCycle + 1; c++){
+      if(state.rotSeeds[c] == null){
+        // Rastgele offset oluştur (0 ile N-1 arasında)
+        const list = activeList();
+        const N = list.length > 0 ? list.length : 30;
+        state.rotSeeds[c] = Math.floor(Math.random() * N);
+      }
+    }
+  }
   render();
   detectCompletions();
 }
