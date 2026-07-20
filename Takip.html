@@ -214,7 +214,7 @@
   .modal-ok:hover{background:var(--green-l);border-color:var(--green-l);color:#fff;}
   .modal-ok.danger{background:#b91c1c;border-color:#b91c1c;color:#fff;}
   .modal-ok.danger:hover{background:#dc2626;border-color:#dc2626;color:#fff;}
-  .modal-card.wide{max-width:480px;}
+  .modal-card.wide{max-width:560px;}
   .admin-input{flex:1 1 120px;min-width:90px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
     border-radius:8px;padding:9px 11px;font-size:14px;font-weight:600;}
   .admin-input:focus{outline:none;border-color:#d9b44a;}
@@ -244,18 +244,28 @@
   .pick-btn.cur{border-color:#cc9a33;color:#e6c877;}
   .pick-btn.auto{color:var(--muted);border-style:dashed;}
   .pick-list.pick-grid{
-    display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-height:56vh;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-height:62vh;
   }
-  @media(max-width:520px){.pick-list.pick-grid{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:560px){.pick-list.pick-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:380px){.pick-list.pick-grid{grid-template-columns:1fr;}}
   .pick-list.pick-grid .pick-btn{
-    text-align:center;padding:12px 6px;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:3px;min-height:66px;
+    text-align:left;padding:14px 14px 12px;display:flex;flex-direction:column;gap:7px;
   }
-  .pick-list.pick-grid .pick-btn .ph-no{font-size:16px;font-weight:800;color:var(--teal);}
+  .pick-list.pick-grid .pick-btn .ph-no{font-size:17px;font-weight:800;color:var(--teal);}
   .pick-list.pick-grid .pick-btn.cur .ph-no{color:#e6c877;}
   .pick-list.pick-grid .pick-btn.done .ph-no{color:var(--green-l);}
-  .pick-list.pick-grid .pick-btn .ph-prog{font-size:11px;font-weight:700;color:var(--muted);}
-  .pick-list.pick-grid .pick-btn.done .ph-prog{color:var(--green-l);}
+  .pick-list.pick-grid .pick-btn .ph-date{font-size:11.5px;color:var(--muted);}
+  .pick-list.pick-grid .pick-btn .ph-bar{height:6px;background:var(--bg2);border-radius:999px;overflow:hidden;}
+  .pick-list.pick-grid .pick-btn .ph-fill{display:block;height:100%;
+    background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px;}
+  .pick-list.pick-grid .pick-btn.cur .ph-fill{background:linear-gradient(90deg,#cc9a33,#e6c877);}
+  .pick-list.pick-grid .pick-btn .ph-stats{font-size:12.5px;font-weight:700;color:var(--muted);}
+  .pick-list.pick-grid .pick-btn .ph-stats b{color:var(--green-l);}
+  .pick-list.pick-grid .pick-btn .ph-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:1px;}
+  .pick-list.pick-grid .pick-btn .ph-badge{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;white-space:nowrap;}
+  .pick-list.pick-grid .pick-btn .ph-badge.done{color:var(--green-l);background:rgba(34,197,94,.14);border:1px solid #2f6b45;}
+  .pick-list.pick-grid .pick-btn .ph-badge.open{color:#fcd34d;background:rgba(217,119,6,.18);border:1px solid #b45309;}
+  .pick-list.pick-grid .pick-btn .ph-badge.cur{color:#e6c877;background:#241a10;border:1px solid #6b5427;}
   .name.clickable{cursor:pointer;border-bottom:1px dashed transparent;}
   .name.clickable:hover{border-bottom-color:#d9b44a;}
   .row.locked{opacity:.5;}
@@ -330,7 +340,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.5.7</div>
+  <div class="app-version">V1.5.8</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -348,7 +358,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.5.7';
+const APP_VERSION = '1.5.8';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1340,11 +1350,19 @@ function showHatimPicker(){
   for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h) && !isRemoved(h)) actives.push(h); }
   let rows = '';
   actives.forEach(function(h){
-    const read = countDone(h), done = read === 30;
+    const read = countDone(h), done = read === 30, left = 30 - read, pct = Math.round(read/30*100);
     const cur = h === activeHatim;
+    const openCount = openCuzList(h).length;
+    let badges = '';
+    if(done) badges += '<span class="ph-badge done">✓ Tamamlandı</span>';
+    if(openCount) badges += '<span class="ph-badge open">🙋 '+openCount+' boşta</span>';
+    if(cur) badges += '<span class="ph-badge cur">Şu an açık</span>';
     rows += '<button class="pick-btn'+(cur?' cur':'')+(done?' done':'')+'" data-action="pick-hatim" data-h="'+h+'">'
-      + '<span class="ph-no">'+h+'.'+(cur?' ✓':'')+'</span>'
-      + '<span class="ph-prog">'+(done ? '✓ 30/30' : read + '/30')+'</span>'
+      + '<span class="ph-no">'+h+'. Hatim</span>'
+      + '<span class="ph-date">Son Tarih: '+hatimDate(h)+'</span>'
+      + '<span class="ph-bar"><span class="ph-fill" style="width:'+pct+'%"></span></span>'
+      + '<span class="ph-stats"><b>'+read+'</b> okundu · '+left+' kaldı · %'+pct+'</span>'
+      + (badges ? '<span class="ph-extra">'+badges+'</span>' : '')
       + '</button>';
   });
   if(!rows) rows = '<div class="prof-empty">Açık hatim yok.</div>';
