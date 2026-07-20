@@ -243,6 +243,19 @@
   .pick-btn:hover{background:var(--card-hover);border-color:#d9b44a;}
   .pick-btn.cur{border-color:#cc9a33;color:#e6c877;}
   .pick-btn.auto{color:var(--muted);border-style:dashed;}
+  .pick-list.pick-grid{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-height:56vh;
+  }
+  @media(max-width:520px){.pick-list.pick-grid{grid-template-columns:repeat(3,1fr);}}
+  .pick-list.pick-grid .pick-btn{
+    text-align:center;padding:12px 6px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;min-height:66px;
+  }
+  .pick-list.pick-grid .pick-btn .ph-no{font-size:16px;font-weight:800;color:var(--teal);}
+  .pick-list.pick-grid .pick-btn.cur .ph-no{color:#e6c877;}
+  .pick-list.pick-grid .pick-btn.done .ph-no{color:var(--green-l);}
+  .pick-list.pick-grid .pick-btn .ph-prog{font-size:11px;font-weight:700;color:var(--muted);}
+  .pick-list.pick-grid .pick-btn.done .ph-prog{color:var(--green-l);}
   .name.clickable{cursor:pointer;border-bottom:1px dashed transparent;}
   .name.clickable:hover{border-bottom-color:#d9b44a;}
   .row.locked{opacity:.5;}
@@ -317,7 +330,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.5.6</div>
+  <div class="app-version">V1.5.7</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -335,7 +348,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.5.6';
+const APP_VERSION = '1.5.7';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1329,15 +1342,16 @@ function showHatimPicker(){
   actives.forEach(function(h){
     const read = countDone(h), done = read === 30;
     const cur = h === activeHatim;
-    rows += '<button class="pick-btn'+(cur?' cur':'')+'" data-action="pick-hatim" data-h="'+h+'">'
-      + h + '. Hatim · ' + (done ? '✓ tamamlandı (30/30)' : read + '/30') + (cur ? ' ✓' : '')
+    rows += '<button class="pick-btn'+(cur?' cur':'')+(done?' done':'')+'" data-action="pick-hatim" data-h="'+h+'">'
+      + '<span class="ph-no">'+h+'.'+(cur?' ✓':'')+'</span>'
+      + '<span class="ph-prog">'+(done ? '✓ 30/30' : read + '/30')+'</span>'
       + '</button>';
   });
   if(!rows) rows = '<div class="prof-empty">Açık hatim yok.</div>';
   uiConfirm({
     wide:true,
     title:'Hatim seç',
-    body:'<div class="pick-list">'+rows+'</div>',
+    body:'<div class="pick-list pick-grid">'+rows+'</div>',
     okText:'Kapat', hideCancel:true
   });
 }
