@@ -181,13 +181,15 @@
     display:flex;flex-direction:column;gap:8px;padding:10px 2px 12px;margin-bottom:14px;
     position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);
   }
-  .picker-label{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.35px;text-transform:uppercase;}
   .picker-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  .hatim-select{
-    flex:1 1 220px;min-width:170px;appearance:none;background:var(--card);border:1px solid var(--line);
-    color:var(--text);border-radius:10px;padding:11px 13px;font-size:14px;font-weight:700;
+  .hatim-picker-btn{
+    flex:1 1 240px;min-width:200px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:12px;
+    padding:14px 18px;font-size:16px;font-weight:800;cursor:pointer;transition:all .15s ease;
   }
-  .hatim-select:focus{outline:none;border-color:#cc9a33;box-shadow:0 0 0 1px #cc9a33 inset;}
+  .hatim-picker-btn:hover{border-color:#cc9a33;background:var(--card-hover);}
+  .hatim-picker-btn:disabled{opacity:.5;cursor:default;}
+  .hatim-picker-btn .hp-arrow{color:var(--muted);font-size:13px;font-weight:700;}
   .picker-btn{flex:none;padding:11px 14px;white-space:nowrap;}
   .picker-btn.active{border-color:#cc9a33;background:#241a10;color:#e6c877;box-shadow:0 0 0 1px #cc9a33 inset;}
   .empty{text-align:center;color:var(--muted);padding:46px 20px;font-size:15px;line-height:1.6;
@@ -315,7 +317,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.5.5</div>
+  <div class="app-version">V1.5.6</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -333,7 +335,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.5.5';
+const APP_VERSION = '1.5.6';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -735,6 +737,15 @@ modal.addEventListener('click', function(e){
     if(a === 'rem-img'){ shareRemindImage(+b.dataset.h); return; }
     if(a === 'set-identity'){ setIdentity(+b.dataset.i); closeModal(); return; }
     if(a === 'clear-identity'){ clearIdentity(); closeModal(); return; }
+    if(a === 'pick-hatim'){
+      userPicked = true;
+      activeHatim = +b.dataset.h;
+      closeModal();
+      window.scrollTo(0,0);
+      render();
+      checkMyCompletion(activeHatim);
+      return;
+    }
   }
   if(e.target === modal) closeModal();
 });
@@ -1292,26 +1303,43 @@ function requestNotif(){
 }
 
 function tabsHTML(actives){
-  const activeVal = (activeHatim === 'mine' || activeHatim == null) ? '' : String(activeHatim);
-  let options = '';
-  actives.forEach(function(h){
-    const read = countDone(h);
+  let currentLabel = 'Hatim seç';
+  if(activeHatim !== 'mine' && activeHatim != null){
+    const read = countDone(activeHatim);
     const done = read === 30;
-    options += '<option value="'+h+'"'+(String(h)===activeVal?' selected':'')+'>'
-      + h + '. Hatim ' + (done ? '· tamamlandı (30/30)' : '· ' + read + '/30')
-      + '</option>';
-  });
-  if(!options) options = '<option value="">Açık hatim yok</option>';
+    currentLabel = activeHatim + '. Hatim · ' + (done ? 'tamamlandı (30/30)' : read + '/30');
+  } else if(!actives.length){
+    currentLabel = 'Açık hatim yok';
+  }
   let t = '<div class="tabs" id="tabs">'
-    + '<label class="picker-label" for="hatimSelect">Açık hatimler</label>'
     + '<div class="picker-row">'
-    + '<select id="hatimSelect" class="hatim-select" data-action="hatim-select"'+(actives.length?'':' disabled')+'>'
-    + options + '</select>'
+    + '<button class="hatim-picker-btn" data-action="hatim-picker"'+(actives.length?'':' disabled')+'>'
+    + '<span class="hp-label">'+escAttr(currentLabel)+'</span><span class="hp-arrow">▾</span></button>'
     + '<button class="btn picker-btn'+(activeHatim==='mine'?' active':'')+'" data-action="minetab">👤 Cüzlerim</button>';
   if(isAdmin){
     t += '<button class="btn add picker-btn" data-action="add">＋ Yeni hatim</button>';
   }
   return t + '</div></div>';
+}
+
+function showHatimPicker(){
+  const actives = [];
+  for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h) && !isRemoved(h)) actives.push(h); }
+  let rows = '';
+  actives.forEach(function(h){
+    const read = countDone(h), done = read === 30;
+    const cur = h === activeHatim;
+    rows += '<button class="pick-btn'+(cur?' cur':'')+'" data-action="pick-hatim" data-h="'+h+'">'
+      + h + '. Hatim · ' + (done ? '✓ tamamlandı (30/30)' : read + '/30') + (cur ? ' ✓' : '')
+      + '</button>';
+  });
+  if(!rows) rows = '<div class="prof-empty">Açık hatim yok.</div>';
+  uiConfirm({
+    wide:true,
+    title:'Hatim seç',
+    body:'<div class="pick-list">'+rows+'</div>',
+    okText:'Kapat', hideCancel:true
+  });
 }
 
 function defaultActive(actives){
@@ -1810,6 +1838,7 @@ app.addEventListener('click', e=>{
     }
     else if(a === 'tab'){ userPicked = true; activeHatim = h; window.scrollTo(0,0); render(); checkMyCompletion(h); }
     else if(a === 'minetab'){ if(!myIdentity()){ pickIdentity(); return; } userPicked = true; activeHatim = 'mine'; window.scrollTo(0,0); render(); }
+    else if(a === 'hatim-picker'){ showHatimPicker(); }
     else if(a === 'del'){ removeHatim(h); }
     else if(a === 'share'){ shareWhatsApp(h); }
     else if(a === 'sharestart'){ shareStart(h); }
@@ -1843,17 +1872,6 @@ app.addEventListener('click', e=>{
   }
   const row = e.target.closest('.row');
   if(row && row.dataset.h){ toggle(+row.dataset.h, +row.dataset.cuz); }
-});
-app.addEventListener('change', e=>{
-  const sel = e.target.closest('[data-action="hatim-select"]');
-  if(!sel || !sel.value) return;
-  const h = +sel.value;
-  if(!h) return;
-  userPicked = true;
-  activeHatim = h;
-  window.scrollTo(0,0);
-  render();
-  checkMyCompletion(h);
 });
 app.addEventListener('keydown', e=>{
   if(e.key === 'Enter' || e.key === ' '){
