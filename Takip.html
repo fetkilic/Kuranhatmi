@@ -176,27 +176,20 @@
   .archive .row{cursor:default;}
   footer{text-align:center;color:#566080;font-size:12px;margin-top:30px;}
 
-  /* sekmeler */
-  .tabs{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 12px;margin-bottom:14px;
+  /* hatim secici */
+  .tabs{
+    display:flex;flex-direction:column;gap:8px;padding:10px 2px 12px;margin-bottom:14px;
     position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);
-    -webkit-overflow-scrolling:touch;scrollbar-width:thin;}
-  .tabs::-webkit-scrollbar{height:6px;}
-  .tabs::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
-  .tab{flex:0 0 auto;min-width:104px;background:var(--card);border:1px solid var(--line);border-radius:12px;
-    padding:10px 14px 8px;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:flex-start;
-    transition:background .15s,border-color .15s;}
-  .tab:hover{background:var(--card-hover);}
-  .tab.active{border-color:#cc9a33;background:#241a10;box-shadow:0 0 0 1px #cc9a33 inset;}
-  .tab-no{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;}
-  .tab.active .tab-no{color:#e6c877;}
-  .tab-prog{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;}
-  .tab.done .tab-prog{color:var(--green-l);}
-  .tab-bar{width:100%;height:4px;background:var(--bg2);border-radius:999px;overflow:hidden;}
-  .tab-fill{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px;}
-  .tab.active .tab-fill{background:linear-gradient(90deg,#cc9a33,#e6c877);}
-  .tab-add{min-width:80px;align-items:center;justify-content:center;gap:3px;border-style:dashed;color:var(--muted);}
-  .tab-add:hover{border-color:#cc9a33;color:#e6c877;}
-  .tab-plus{font-size:20px;font-weight:800;line-height:1;}
+  }
+  .picker-label{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.35px;text-transform:uppercase;}
+  .picker-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .hatim-select{
+    flex:1 1 220px;min-width:170px;appearance:none;background:var(--card);border:1px solid var(--line);
+    color:var(--text);border-radius:10px;padding:11px 13px;font-size:14px;font-weight:700;
+  }
+  .hatim-select:focus{outline:none;border-color:#cc9a33;box-shadow:0 0 0 1px #cc9a33 inset;}
+  .picker-btn{flex:none;padding:11px 14px;white-space:nowrap;}
+  .picker-btn.active{border-color:#cc9a33;background:#241a10;color:#e6c877;box-shadow:0 0 0 1px #cc9a33 inset;}
   .empty{text-align:center;color:var(--muted);padding:46px 20px;font-size:15px;line-height:1.6;
     background:var(--card);border:1px solid var(--line);border-radius:14px;}
 
@@ -322,7 +315,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.5.4</div>
+  <div class="app-version">V1.5.5</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -340,7 +333,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.5.4';
+const APP_VERSION = '1.5.5';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1299,20 +1292,26 @@ function requestNotif(){
 }
 
 function tabsHTML(actives){
-  let t = '<div class="tabs" id="tabs">';
-  actives.forEach(h=>{
-    const read = countDone(h), pct = Math.round(read/30*100), done = read === 30;
-    t += '<button class="tab'+(h===activeHatim?' active':'')+(done?' done':'')+'" data-action="tab" data-h="'+h+'">'
-       + '<span class="tab-no">'+h+'. Hatim</span>'
-       + '<span class="tab-prog">'+(done?'✓ 30/30':read+'/30')+'</span>'
-       + '<span class="tab-bar"><span class="tab-fill" style="width:'+pct+'%"></span></span>'
-       + '</button>';
+  const activeVal = (activeHatim === 'mine' || activeHatim == null) ? '' : String(activeHatim);
+  let options = '';
+  actives.forEach(function(h){
+    const read = countDone(h);
+    const done = read === 30;
+    options += '<option value="'+h+'"'+(String(h)===activeVal?' selected':'')+'>'
+      + h + '. Hatim ' + (done ? '· tamamlandı (30/30)' : '· ' + read + '/30')
+      + '</option>';
   });
+  if(!options) options = '<option value="">Açık hatim yok</option>';
+  let t = '<div class="tabs" id="tabs">'
+    + '<label class="picker-label" for="hatimSelect">Açık hatimler</label>'
+    + '<div class="picker-row">'
+    + '<select id="hatimSelect" class="hatim-select" data-action="hatim-select"'+(actives.length?'':' disabled')+'>'
+    + options + '</select>'
+    + '<button class="btn picker-btn'+(activeHatim==='mine'?' active':'')+'" data-action="minetab">👤 Cüzlerim</button>';
   if(isAdmin){
-    t += '<button class="tab tab-add" data-action="add"><span class="tab-plus">＋</span><span class="tab-no">Yeni</span></button>';
+    t += '<button class="btn add picker-btn" data-action="add">＋ Yeni hatim</button>';
   }
-  t += '<button class="tab tab-mine'+(activeHatim==='mine'?' active':'')+'" data-action="minetab"><span class="tab-no">👤 Cüzlerim</span></button>';
-  return t + '</div>';
+  return t + '</div></div>';
 }
 
 function defaultActive(actives){
@@ -1844,6 +1843,17 @@ app.addEventListener('click', e=>{
   }
   const row = e.target.closest('.row');
   if(row && row.dataset.h){ toggle(+row.dataset.h, +row.dataset.cuz); }
+});
+app.addEventListener('change', e=>{
+  const sel = e.target.closest('[data-action="hatim-select"]');
+  if(!sel || !sel.value) return;
+  const h = +sel.value;
+  if(!h) return;
+  userPicked = true;
+  activeHatim = h;
+  window.scrollTo(0,0);
+  render();
+  checkMyCompletion(h);
 });
 app.addEventListener('keydown', e=>{
   if(e.key === 'Enter' || e.key === ' '){
