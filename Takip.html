@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -158,62 +158,6 @@
   .btn.wa:hover{background:#10564b;border-color:#25D366;color:#eafff8;}
   .mini .btn.wa{width:100%;margin-top:14px;}
 
-  /* ── Alev / Fitil Zaman Çubuğu ────────────────────── */
-  .fuse-widget{border-radius:12px;overflow:hidden;margin-bottom:14px;}
-  .fuse-header{
-    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;
-    padding:10px 14px;border:1px solid #7a3010;border-bottom:none;border-radius:12px 12px 0 0;
-  }
-  .fuse-header.low{background:linear-gradient(90deg,#2a1a00,#1e1408);}
-  .fuse-header.mid{background:linear-gradient(90deg,#321200,#1e1408);}
-  .fuse-header.high{background:linear-gradient(90deg,#3a0f00,#2a1208);}
-  .fuse-header.over{background:linear-gradient(90deg,#3a0505,#1e0808);border-color:#7f1d1d;}
-  .fuse-flame{font-size:20px;animation:fuseFlicker .6s ease-in-out alternate infinite;line-height:1;}
-  @keyframes fuseFlicker{0%{transform:scale(1) rotate(-3deg);}100%{transform:scale(1.08) rotate(2deg);}}
-  .fuse-hdr-title{font-size:13px;font-weight:800;color:#ffa040;}
-  .fuse-hdr-title.over{color:#fca5a5;}
-  .fuse-hdr-right{font-size:12.5px;font-weight:800;color:#ff7030;white-space:nowrap;}
-  .fuse-body{padding:12px 14px 14px;border:1px solid #7a3010;border-top:none;border-radius:0 0 12px 12px;}
-  .fuse-body.low{background:#1e1408;}
-  .fuse-body.mid{background:#1e1000;}
-  .fuse-body.high{background:#1a0800;}
-  .fuse-body.over{background:#180505;border-color:#7f1d1d;}
-  .fuse-sub{font-size:11px;color:#8a5030;font-weight:700;margin-bottom:6px;}
-  .fuse-track{position:relative;height:18px;background:#2a1500;border-radius:999px;overflow:visible;border:1px solid #6a3010;}
-  .fuse-fill{position:absolute;left:0;top:0;height:100%;border-radius:999px;transition:width .8s linear;}
-  .fuse-fill.low{background:linear-gradient(90deg,#78350f,#d97706,#fbbf24);}
-  .fuse-fill.mid{background:linear-gradient(90deg,#9a3412,#ea580c,#fb923c);}
-  .fuse-fill.high{background:linear-gradient(90deg,#b91c1c,#ea580c,#f97316);}
-  .fuse-fill.over{background:linear-gradient(90deg,#7f1d1d,#b91c1c,#ef4444);}
-  .fuse-glow{
-    position:absolute;top:50%;transform:translateY(-50%);
-    width:24px;height:24px;border-radius:50%;pointer-events:none;
-    background:radial-gradient(circle,#fff9a0 0%,#ff8c00 40%,rgba(255,60,0,.5) 70%,transparent 100%);
-    animation:fuseGlowA .5s ease-in-out alternate infinite;filter:blur(1px);
-  }
-  @keyframes fuseGlowA{0%{transform:translateY(-50%) scale(.85);}100%{transform:translateY(-50%) scale(1.2);}}
-  .fuse-tick-labels{display:flex;justify-content:space-between;margin-top:5px;font-size:10.5px;color:#7a5030;font-weight:700;}
-  .fuse-tick-labels .fcur{color:#c06030;}
-  .fuse-particles{position:relative;height:20px;overflow:hidden;margin-top:2px;}
-  .fuse-particle{
-    position:absolute;bottom:0;border-radius:50%;
-    animation:fusePRise var(--dur,1s) ease-in var(--dly,0s) infinite;
-  }
-  @keyframes fusePRise{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-20px) scale(.2);}}
-  .fuse-stats{display:flex;gap:8px;margin-top:10px;}
-  .fuse-stat{flex:1;background:rgba(180,60,0,.1);border:1px solid #6a3010;border-radius:8px;padding:7px 8px;text-align:center;}
-  .fuse-stat .fv{font-size:17px;font-weight:900;color:#ff7030;line-height:1;font-variant-numeric:tabular-nums;}
-  .fuse-stat .fl{font-size:9px;font-weight:700;color:#8a5030;text-transform:uppercase;margin-top:2px;}
-  .fuse-countdown{display:flex;gap:5px;margin-top:10px;align-items:flex-end;justify-content:center;}
-  .fuse-cd-unit{text-align:center;background:#2a1000;border:1px solid #7a3010;border-radius:8px;padding:5px 8px;min-width:44px;}
-  .fuse-cd-val{font-size:20px;font-weight:900;color:#ff6b35;line-height:1;font-variant-numeric:tabular-nums;}
-  .fuse-cd-lbl{font-size:9px;font-weight:700;color:#8a5030;text-transform:uppercase;margin-top:1px;}
-  .fuse-cd-sep{font-size:16px;font-weight:900;color:#7a3010;padding-bottom:8px;}
-  .fuse-over-msg{
-    display:flex;align-items:center;gap:10px;
-    background:rgba(180,30,30,.15);border:1px solid #7f1d1d;border-radius:8px;
-    padding:10px 12px;font-size:13px;font-weight:700;color:#fca5a5;
-  }
   /* arşiv */
   .archive{margin-top:30px;border-top:1px solid var(--line);padding-top:22px;}
   .arch-head{
@@ -396,7 +340,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.5.9</div>
+  <div class="app-version">V1.5.10</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -414,7 +358,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.5.9';
+const APP_VERSION = '1.5.10';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -636,7 +580,7 @@ function displayName(c, h){
   return liveName(i);
 }
 
-const BASE = new Date(2026, 5, 25, 20, 0);
+const BASE = new Date(2026, 5, 25, 18, 0);
 const GUN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
 function hatimDate(h){
   const d = new Date(BASE.getTime());
@@ -983,10 +927,9 @@ function sectionHTML(h){
     : "";
   return '<section class="hatim-section" id="hatim-'+h+'">'
     + '<div class="sec-head"><div class="sec-title">'+h+'. HATİM</div>'
-    + '<div class="sec-right"><span class="sec-date">Son Tarih: <b>'+hatimDate(h)+'</b> · 20:00</span>'
+    + '<div class="sec-right"><span class="sec-date">Son Tarih: <b>'+hatimDate(h)+'</b> · 18:00</span>'
     + (isAdmin ? '<button class="sec-del" data-action="del" data-h="'+h+'" title="Bu hatimi kaldır">✕</button>' : '')
     + '</div></div>'
-    + fuseWidgetHTML(h)
     + '<div class="grid">'+rows+'</div>'
     + '<div class="mini"><div class="mini-row"><span class="mini-read">'+read+' okundu</span>'
     + '<span class="mini-left">'+left+' kaldı</span><span class="mini-pct">%'+pct+'</span></div>'
@@ -1436,157 +1379,6 @@ function defaultActive(actives){
   return actives.length ? actives[actives.length-1] : null;                                // hepsi bittiyse sonuncu
 }
 
-/* ── Alev / Fitil Widget (Pazartesi 00:00 → Perşembe 20:00) ──────────── */
-function hatimDeadlineMs(h){
-  const d = new Date(BASE.getTime());
-  d.setDate(d.getDate() + (h - 1) * 7);
-  return d.getTime();
-}
-function hatimWeekStartMs(h){
-  // BASE Perşembe (4). Geri 3 gün → Pazartesi 00:00
-  const deadline = new Date(hatimDeadlineMs(h));
-  const monday = new Date(deadline);
-  monday.setDate(monday.getDate() - 3);
-  monday.setHours(0, 0, 0, 0);
-  return monday.getTime();
-}
-function fuseLevel(ratio, isOver){
-  if(isOver) return 'over';
-  if(ratio < 0.45) return 'low';
-  if(ratio < 0.75) return 'mid';
-  return 'high';
-}
-function fuseParticlesHTML(level, fw){
-  if(level === 'low') return '';
-  const n = level === 'high' ? 5 : 3;
-  let p = '';
-  const palette = ['#ff8c00','#fbbf24','#ef4444','#fde68a'];
-  for(let i = 0; i < n; i++){
-    const off  = ((Math.random() * 12) - 6).toFixed(1);
-    const dur  = (.65 + Math.random() * .6).toFixed(2);
-    const dly  = (Math.random() * .5).toFixed(2);
-    const sz   = (3 + Math.random() * 3).toFixed(1);
-    const col  = palette[Math.floor(Math.random() * palette.length)];
-    p += '<div class="fuse-particle" style="left:calc('+fw+'% + '+off+'px);width:'+sz+'px;height:'+sz+'px;background:'+col+';--dur:'+dur+'s;--dly:'+dly+'s;"></div>';
-  }
-  return '<div class="fuse-particles">'+p+'</div>';
-}
-function fuseWidgetHTML(h){
-  if(countDone(h) === 30) return '';
-  const now       = Date.now();
-  const weekStart = hatimWeekStartMs(h);
-  const deadline  = hatimDeadlineMs(h);
-  if(now < weekStart) return '';
-
-  const isOver   = now >= deadline;
-  const totalMs  = deadline - weekStart;
-  const elapsedMs= Math.min(now - weekStart, totalMs);
-  const ratio    = isOver ? 1 : elapsedMs / totalMs;
-  const fw       = Math.round(ratio * 100);
-  const remMs    = isOver ? 0 : deadline - now;
-  const remHTot  = Math.floor(remMs / 3600000);
-  const remM     = Math.floor((remMs % 3600000) / 60000);
-  const remS     = Math.floor((remMs % 60000) / 1000);
-  const remD     = Math.floor(remHTot / 24);
-  const remH     = remHTot % 24;
-  const read     = countDone(h);
-  const left     = 30 - read;
-  const lvl      = fuseLevel(ratio, isOver);
-  const idealPace= remHTot > 0 ? (left / remHTot).toFixed(1) : '∞';
-
-  let icon, title, timeStr;
-  if(isOver){
-    icon = '💀'; title = 'Deadline geçti — hatim tamamlanamadı!';
-    timeStr = 'Süre doldu';
-  } else if(lvl === 'high'){
-    icon = '🚨';
-    title = 'Son '+(remD > 0 ? remD+'g ' : '')+String(remH).padStart(2,'0')+'s kaldı — acele!';
-    timeStr = (remD > 0 ? remD+'g ' : '')+String(remH).padStart(2,'0')+'s '+String(remM).padStart(2,'0')+'d kaldı';
-  } else if(lvl === 'mid'){
-    icon = '🔥'; title = 'Süre daralıyor — Perşembe 20:00\'e yetişmeli!';
-    timeStr = (remD > 0 ? remD+'g ' : '')+String(remH).padStart(2,'0')+'s kaldı';
-  } else {
-    icon = '🕯️'; title = 'Bu hafta Perşembe 20:00\'e kadar tamamlanmalı.';
-    timeStr = remD+'g '+String(remH).padStart(2,'0')+'s kaldı';
-  }
-
-  let body;
-  if(isOver){
-    body = '<div class="fuse-over-msg">⛔ '+left+' cüz eksik kaldı.</div>';
-  } else {
-    const glowStyle = 'left:calc('+fw+'% - 12px)';
-    body = '<div class="fuse-sub">⏳ Pazartesi 00:00 — Perşembe 20:00 haftalık pencere</div>'
-      + '<div class="fuse-track">'
-      +   '<div class="fuse-fill '+lvl+'" id="ff-'+h+'" style="width:'+fw+'%"></div>'
-      +   '<div class="fuse-glow" id="fg-'+h+'" style="'+glowStyle+'"></div>'
-      + '</div>'
-      + '<div class="fuse-tick-labels"><span>Pzt 00:00</span><span class="fcur">◆ Şu an</span><span style="color:#ef4444">Prş 20:00 ⛔</span></div>'
-      + fuseParticlesHTML(lvl, fw)
-      + '<div class="fuse-stats">'
-      +   '<div class="fuse-stat"><div class="fv">'+read+'</div><div class="fl">Okunan cüz</div></div>'
-      +   '<div class="fuse-stat"><div class="fv">'+left+'</div><div class="fl">Kalan cüz</div></div>'
-      +   '<div class="fuse-stat"><div class="fv" id="fci-'+h+'">'+idealPace+'</div><div class="fl">Cüz/saat</div></div>'
-      + '</div>'
-      + '<div class="fuse-countdown">'
-      +   (remD > 0 ? '<div class="fuse-cd-unit"><div class="fuse-cd-val" id="fcd-'+h+'">'+remD+'</div><div class="fuse-cd-lbl">Gün</div></div><div class="fuse-cd-sep">:</div>' : '')
-      +   '<div class="fuse-cd-unit"><div class="fuse-cd-val" id="fch-'+h+'">'+String(remH).padStart(2,'0')+'</div><div class="fuse-cd-lbl">Saat</div></div>'
-      +   '<div class="fuse-cd-sep">:</div>'
-      +   '<div class="fuse-cd-unit"><div class="fuse-cd-val" id="fcm-'+h+'">'+String(remM).padStart(2,'0')+'</div><div class="fuse-cd-lbl">Dak</div></div>'
-      +   '<div class="fuse-cd-sep">:</div>'
-      +   '<div class="fuse-cd-unit"><div class="fuse-cd-val" id="fcs-'+h+'">'+String(remS).padStart(2,'0')+'</div><div class="fuse-cd-lbl">Sn</div></div>'
-      + '</div>';
-  }
-
-  return '<div class="fuse-widget">'
-    + '<div class="fuse-header '+lvl+'">'
-    +   '<div style="display:flex;align-items:center;gap:8px;">'
-    +     '<span class="fuse-flame">'+icon+'</span>'
-    +     '<span class="fuse-hdr-title'+(isOver?' over':'')+'">'+title+'</span>'
-    +   '</div>'
-    +   '<span class="fuse-hdr-right">'+timeStr+'</span>'
-    + '</div>'
-    + '<div class="fuse-body '+lvl+'">'+body+'</div>'
-    + '</div>';
-}
-
-let _fuseInterval = null;
-function startFuseTimers(){
-  if(_fuseInterval){ clearInterval(_fuseInterval); }
-  _fuseInterval = setInterval(function(){
-    const now = Date.now();
-    for(let h = 1; h <= state.hatimCount; h++){
-      if(isArchived(h) || isRemoved(h) || countDone(h) === 30) continue;
-      const deadline  = hatimDeadlineMs(h);
-      const weekStart = hatimWeekStartMs(h);
-      if(now < weekStart || now >= deadline) continue;
-      const remMs   = deadline - now;
-      const remHTot = Math.floor(remMs / 3600000);
-      const remM    = Math.floor((remMs % 3600000) / 60000);
-      const remS    = Math.floor((remMs % 60000) / 1000);
-      const remD    = Math.floor(remHTot / 24);
-      const remH    = remHTot % 24;
-      const fw      = Math.round((now - weekStart) / (deadline - weekStart) * 100);
-      const el_d  = document.getElementById('fcd-'+h);
-      const el_h  = document.getElementById('fch-'+h);
-      const el_m  = document.getElementById('fcm-'+h);
-      const el_s  = document.getElementById('fcs-'+h);
-      const el_ff = document.getElementById('ff-'+h);
-      const el_fg = document.getElementById('fg-'+h);
-      const el_ci = document.getElementById('fci-'+h);
-      if(el_d)  el_d.textContent  = remD;
-      if(el_h)  el_h.textContent  = String(remH).padStart(2,'0');
-      if(el_m)  el_m.textContent  = String(remM).padStart(2,'0');
-      if(el_s)  el_s.textContent  = String(remS).padStart(2,'0');
-      if(el_ff) el_ff.style.width = fw + '%';
-      if(el_fg) el_fg.style.left  = 'calc('+fw+'% - 12px)';
-      if(el_ci){
-        const left = 30 - countDone(h);
-        el_ci.textContent = remHTot > 0 ? (left / remHTot).toFixed(1) : '∞';
-      }
-    }
-  }, 1000);
-}
-
 function render(){
   const actives = [];
   for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h) && !isRemoved(h)) actives.push(h); }
@@ -1599,9 +1391,9 @@ function render(){
   out += controlsHTML();
   out += archiveHTML();
   app.innerHTML = out;
-  startFuseTimers();
 }
 function myAllCuz(){
+  const me = myIdentity();
   if(!me) return [];
   const list = [];
   for(let h=1; h<=state.hatimCount; h++){
