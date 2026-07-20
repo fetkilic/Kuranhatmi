@@ -255,6 +255,10 @@
   .lockmark{font-size:12px;opacity:.8;}
   .btn.wa-rem{background:#0b3d2e;border-color:#1f7a55;color:#9ff0c4;margin-top:8px;}
   .btn.wa-rem:hover{background:#0e4a37;}
+  .btn.cmb{background:#0d2a3d;border-color:#1565a0;color:#90caf9;margin-top:8px;}
+  .btn.cmb:hover{background:#123554;border-color:#1e88e5;}
+  .btn.cmb-set{background:#1a1a2e;border-color:#4a4a8a;color:#b0b0e0;}
+  .btn.cmb-set:hover{background:#22224a;border-color:#6666bb;}
   .btn.wa-start{background:#2a2013;border-color:#5a4a26;color:#f0e2b8;}
   .btn.wa-start:hover{background:#33270f;}
   .share-row{display:flex;gap:8px;margin-top:14px;}
@@ -914,6 +918,7 @@ function sectionHTML(h){
     + (openCuzList(h).length ? '<button class="btn open-ann" data-action="openann" data-h="'+h+'">🙋 Boşta cüz duyur ('+openCuzList(h).length+')</button>' : '')
     + (read === 30 ? '<button class="btn pdf" data-action="printpdf" data-h="'+h+'">🖨️ PDF Cetveli</button>' : '')
     + (isAdmin ? '<button class="btn wa-rem" data-action="remind" data-h="'+h+'">🔔 Okumayanlara hatırlat</button>' : '')
+    + (isAdmin ? '<button class="btn cmb" data-action="cmb-send" data-h="'+h+'">📲 CallMeBot ile gönder</button>' : '')
     + '</div>'
     + banner + '</section>';
 }
@@ -927,7 +932,8 @@ function controlsHTML(){
   if(isAdmin){
     h += '<button class="btn" data-action="showlog">📋 Kayıt defteri</button>';
     h += '<button class="btn" data-action="volcuz">🤝 Gönüllü cüzleri</button>';
-    h += '<button class="btn" data-action="admin-logout">Admin’den çık</button>';
+    h += '<button class="btn cmb-set" data-action="cmb-settings">⚙️ CallMeBot</button>';
+    h += '<button class="btn" data-action="admin-logout">Admin'den çık</button>';
     h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
   }
   return h + '</div>';
@@ -1167,6 +1173,135 @@ function remindUnread(h){
     okText:'Kapat', hideCancel:true
   });
 }
+
+/* ---- CallMeBot ayarları & otomatik WhatsApp hatırlatması ---- */
+const CMB_KEY = 'hatim_cmb_settings';
+const CMB_LAST_KEY = 'hatim_cmb_last_sent';
+function cmbSettings(){
+  try{ return JSON.parse(localStorage.getItem(CMB_KEY)) || {}; }catch(e){ return {}; }
+}
+function cmbSave(s){ try{ localStorage.setItem(CMB_KEY, JSON.stringify(s)); }catch(e){} }
+function cmbLastSent(){ try{ return localStorage.getItem(CMB_LAST_KEY)||''; }catch(e){ return ''; } }
+function cmbSetLastSent(v){ try{ localStorage.setItem(CMB_LAST_KEY, v); }catch(e){} }
+
+/* Aktif (arşivlenmemiş, silinmemiş) hatimlerin okunmayan cüzlerini içeren mesaj */
+function buildCmbMessage(){
+  let anyUnread = false;
+  let msg = '🌙 Hatim Hatırlatma — ' + new Date().toLocaleDateString('tr-TR') + '\n\n';
+  for(let h = 1; h <= state.hatimCount; h++){
+    if(isRemoved(h) || isArchived(h)) continue;
+    const byIdx = {};
+    for(let c = 1; c <= 30; c++){
+      if(isDone(h, c)) continue;
+      const i = effectiveIndex(c, h);
+      if(i == null) continue;
+      (byIdx[i] = byIdx[i] || []).push(c);
+    }
+    const idxs = Object.keys(byIdx).map(Number).sort(function(a,b){ return a-b; });
+    if(idxs.length === 0) continue;
+    anyUnread = true;
+    msg += h + '. hatimde okunmayan cüzler:\n';
+    idxs.forEach(function(i){
+      const nm = nameFor(i, h);
+      const cuzList = byIdx[i].sort(function(a,b){ return a-b; });
+      msg += '  • ' + nm + ' → ' + cuzList.join(', ') + '. cüz\n';
+    });
+    msg += '\n';
+  }
+  if(!anyUnread) return null;
+  msg += 'Müsait olduğunuzda okuyup işaretleyebilir misiniz?\nAllah razı olsun 🤲';
+  return msg;
+}
+
+/* API çağrısını yap; auto=true ise sessiz gönderim (kullanıcı onayı yok) */
+async function sendCallMeBotReminder(h, auto){
+  const s = cmbSettings();
+  if(!s.phone || !s.apikey){
+    if(!auto) uiAlert('CallMeBot ayarları eksik', 'Lütfen önce ⚙️ CallMeBot panelinden telefon numarası ve API anahtarını girin.');
+    return;
+  }
+  let msg;
+  if(h != null){
+    /* Tek hatim için (manuel buton) */
+    const byIdx = {};
+    for(let c = 1; c <= 30; c++){
+      if(isDone(h, c)) continue;
+      const i = effectiveIndex(c, h);
+      if(i == null) continue;
+      (byIdx[i] = byIdx[i] || []).push(c);
+    }
+    const idxs = Object.keys(byIdx).map(Number).sort(function(a,b){ return a-b; });
+    if(idxs.length === 0){ if(!auto) uiAlert(h+'. Hatim', 'Tüm cüzler okunmuş 🎉 Gönderilecek kimse yok.'); return; }
+    msg = '🌙 ' + h + '. Hatim hatırlatma — ' + new Date().toLocaleDateString('tr-TR') + '\n\n'
+        + h + '. hatimde okunmayan cüzler:\n';
+    idxs.forEach(function(i){
+      msg += '  • ' + nameFor(i, h) + ' → ' + byIdx[i].sort(function(a,b){return a-b;}).join(', ') + '. cüz\n';
+    });
+    msg += '\nMüsait olduğunuzda okuyup işaretleyebilir misiniz? Hatim duası ' + hatimDate(h) + ' akşamı yapılacaktır inşallah.\n\nAllah razı olsun 🤲';
+  } else {
+    /* Otomatik — tüm aktif hatimler */
+    msg = buildCmbMessage();
+    if(!msg){ if(!auto) uiAlert('Hatırlatma', 'Tüm cüzler okunmuş 🎉'); return; }
+  }
+  const url = 'https://api.callmebot.com/whatsapp.php?phone=' + encodeURIComponent(s.phone)
+            + '&text=' + encodeURIComponent(msg)
+            + '&apikey=' + encodeURIComponent(s.apikey);
+  try{
+    await fetch(url, { mode:'no-cors' });
+    if(!auto) uiAlert('✅ Gönderildi', 'CallMeBot aracılığıyla WhatsApp mesajı gönderildi.');
+    else { console.log('[CallMeBot] Otomatik hatırlatma gönderildi:', new Date().toISOString()); }
+  }catch(err){
+    if(!auto) uiAlert('Gönderim hatası', 'CallMeBot\'a ulaşılamadı. İnternet bağlantını veya API anahtarını kontrol et.<br><small>'+String(err)+'</small>');
+    else { console.warn('[CallMeBot] Gönderim hatası:', err); }
+  }
+}
+
+function openCallMeBotSettings(){
+  const s = cmbSettings();
+  uiConfirm({
+    wide:true,
+    title:'⚙️ CallMeBot WhatsApp Ayarları',
+    body:'<div class="admin-note">'
+        +'<b>Nasıl kurulur?</b><br>'
+        +'1. WhatsApp\'ta <a href="https://wa.me/34698417062" target="_blank" rel="noopener" style="color:#90caf9;">+34 698 417 062</a> numarasına "I allow callmebot to send me messages" yazın.<br>'
+        +'2. Birkaç saniye içinde API anahtarınız gelecektir.<br>'
+        +'3. Grup için: Grup admin numarasını girin. Her çarşamba 07:00\'de sayfa açıkken otomatik mesaj gönderilir.'
+        +'</div>'
+        +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">'
+        +'<label style="font-size:13px;color:var(--muted);">Telefon numarası (uluslararası, örn: 905xxxxxxxxx)</label>'
+        +'<input id="cmbPhone" class="admin-input" type="tel" placeholder="905xxxxxxxxx" value="'+escAttr(s.phone||'')+'" style="width:100%;">'
+        +'<label style="font-size:13px;color:var(--muted);">CallMeBot API anahtarı</label>'
+        +'<input id="cmbApiKey" class="admin-input" type="text" placeholder="API anahtarı" value="'+escAttr(s.apikey||'')+'" style="width:100%;" autocomplete="off">'
+        +'<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--text);">'
+        +'<input id="cmbEnabled" type="checkbox" '+(s.enabled?'checked':'')+' style="width:18px;height:18px;cursor:pointer;accent-color:#1e88e5;">'
+        +'Her Çarşamba 07:00\'de otomatik gönder (sayfa açıkken)'
+        +'</label>'
+        +'</div>',
+    okText:'Kaydet',
+    onOk:function(){
+      const phone = (document.getElementById('cmbPhone')||{}).value||'';
+      const apikey = (document.getElementById('cmbApiKey')||{}).value||'';
+      const enabled = (document.getElementById('cmbEnabled')||{}).checked||false;
+      cmbSave({ phone: phone.trim(), apikey: apikey.trim(), enabled: enabled });
+      uiAlert('✅ Kaydedildi', 'CallMeBot ayarları kaydedildi.' + (enabled ? ' Her Çarşamba 07:00\'de otomatik gönderim aktif.' : ''));
+    }
+  });
+  setTimeout(function(){ const el=document.getElementById('cmbPhone'); if(el) el.focus(); }, 60);
+}
+
+/* Çarşamba 07:00 otomatik gönderim: her dakika kontrol et */
+function cmbSchedulerTick(){
+  const s = cmbSettings();
+  if(!s.enabled || !s.phone || !s.apikey) return;
+  const now = new Date();
+  if(now.getDay() !== 3) return;                          // 3 = Çarşamba
+  if(now.getHours() !== 7) return;                        // 07:xx
+  const today = now.toISOString().slice(0, 10);           // YYYY-MM-DD
+  if(cmbLastSent() === today) return;                     // bu hafta zaten gönderildi
+  cmbSetLastSent(today);
+  sendCallMeBotReminder(null, true);
+}
+setInterval(cmbSchedulerTick, 60000);   // her dakika kontrol
 
 /* ---- Okuyucu profili (okuma geçmişi) ---- */
 function fmtTime(t){
@@ -1823,6 +1958,8 @@ app.addEventListener('click', e=>{
     else if(a === 'reassign'){ _volReturn = false; reassign(h, +btn.dataset.cuz); }
     else if(a === 'profile'){ showProfile(btn.dataset.name); }
     else if(a === 'remind'){ remindUnread(h); }
+    else if(a === 'cmb-send'){ sendCallMeBotReminder(h, false); }
+    else if(a === 'cmb-settings'){ openCallMeBotSettings(); }
     else if(a === 'printpdf'){ printHatim(h); }
     else if(a === 'notif'){ requestNotif(); }
     else if(a === 'reset'){
