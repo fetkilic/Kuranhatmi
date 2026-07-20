@@ -1214,9 +1214,10 @@ function buildCmbMessage(){
 }
 
 /* API çağrısını yap; auto=true ise sessiz gönderim (kullanıcı onayı yok) */
+function isCmbConfigured(s){ return !!(s.phone && s.apikey); }
 async function sendCallMeBotReminder(h, auto){
   const s = cmbSettings();
-  if(!s.phone || !s.apikey){
+  if(!isCmbConfigured(s)){
     if(!auto) uiAlert('CallMeBot ayarları eksik', 'Lütfen önce ⚙️ CallMeBot panelinden telefon numarası ve API anahtarını girin.');
     return;
   }
@@ -1247,11 +1248,12 @@ async function sendCallMeBotReminder(h, auto){
             + '&text=' + encodeURIComponent(msg)
             + '&apikey=' + encodeURIComponent(s.apikey);
   try{
+    /* no-cors: CallMeBot CORS başlığı döndürmez, yanıt opak gelir — ağ hatası yoksa mesaj gönderilmiş kabul edilir */
     await fetch(url, { mode:'no-cors' });
     if(!auto) uiAlert('✅ Gönderildi', 'CallMeBot aracılığıyla WhatsApp mesajı gönderildi.');
     else { console.log('[CallMeBot] Otomatik hatırlatma gönderildi:', new Date().toISOString()); }
   }catch(err){
-    if(!auto) uiAlert('Gönderim hatası', 'CallMeBot\'a ulaşılamadı. İnternet bağlantını veya API anahtarını kontrol et.<br><small>'+String(err)+'</small>');
+    if(!auto) uiAlert('Gönderim hatası', 'CallMeBot\'a ulaşılamadı. İnternet bağlantını veya API anahtarını kontrol et.');
     else { console.warn('[CallMeBot] Gönderim hatası:', err); }
   }
 }
@@ -1292,7 +1294,7 @@ function openCallMeBotSettings(){
 /* Çarşamba 07:00 otomatik gönderim: her dakika kontrol et */
 function cmbSchedulerTick(){
   const s = cmbSettings();
-  if(!s.enabled || !s.phone || !s.apikey) return;
+  if(!s.enabled || !isCmbConfigured(s)) return;
   const now = new Date();
   if(now.getDay() !== 3) return;                          // 3 = Çarşamba
   if(now.getHours() !== 7) return;                        // 07:xx
