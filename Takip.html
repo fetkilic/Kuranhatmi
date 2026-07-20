@@ -1178,7 +1178,7 @@ function remindUnread(h){
 const CMB_KEY = 'hatim_cmb_settings';
 const CMB_LAST_KEY = 'hatim_cmb_last_sent';
 function cmbSettings(){
-  try{ const s = JSON.parse(localStorage.getItem(CMB_KEY)) || {}; if(!s.apikey) s.apikey = '8126699'; return s; }catch(e){ return {apikey:'8126699'}; }
+  try{ return JSON.parse(localStorage.getItem(CMB_KEY)) || {}; }catch(e){ return {}; }
 }
 function cmbSave(s){ try{ localStorage.setItem(CMB_KEY, JSON.stringify(s)); }catch(e){} }
 function cmbLastSent(){ try{ return localStorage.getItem(CMB_LAST_KEY)||''; }catch(e){ return ''; } }
