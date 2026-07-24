@@ -370,7 +370,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.6.5</div>
+  <div class="app-version">V1.6.6</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -388,7 +388,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.6.5';
+const APP_VERSION = '1.6.6';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1534,20 +1534,38 @@ function openGoogleCal(h){
     + '&details=' + encodeURIComponent(td.details);
   openCalUrl(url);
 }
+function icsEscape(s){
+  return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/([,;])/g,'\\$1');
+}
+function foldIcsLine(line){
+  // RFC 5545: content lines must not exceed 75 octets; continuation lines
+  // start with a single space. Calendar apps (notably iOS) can silently
+  // refuse to offer "Add/Save" on malformed long unfolded lines.
+  const max = 73;
+  if(line.length <= max) return line;
+  let out = line.slice(0, max);
+  let rest = line.slice(max);
+  while(rest.length){
+    out += '\r\n ' + rest.slice(0, max - 1);
+    rest = rest.slice(max - 1);
+  }
+  return out;
+}
 function buildIcs(uid, summary, details, start, end, rrule){
-  const esc = function(s){ return String(s).replace(/([,;])/g,'\\$1'); };
   const now = new Date();
   const lines = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//HatimTakip//TR','CALSCALE:GREGORIAN',
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//HatimTakip//TR','CALSCALE:GREGORIAN','METHOD:PUBLISH',
     'BEGIN:VEVENT',
     'UID:'+uid+'@hatim-takip',
     'DTSTAMP:'+icsUTC(now),
     'DTSTART:'+icsUTC(start),
-    'DTEND:'+icsUTC(end)
+    'DTEND:'+icsUTC(end),
+    'SEQUENCE:0',
+    'STATUS:CONFIRMED'
   ];
   if(rrule) lines.push(rrule);
-  lines.push('SUMMARY:'+esc(summary), 'DESCRIPTION:'+esc(details), 'END:VEVENT', 'END:VCALENDAR');
-  return lines.join('\r\n');
+  lines.push('SUMMARY:'+icsEscape(summary), 'DESCRIPTION:'+icsEscape(details), 'END:VEVENT', 'END:VCALENDAR');
+  return lines.map(foldIcsLine).join('\r\n');
 }
 function downloadIcs(h){
   const start = hatimDeadlineDate(h);
