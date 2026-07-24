@@ -387,7 +387,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.8.1</div>
+  <div class="app-version">V1.8.2</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -428,7 +428,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.8.2';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -551,7 +551,19 @@ function volunteerFor(c, h){
   const list = placeholderCuzList(h);
   const rank = list.indexOf(c);
   if(rank < 0) return assignedIndex(c, h);
-  const startV = (((h - 1) % V) + V) % V;
+  let startV;
+  if(h <= 30){
+    // Değiştirilmedi — 1-30. hatimler eski davranışı aynen korur.
+    startV = (((h - 1) % V) + V) % V;
+  } else {
+    // 31. hatimden itibaren daha adil dağıtım: başlangıç noktası her
+    // hatimde 1 yerine "haftalık boşta cüz sayısı" kadar ilerliyor.
+    // Bu adım sayısı gönüllü sayısına aralarında asal olmaya en yakın
+    // olduğunda (örn. 2 slot / 13 gönüllü) tam bir döngüde herkesi
+    // mümkün olduğunca eşit sayıda kullanır.
+    const step = list.length || 1;
+    startV = ((((h - 1) * step) % V) + V) % V;
+  }
   return vols[(startV + rank) % V];
 }
 
