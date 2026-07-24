@@ -336,6 +336,10 @@
   .lg-mid{font-size:13px;color:#e6c877;font-weight:700;}
   .lg-by{font-size:12.5px;color:#e9c45a;font-weight:700;margin-top:2px;}
   .vc-list{display:flex;flex-direction:column;gap:14px;max-height:56vh;overflow-y:auto;padding-right:4px;}
+  .vc-tabs{display:flex;gap:8px;margin-bottom:12px;}
+  .vc-tab-btn{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--muted);
+    font-size:13px;font-weight:700;padding:9px 10px;border-radius:9px;cursor:pointer;transition:all .15s;}
+  .vc-tab-btn.on{border-color:var(--gold);background:#241a10;color:#e9c45a;}
   .vc-hatim{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
   .vc-hatim.open{border-color:#b45309;background:#2c1d0c;}
   .vc-hatim.open .vc-h-title{color:#fcd34d;}
@@ -387,7 +391,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.8.2</div>
+  <div class="app-version">V1.8.3</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -428,7 +432,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.8.2';
+const APP_VERSION = '1.8.3';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1989,6 +1993,33 @@ function showLog(){
   });
 }
 
+function myVolunteerCuzHTML(){
+  const me = myIdentity();
+  if(!me) return '<div class="prof-empty">Önce üstteki <b>👤 Kim?</b> ile kim olduğunu seçmelisin.</div>';
+  const all = myAllCuz().filter(function(it){ return isPlaceholder(assignedIndex(it.c, it.h)); });
+  if(all.length === 0) return '<div class="prof-empty">Şu anda sana ait gönüllü cüzü bulunmuyor.</div>';
+  let rows = '';
+  all.forEach(function(it){
+    const st = it.done ? '<span class="vc-ok">✓ okudu</span>'
+             : (isOpenCuz(it.h, it.c) ? '<span class="vc-wait" style="color:#fcd34d;">🙋 havuzda</span>' : '<span class="vc-wait">bekliyor</span>');
+    rows += '<div class="vc-row"><span class="vc-cuz">'+it.h+'. Hatim · '+it.c+'. cüz</span>'
+          + '<span class="vc-name">🤝 gönüllü</span>'
+          + st
+          + '</div>';
+  });
+  return '<div class="vc-hatim"><div class="vc-h-title">Sana ait gönüllü cüzler <span class="vc-count">('+all.length+')</span></div>'+rows+'</div>';
+}
+function vcTab(which){
+  const mineTab = document.getElementById('vcTabMine');
+  const allTab = document.getElementById('vcTabAll');
+  const btnMine = document.getElementById('vcBtnMine');
+  const btnAll = document.getElementById('vcBtnAll');
+  if(!mineTab || !allTab) return;
+  mineTab.style.display = which === 'mine' ? '' : 'none';
+  allTab.style.display = which === 'all' ? '' : 'none';
+  if(btnMine) btnMine.classList.toggle('on', which === 'mine');
+  if(btnAll) btnAll.classList.toggle('on', which === 'all');
+}
 function showVolunteerCuz(){
   let sections = '';
   let any = false;
@@ -2025,10 +2056,16 @@ function showVolunteerCuz(){
     sections += '<div class="vc-hatim"><div class="vc-h-title">'+h+'. Hatim <span class="vc-count">('+pc.length+' ekstra cüz)</span></div>'+rows+'</div>';
   }
   if(!any) sections = '<div class="prof-empty">Gönüllü veya havuzda cüz yok.</div>';
+  const mineHtml = myVolunteerCuzHTML();
   uiConfirm({
     wide:true,
     title:'🤝 Gönüllü & Boşta Cüzler'+(isAdmin ? '' : ' <span style="font-size:11px;color:var(--muted);font-weight:600;">(görüntüleme)</span>'),
-    body:'<div class="vc-list">'+sections+'</div>',
+    body:'<div class="vc-tabs">'
+        +'<button class="vc-tab-btn on" id="vcBtnMine" onclick="vcTab(\'mine\')">🙋 Benim Cüzlerim</button>'
+        +'<button class="vc-tab-btn" id="vcBtnAll" onclick="vcTab(\'all\')">📋 Tüm Liste</button>'
+        +'</div>'
+        +'<div class="vc-list" id="vcTabMine">'+mineHtml+'</div>'
+        +'<div class="vc-list" id="vcTabAll" style="display:none;">'+sections+'</div>',
     okText:'Kapat', hideCancel:true
   });
 }
