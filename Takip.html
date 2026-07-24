@@ -308,6 +308,23 @@
   .rem-cuz{color:#e6c877;font-size:12.5px;font-weight:700;}
   .app-version{text-align:center;color:var(--muted);opacity:.55;font-size:11px;
     letter-spacing:.5px;padding:6px 0 16px;}
+
+  /* Alt yüzen navigasyon çubuğu */
+  body{padding-bottom:96px;}
+  .bottom-nav{position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));
+    max-width:600px;margin:0 auto;height:64px;background:#221a11;border:1px solid var(--line);
+    border-radius:22px;display:flex;align-items:center;padding:0 6px;z-index:500;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);}
+  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;color:var(--muted);background:none;border:none;padding:8px 2px;border-radius:16px;
+    transition:background .2s,color .2s;cursor:pointer;font-family:inherit;}
+  .bn-item:active{background:rgba(217,180,74,.08);}
+  .bn-item.on{background:rgba(217,180,74,.14);color:#e9c45a;}
+  .bn-icon{width:22px;height:22px;display:block;}
+  .bn-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.7;
+    stroke-linecap:round;stroke-linejoin:round;}
+  .bn-item.on .bn-icon svg{stroke-width:2;}
+  .bn-lbl{font-size:9.5px;font-weight:700;letter-spacing:.2px;}
   .btn.whoami{background:#241a10;border-color:#5a4a26;}
   .lg-list{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding-right:4px;margin-bottom:12px;}
   .lg-row{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
@@ -370,8 +387,31 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.7.1</div>
+  <div class="app-version">V1.8.1</div>
 </div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bn-item on" data-nav="hatimler">
+    <span class="bn-icon"><svg viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11c1 0 1.8.4 2.4 1.1"/><path d="M20 5.5C20 4.7 19.3 4 18.5 4H13c-1 0-1.8.4-2.4 1.1"/><path d="M4 5.5v13c0 .8.7 1.5 1.5 1.5H11c1 0 1.8.4 2.4 1.1"/><path d="M20 5.5v13c0 .8-.7 1.5-1.5 1.5H13c-1 0-1.8.4-2.4 1.1"/><line x1="12" y1="6.5" x2="12" y2="20"/></svg></span>
+    <span class="bn-lbl">Hatimler</span>
+  </button>
+  <button class="bn-item" data-nav="cuzlerim">
+    <span class="bn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></span>
+    <span class="bn-lbl">Cüzlerim</span>
+  </button>
+  <button class="bn-item" data-nav="havuz">
+    <span class="bn-icon"><svg viewBox="0 0 24 24"><circle cx="8.5" cy="9" r="2.6"/><circle cx="16" cy="9.5" r="2.2"/><path d="M3.5 19c0-3 2.2-5 5-5s5 2 5 5"/><path d="M13 19c.3-2 1.8-3.6 4-3.6s3.7 1.6 4 3.6"/></svg></span>
+    <span class="bn-lbl">Havuz</span>
+  </button>
+  <button class="bn-item" data-nav="takvim">
+    <span class="bn-icon"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="15" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span>
+    <span class="bn-lbl">Takvim</span>
+  </button>
+  <button class="bn-item" data-nav="daha">
+    <span class="bn-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.3"/><rect x="13" y="4" width="7" height="7" rx="1.3"/><rect x="4" y="13" width="7" height="7" rx="1.3"/><rect x="13" y="13" width="7" height="7" rx="1.3"/></svg></span>
+    <span class="bn-lbl">Daha</span>
+  </button>
+</nav>
 
 <div class="modal-overlay" id="modal" hidden>
   <div class="modal-card">
@@ -388,7 +428,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -744,6 +784,39 @@ let scrollTarget = null;
 let activeHatim = null;
 let userPicked = false;
 const app = document.getElementById('app');
+const bottomNav = document.getElementById('bottomNav');
+let bottomNavMode = 'hatimler'; // tracks which pill is highlighted; havuz/takvim/daha are transient actions
+
+function updateBottomNav(){
+  if(!bottomNav) return;
+  const mode = (activeHatim === 'mine') ? 'cuzlerim' : 'hatimler';
+  bottomNavMode = mode;
+  bottomNav.querySelectorAll('.bn-item').forEach(function(el){
+    el.classList.toggle('on', el.dataset.nav === mode);
+  });
+}
+function firstOpenHatimForCalendar(){
+  for(let h=1; h<=state.hatimCount; h++){ if(!isArchived(h) && !isRemoved(h)) return h; }
+  return null;
+}
+bottomNav.addEventListener('click', function(e){
+  const b = e.target.closest('.bn-item');
+  if(!b) return;
+  const nav = b.dataset.nav;
+  if(nav === 'hatimler'){
+    activeHatim = null; userPicked = false; render();
+  } else if(nav === 'cuzlerim'){
+    activeHatim = 'mine'; userPicked = true; render();
+  } else if(nav === 'havuz'){
+    showVolunteerCuz();
+  } else if(nav === 'takvim'){
+    const h = (activeHatim !== 'mine' && activeHatim != null) ? activeHatim : firstOpenHatimForCalendar();
+    if(h != null) addToCalendar(h);
+    else uiAlert('🗓️ Takvime Ekle', 'Henüz açık bir hatim yok.');
+  } else if(nav === 'daha'){
+    openAdmin();
+  }
+});
 
 const modal = document.getElementById('modal');
 const modalCard = modal.querySelector('.modal-card');
@@ -1680,6 +1753,7 @@ function render(){
   out += controlsHTML();
   out += archiveHTML();
   app.innerHTML = out;
+  updateBottomNav();
 }
 function myAllCuz(){
   const me = myIdentity();
@@ -1904,7 +1978,6 @@ function showLog(){
 }
 
 function showVolunteerCuz(){
-  if(!isAdmin) return;
   let sections = '';
   let any = false;
   let openSec = '';
@@ -1917,7 +1990,7 @@ function showVolunteerCuz(){
       const r = openRec(h, c) || {};
       rows += '<div class="vc-row"><span class="vc-cuz">'+c+'. cüz</span>'
             + '<span class="vc-name" style="color:#fcd34d;">🙋 boşta'+(r.by?' <span style="color:var(--muted);font-weight:600;font-size:12px;">('+escAttr(r.by)+' bıraktı)</span>':'')+'</span>'
-            + '<button class="vc-edit" data-action="vc-reassign" data-h="'+h+'" data-cuz="'+c+'">ata</button>'
+            + (isAdmin ? '<button class="vc-edit" data-action="vc-reassign" data-h="'+h+'" data-cuz="'+c+'">ata</button>' : '')
             + '</div>';
     });
     openSec += '<div class="vc-hatim open"><div class="vc-h-title">'+h+'. Hatim <span class="vc-count">('+ol.length+' cüz havuzda)</span></div>'+rows+'</div>';
@@ -1934,7 +2007,7 @@ function showVolunteerCuz(){
       rows += '<div class="vc-row"><span class="vc-cuz">'+c+'. cüz</span>'
             + '<span class="vc-name">'+escAttr(displayName(c, h))+'</span>'
             + (done ? '<span class="vc-ok">✓ okudu</span>' : '<span class="vc-wait">bekliyor</span>')
-            + '<button class="vc-edit" data-action="vc-reassign" data-h="'+h+'" data-cuz="'+c+'">değiştir</button>'
+            + (isAdmin ? '<button class="vc-edit" data-action="vc-reassign" data-h="'+h+'" data-cuz="'+c+'">değiştir</button>' : '')
             + '</div>';
     });
     sections += '<div class="vc-hatim"><div class="vc-h-title">'+h+'. Hatim <span class="vc-count">('+pc.length+' ekstra cüz)</span></div>'+rows+'</div>';
@@ -1942,7 +2015,7 @@ function showVolunteerCuz(){
   if(!any) sections = '<div class="prof-empty">Gönüllü veya havuzda cüz yok.</div>';
   uiConfirm({
     wide:true,
-    title:'🤝 Gönüllü & Boşta Cüzler',
+    title:'🤝 Gönüllü & Boşta Cüzler'+(isAdmin ? '' : ' <span style="font-size:11px;color:var(--muted);font-weight:600;">(görüntüleme)</span>'),
     body:'<div class="vc-list">'+sections+'</div>',
     okText:'Kapat', hideCancel:true
   });
