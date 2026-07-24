@@ -340,11 +340,10 @@
   .celebrate b{color:#d9b44a;}
   .celebrate .dua{display:inline-block;color:var(--green-l);font-weight:800;margin-top:2px;}
 
-  .stats-banner{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);text-align:center;}
-  .stats-banner .row{display:inline-flex;gap:20px;flex-wrap:wrap;justify-content:center;}
-  .stats-banner .item{font-size:13px;color:var(--muted);}
-  .stats-banner .item b{display:block;font-size:20px;color:var(--gold2);font-family:Georgia,"Times New Roman",serif;font-weight:900;}
-  .stats-banner .item.cuz b{color:var(--green-l);}
+  .stats-banner{margin-top:8px;padding-top:7px;border-top:1px dashed var(--line);text-align:center;}
+  .stats-banner .line{font-size:11.5px;color:var(--muted);}
+  .stats-banner .line b{color:var(--gold2);font-weight:800;}
+  .stats-banner .line b.g{color:var(--green-l);}
 </style>
 </head>
 <body>
@@ -362,7 +361,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.5.13</div>
+  <div class="app-version">V1.5.14</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -380,7 +379,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.5.13';
+const APP_VERSION = '1.5.14';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1417,10 +1416,7 @@ function renderStatsBanner(){
     cuzTotal += d;
     if(d === 30) hatimDone++;
   }
-  el.innerHTML = '<div class="row">'
-    + '<span class="item">Tamamlanan Hatim<b>'+hatimDone+'</b></span>'
-    + '<span class="item cuz">Toplam Cüz<b>'+cuzTotal+'</b></span>'
-    + '</div>';
+  el.innerHTML = '<span class="line">Tamamlanan Hatim: <b>'+hatimDone+'</b> · Toplam Cüz: <b class="g">'+cuzTotal+'</b></span>';
 }
 
 function render(){
