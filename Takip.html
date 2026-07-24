@@ -370,7 +370,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.7.0</div>
+  <div class="app-version">V1.7.1</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -388,7 +388,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1470,7 +1470,7 @@ function openCalUrl(url){
   // fall back to a direct navigation so the tap never appears to do nothing.
   if(!w){ window.location.href = url; }
 }
-const MAX_STATIC_ICS = 300; // static ics/hatim-N.ics files exist for h = 1..300 (~5.7 years)
+const MAX_STATIC_ICS = 99; // static ics/hatim-N.ics files exist for h = 1..99 (~1.9 years) — GitHub web upload caps at ~100 files at once
 function addToCalendar(h){
   const start = hatimDeadlineDate(h);
   const end = new Date(start.getTime() + 60*60*1000);
