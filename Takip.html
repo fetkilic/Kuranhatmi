@@ -52,7 +52,7 @@
     color:var(--muted);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;}
   .cal-btn:hover{border-color:var(--gold);color:var(--gold2);background:rgba(217,180,74,.08);}
   .cal-opts{display:flex;flex-direction:column;gap:9px;margin-top:14px;}
-  .cal-opts .btn{width:100%;text-align:center;padding:12px;}
+  .cal-opts .btn{width:100%;text-align:center;padding:12px;display:block;text-decoration:none;box-sizing:border-box;}
   .cal-opts .btn.cal-g{background:#1a2e4d;border-color:#2f5aa8;color:#c9dcff;}
   .cal-opts .btn.cal-g:hover{background:#20396a;border-color:#4a7bd9;}
   .cal-opts .btn.cal-a{background:#221a11;border-color:#5a4a26;color:#f0e2b8;}
@@ -370,7 +370,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.6.2</div>
+  <div class="app-version">V1.6.3</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -388,7 +388,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '1.6.3';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1465,19 +1465,42 @@ function openCalUrl(url){
   if(!w){ window.location.href = url; }
 }
 function addToCalendar(h){
+  const start = hatimDeadlineDate(h);
+  const end = new Date(start.getTime() + 60*60*1000);
+  const td = calTitleDetails(h);
+  const gUrl = 'https://www.google.com/calendar/render?action=TEMPLATE'
+    + '&text=' + encodeURIComponent(td.title)
+    + '&dates=' + icsUTC(start) + '/' + icsUTC(end)
+    + '&details=' + encodeURIComponent(td.details);
+  const icsSingle = buildIcs('hatim-'+h+'-'+Date.now(), td.title, td.details, start, end, null);
+  const icsHref = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsSingle);
+
+  const allStart = nextUpcomingDeadline();
+  const allEnd = new Date(allStart.getTime() + 60*60*1000);
+  const allTitle = 'Hatim Son Tarihi (Haftalık)';
+  const allDetails = 'Merhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunan hatim için haftalık son okuma tarihi hatırlatıcısı. Hatim duası akşamı yapılacaktır inşallah.';
+  const gUrlAll = 'https://www.google.com/calendar/render?action=TEMPLATE'
+    + '&text=' + encodeURIComponent(allTitle)
+    + '&dates=' + icsUTC(allStart) + '/' + icsUTC(allEnd)
+    + '&details=' + encodeURIComponent(allDetails)
+    + '&recur=' + encodeURIComponent('RRULE:FREQ=WEEKLY;COUNT=52');
+  const icsAll = buildIcs('hatim-weekly-'+Date.now(), allTitle, allDetails, allStart, allEnd, 'RRULE:FREQ=WEEKLY;COUNT=52');
+  const icsAllHref = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsAll);
+
   uiConfirm({
     title:'🗓️ Takvime Ekle',
     body:'<span class="hl">'+h+'. Hatim</span><br><span class="nm">Son Tarih: '+hatimDate(h)+' · 18:00</span><br><br>'
         +'<div class="cal-opts">'
-        +'<button class="btn cal-g" data-action="cal-google" data-h="'+h+'">📅 Google Takvim (yalnız bu hatim)</button>'
-        +'<button class="btn cal-a" data-action="cal-ics" data-h="'+h+'">🍎 Apple / Outlook (yalnız bu hatim)</button>'
+        +'<a class="btn cal-g" href="'+gUrl+'" target="_blank" rel="noopener">📅 Google Takvim (yalnız bu hatim)</a>'
+        +'<a class="btn cal-a" href="'+icsHref+'" download="'+h+'-hatim-son-tarih.ics">🍎 Apple / Outlook (yalnız bu hatim)</a>'
         +'</div>'
         +'<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);">'
         +'Her hafta tekrar eden, tüm yılı kapsayan bir hatırlatıcı da ekleyebilirsiniz:</div>'
         +'<div class="cal-opts">'
-        +'<button class="btn cal-g" data-action="cal-google-all">📆 Google Takvim (haftalık, 1 yıl)</button>'
-        +'<button class="btn cal-a" data-action="cal-ics-all">🍎 Apple / Outlook (haftalık, 1 yıl)</button>'
-        +'</div>',
+        +'<a class="btn cal-g" href="'+gUrlAll+'" target="_blank" rel="noopener">📆 Google Takvim (haftalık, 1 yıl)</a>'
+        +'<a class="btn cal-a" href="'+icsAllHref+'" download="hatim-haftalik-hatirlatici.ics">🍎 Apple / Outlook (haftalık, 1 yıl)</a>'
+        +'</div>'
+        +'<div style="margin-top:12px;font-size:11.5px;color:var(--muted);">🍎 seçenekleri iPhone\'da doğrudan Takvim uygulamasını açar; bilgisayarda .ics dosyası indirir.</div>',
     okText:'Kapat', hideCancel:true
   });
 }
