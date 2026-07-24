@@ -42,7 +42,7 @@
     margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);
   }
   .sec-title{font-size:21px;font-weight:800;color:var(--gold);letter-spacing:.5px;font-family:Georgia,"Times New Roman",serif;}
-  .sec-right{display:flex;align-items:center;gap:12px;}
+  .sec-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:6px;}
   .sec-date{font-size:13px;color:var(--muted);}
   .sec-date b{color:#ff6b6b;}
   .sec-del{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
@@ -370,7 +370,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.6.0</div>
+  <div class="app-version">V1.6.2</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -388,7 +388,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.2';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -801,6 +801,10 @@ modal.addEventListener('click', function(e){
     if(a === 'rem-img'){ shareRemindImage(+b.dataset.h); return; }
     if(a === 'set-identity'){ setIdentity(+b.dataset.i); closeModal(); return; }
     if(a === 'clear-identity'){ clearIdentity(); closeModal(); return; }
+    if(a === 'cal-google'){ openGoogleCal(+b.dataset.h); return; }
+    if(a === 'cal-ics'){ downloadIcs(+b.dataset.h); return; }
+    if(a === 'cal-google-all'){ openGoogleCalAll(); return; }
+    if(a === 'cal-ics-all'){ downloadIcsAll(); return; }
     if(a === 'pick-hatim'){
       userPicked = true;
       activeHatim = +b.dataset.h;
@@ -1368,11 +1372,24 @@ function requestNotif(){
 
 /* ---- Cüz süresi hatırlatma (son 24 saat) ---- */
 function askNotifPermissionOnce(){
-  if(!('Notification' in window)) return; // iOS Safari sekmesinde desteklenmiyor, sessizce geç
-  if(Notification.permission !== 'default') return; // zaten cevaplanmış
   let asked = false;
   try{ asked = localStorage.getItem('hatim_notif_asked') === '1'; }catch(e){}
   if(asked) return;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '');
+  const isStandalone = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if(!('Notification' in window)){
+    try{ localStorage.setItem('hatim_notif_asked','1'); }catch(e){}
+    if(isIOS && !isStandalone){
+      uiConfirm({
+        title:'🔔 Cüz Hatırlatma Bildirimleri',
+        body:'iPhone’da Safari sekmesi (ana ekrana eklenmemiş haldeyken) bildirim göndermeyi desteklemiyor — bu Apple’ın bir kısıtlaması, uygulamadan kaynaklanmıyor.'
+            +'<br><br>Hatırlatmaları alabilmek için: Paylaş ikonu → <b>“Ana Ekrana Ekle”</b> ile bu sayfayı ekleyip oradan açarsanız bildirimler çalışabilir.',
+        okText:'Anladım', hideCancel:true
+      });
+    }
+    return;
+  }
+  if(Notification.permission !== 'default') return; // zaten cevaplanmış (izin verilmiş/reddedilmiş)
   try{ localStorage.setItem('hatim_notif_asked','1'); }catch(e){}
   uiConfirm({
     title:'🔔 Cüz Hatırlatma İzni',
@@ -1422,13 +1439,44 @@ function pad2(n){ return String(n).padStart(2,'0'); }
 function icsUTC(d){
   return d.getUTCFullYear()+pad2(d.getUTCMonth()+1)+pad2(d.getUTCDate())+'T'+pad2(d.getUTCHours())+pad2(d.getUTCMinutes())+pad2(d.getUTCSeconds())+'Z';
 }
+function isIOSDevice(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent || '')
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function triggerIcsDownload(ics, filename){
+  if(isIOSDevice()){
+    // iOS Safari ignores the <a download> attribute and mishandles blob: URLs for
+    // calendar files. A direct data: URI navigation is what reliably opens the
+    // native "Etkinliği Ekle" (Add to Calendar) sheet on iPhone.
+    window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    return;
+  }
+  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+function openCalUrl(url){
+  const w = window.open(url, '_blank');
+  // Some in-app browsers / popup blockers silently swallow window.open —
+  // fall back to a direct navigation so the tap never appears to do nothing.
+  if(!w){ window.location.href = url; }
+}
 function addToCalendar(h){
   uiConfirm({
     title:'🗓️ Takvime Ekle',
     body:'<span class="hl">'+h+'. Hatim</span><br><span class="nm">Son Tarih: '+hatimDate(h)+' · 18:00</span><br><br>'
         +'<div class="cal-opts">'
-        +'<button class="btn cal-g" data-action="cal-google" data-h="'+h+'">📅 Google Takvim</button>'
-        +'<button class="btn cal-a" data-action="cal-ics" data-h="'+h+'">🍎 Apple / Outlook (.ics indir)</button>'
+        +'<button class="btn cal-g" data-action="cal-google" data-h="'+h+'">📅 Google Takvim (yalnız bu hatim)</button>'
+        +'<button class="btn cal-a" data-action="cal-ics" data-h="'+h+'">🍎 Apple / Outlook (yalnız bu hatim)</button>'
+        +'</div>'
+        +'<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);">'
+        +'Her hafta tekrar eden, tüm yılı kapsayan bir hatırlatıcı da ekleyebilirsiniz:</div>'
+        +'<div class="cal-opts">'
+        +'<button class="btn cal-g" data-action="cal-google-all">📆 Google Takvim (haftalık, 1 yıl)</button>'
+        +'<button class="btn cal-a" data-action="cal-ics-all">🍎 Apple / Outlook (haftalık, 1 yıl)</button>'
         +'</div>',
     okText:'Kapat', hideCancel:true
   });
@@ -1447,31 +1495,55 @@ function openGoogleCal(h){
     + '&text=' + encodeURIComponent(td.title)
     + '&dates=' + icsUTC(start) + '/' + icsUTC(end)
     + '&details=' + encodeURIComponent(td.details);
-  window.open(url, '_blank');
+  openCalUrl(url);
+}
+function buildIcs(uid, summary, details, start, end, rrule){
+  const esc = function(s){ return String(s).replace(/([,;])/g,'\\$1'); };
+  const now = new Date();
+  const lines = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//HatimTakip//TR','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    'UID:'+uid+'@hatim-takip',
+    'DTSTAMP:'+icsUTC(now),
+    'DTSTART:'+icsUTC(start),
+    'DTEND:'+icsUTC(end)
+  ];
+  if(rrule) lines.push(rrule);
+  lines.push('SUMMARY:'+esc(summary), 'DESCRIPTION:'+esc(details), 'END:VEVENT', 'END:VCALENDAR');
+  return lines.join('\r\n');
 }
 function downloadIcs(h){
   const start = hatimDeadlineDate(h);
   const end = new Date(start.getTime() + 60*60*1000);
-  const now = new Date();
   const td = calTitleDetails(h);
-  const esc = function(s){ return String(s).replace(/([,;])/g,'\\$1'); };
-  const ics = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//HatimTakip//TR','CALSCALE:GREGORIAN',
-    'BEGIN:VEVENT',
-    'UID:hatim-'+h+'-'+now.getTime()+'@hatim-takip',
-    'DTSTAMP:'+icsUTC(now),
-    'DTSTART:'+icsUTC(start),
-    'DTEND:'+icsUTC(end),
-    'SUMMARY:'+esc(td.title),
-    'DESCRIPTION:'+esc(td.details),
-    'END:VEVENT','END:VCALENDAR'
-  ].join('\r\n');
-  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = h+'-hatim-son-tarih.ics';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  const ics = buildIcs('hatim-'+h+'-'+Date.now(), td.title, td.details, start, end, null);
+  triggerIcsDownload(ics, h+'-hatim-son-tarih.ics');
+}
+function nextUpcomingDeadline(){
+  const now = Date.now();
+  let h = 1;
+  for(h=1; h<=state.hatimCount+1; h++){
+    if(hatimDeadlineDate(h).getTime() >= now) break;
+  }
+  return hatimDeadlineDate(h);
+}
+function openGoogleCalAll(){
+  const start = nextUpcomingDeadline();
+  const end = new Date(start.getTime() + 60*60*1000);
+  const url = 'https://www.google.com/calendar/render?action=TEMPLATE'
+    + '&text=' + encodeURIComponent('Hatim Son Tarihi (Haftalık)')
+    + '&dates=' + icsUTC(start) + '/' + icsUTC(end)
+    + '&details=' + encodeURIComponent('Merhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunan hatim için haftalık son okuma tarihi hatırlatıcısı. Hatim duası akşamı yapılacaktır inşallah.')
+    + '&recur=' + encodeURIComponent('RRULE:FREQ=WEEKLY;COUNT=52');
+  openCalUrl(url);
+}
+function downloadIcsAll(){
+  const start = nextUpcomingDeadline();
+  const end = new Date(start.getTime() + 60*60*1000);
+  const ics = buildIcs('hatim-weekly-'+Date.now(), 'Hatim Son Tarihi (Haftalık)',
+    'Merhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunan hatim için haftalık son okuma tarihi hatırlatıcısı. Hatim duası akşamı yapılacaktır inşallah.',
+    start, end, 'RRULE:FREQ=WEEKLY;COUNT=52');
+  triggerIcsDownload(ics, 'hatim-haftalik-hatirlatici.ics');
 }
 
 function tabsHTML(actives){
@@ -2041,8 +2113,6 @@ app.addEventListener('click', e=>{
     else if(a === 'printpdf'){ printHatim(h); }
     else if(a === 'notif'){ requestNotif(); }
     else if(a === 'calendar'){ addToCalendar(h); }
-    else if(a === 'cal-google'){ openGoogleCal(h); }
-    else if(a === 'cal-ics'){ downloadIcs(h); }
     else if(a === 'reset'){
       uiConfirm({
         title:'Tümünü sıfırla', danger:true, okText:'Sil',
@@ -2080,7 +2150,7 @@ function maybePromptIdentity(){
 }
 loadMe();
 detectCityOnce();
-if(myIdentity()){ setTimeout(askNotifPermissionOnce, 1400); }
+setTimeout(askNotifPermissionOnce, 1200);
 setTimeout(checkUpcoming24h, 2000);
 setInterval(checkUpcoming24h, 30*60*1000);
 if(useFirebase){
