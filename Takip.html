@@ -370,7 +370,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.6.8</div>
+  <div class="app-version">V1.7.0</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -388,7 +388,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.6.8';
+const APP_VERSION = '1.7.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1470,6 +1470,7 @@ function openCalUrl(url){
   // fall back to a direct navigation so the tap never appears to do nothing.
   if(!w){ window.location.href = url; }
 }
+const MAX_STATIC_ICS = 300; // static ics/hatim-N.ics files exist for h = 1..300 (~5.7 years)
 function addToCalendar(h){
   const start = hatimDeadlineDate(h);
   const end = new Date(start.getTime() + 60*60*1000);
@@ -1478,43 +1479,41 @@ function addToCalendar(h){
     + '&text=' + encodeURIComponent(td.title)
     + '&dates=' + icsUTC(start) + '/' + icsUTC(end)
     + '&details=' + encodeURIComponent(td.details);
-  const icsSingle = buildIcs('hatim-'+h+'-'+Date.now(), td.title, td.details, start, end, null);
-  const icsHref = icsDataUri(icsSingle);
 
-  const allStart = nextUpcomingDeadline();
-  const allEnd = new Date(allStart.getTime() + 60*60*1000);
-  const allTitle = 'Hatim Son Tarihi (Haftalık)';
-  const allDetails = 'Merhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunan hatim için haftalık son okuma tarihi hatırlatıcısı. Hatim duası akşamı yapılacaktır inşallah.';
-  const gUrlAll = 'https://www.google.com/calendar/render?action=TEMPLATE'
-    + '&text=' + encodeURIComponent(allTitle)
-    + '&dates=' + icsUTC(allStart) + '/' + icsUTC(allEnd)
-    + '&details=' + encodeURIComponent(allDetails)
-    + '&recur=' + encodeURIComponent('RRULE:FREQ=WEEKLY;COUNT=52');
-  const icsAll = buildIcs('hatim-weekly-'+Date.now(), allTitle, allDetails, allStart, allEnd, 'RRULE:FREQ=WEEKLY;COUNT=52');
-  const icsAllHref = icsDataUri(icsAll);
+  const gUrlAll = (function(){
+    const allStart = nextUpcomingDeadline();
+    const allEnd = new Date(allStart.getTime() + 60*60*1000);
+    const allTitle = 'Hatim Son Tarihi (Haftalık)';
+    const allDetails = 'Merhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunan hatim için haftalık son okuma tarihi hatırlatıcısı. Hatim duası akşamı yapılacaktır inşallah.';
+    return 'https://www.google.com/calendar/render?action=TEMPLATE'
+      + '&text=' + encodeURIComponent(allTitle)
+      + '&dates=' + icsUTC(allStart) + '/' + icsUTC(allEnd)
+      + '&details=' + encodeURIComponent(allDetails)
+      + '&recur=' + encodeURIComponent('RRULE:FREQ=WEEKLY;COUNT=52');
+  })();
 
-  // iOS Safari silently fails to open a data: URI when a `download` attribute
-  // is present (it tries to save-as, which it doesn't support for data URIs).
-  // Desktop/Android browsers need `download` for a proper filename+save.
-  // So we omit it only on iOS, where a bare data: link correctly triggers the
-  // native "Etkinliği Ekle" (Add to Calendar) sheet.
-  const dlSingle = isIOSDevice() ? '' : ' download="'+h+'-hatim-son-tarih.ics"';
-  const dlAll = isIOSDevice() ? '' : ' download="hatim-haftalik-hatirlatici.ics"';
+  // Real, statically-hosted .ics files (pre-generated, checked into the repo)
+  // instead of data: URIs — this is what makes it reliably open the native
+  // "Etkinliği Ekle" screen on iPhone, since iOS Safari's handling of data:
+  // URIs is inconsistent, but a real hosted .ics link is not.
+  const appleSingle = h <= MAX_STATIC_ICS
+    ? '<a class="btn cal-a" href="ics/hatim-'+h+'.ics">🍎 Apple / Outlook (yalnız bu hatim)</a>'
+    : '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Bu hatim çok ileri bir tarihte — Apple/Outlook dosyası henüz hazır değil, Google Takvim kullanabilirsiniz.</div>';
 
   uiConfirm({
     title:'🗓️ Takvime Ekle',
     body:'<span class="hl">'+h+'. Hatim</span><br><span class="nm">Son Tarih: '+hatimDate(h)+' · 18:00</span><br><br>'
         +'<div class="cal-opts">'
         +'<a class="btn cal-g" href="'+gUrl+'" target="_blank" rel="noopener">📅 Google Takvim (yalnız bu hatim)</a>'
-        +'<a class="btn cal-a" href="'+icsHref+'"'+dlSingle+'>🍎 Apple / Outlook (yalnız bu hatim)</a>'
+        +appleSingle
         +'</div>'
         +'<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);">'
         +'Her hafta tekrar eden, tüm yılı kapsayan bir hatırlatıcı da ekleyebilirsiniz:</div>'
         +'<div class="cal-opts">'
         +'<a class="btn cal-g" href="'+gUrlAll+'" target="_blank" rel="noopener">📆 Google Takvim (haftalık, 1 yıl)</a>'
-        +'<a class="btn cal-a" href="'+icsAllHref+'"'+dlAll+'>🍎 Apple / Outlook (haftalık, 1 yıl)</a>'
+        +'<a class="btn cal-a" href="hatim-haftalik-hatirlatici.ics">🍎 Apple / Outlook (haftalık, 1 yıl)</a>'
         +'</div>'
-        +'<div style="margin-top:12px;font-size:11.5px;color:var(--muted);">🍎 seçenekleri iPhone\'da doğrudan Takvim uygulamasını açar; bilgisayarda .ics dosyası indirir.</div>',
+        +'<div style="margin-top:12px;font-size:11.5px;color:var(--muted);">🍎 seçenekleri iPhone\'da Takvim uygulamasını doğrudan açar; bilgisayarda .ics dosyası indirir.</div>',
     okText:'Kapat', hideCancel:true
   });
 }
