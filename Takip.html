@@ -370,7 +370,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.6.7</div>
+  <div class="app-version">V1.6.8</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -388,7 +388,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.6.7';
+const APP_VERSION = '1.6.8';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1506,13 +1506,13 @@ function addToCalendar(h){
     body:'<span class="hl">'+h+'. Hatim</span><br><span class="nm">Son Tarih: '+hatimDate(h)+' · 18:00</span><br><br>'
         +'<div class="cal-opts">'
         +'<a class="btn cal-g" href="'+gUrl+'" target="_blank" rel="noopener">📅 Google Takvim (yalnız bu hatim)</a>'
-        +'<a class="btn cal-a" href="'+icsHref+'" target="_blank" rel="noopener"'+dlSingle+'>🍎 Apple / Outlook (yalnız bu hatim)</a>'
+        +'<a class="btn cal-a" href="'+icsHref+'"'+dlSingle+'>🍎 Apple / Outlook (yalnız bu hatim)</a>'
         +'</div>'
         +'<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);">'
         +'Her hafta tekrar eden, tüm yılı kapsayan bir hatırlatıcı da ekleyebilirsiniz:</div>'
         +'<div class="cal-opts">'
         +'<a class="btn cal-g" href="'+gUrlAll+'" target="_blank" rel="noopener">📆 Google Takvim (haftalık, 1 yıl)</a>'
-        +'<a class="btn cal-a" href="'+icsAllHref+'" target="_blank" rel="noopener"'+dlAll+'>🍎 Apple / Outlook (haftalık, 1 yıl)</a>'
+        +'<a class="btn cal-a" href="'+icsAllHref+'"'+dlAll+'>🍎 Apple / Outlook (haftalık, 1 yıl)</a>'
         +'</div>'
         +'<div style="margin-top:12px;font-size:11.5px;color:var(--muted);">🍎 seçenekleri iPhone\'da doğrudan Takvim uygulamasını açar; bilgisayarda .ics dosyası indirir.</div>',
     okText:'Kapat', hideCancel:true
