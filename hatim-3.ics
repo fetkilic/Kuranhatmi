@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//HatimTakip//TR
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:hatim-92@hatim-takip
+DTSTAMP:20260724T184408Z
+DTSTART:20280323T150000Z
+DTEND:20280323T160000Z
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:92. Hatim — Son Tarih
+DESCRIPTION:Merhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunan 92. hati
+ m için son okuma tarihi. Hatim duası akşamı yapılacaktır inşallah.
+END:VEVENT
+END:VCALENDAR

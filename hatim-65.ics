@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//HatimTakip//TR
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:hatim-57@hatim-takip
+DTSTAMP:20260724T184408Z
+DTSTART:20270722T150000Z
+DTEND:20270722T160000Z
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:57. Hatim — Son Tarih
+DESCRIPTION:Merhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunan 57. hati
+ m için son okuma tarihi. Hatim duası akşamı yapılacaktır inşallah.
+END:VEVENT
+END:VCALENDAR
