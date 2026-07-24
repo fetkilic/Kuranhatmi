@@ -131,7 +131,10 @@
   #congrats .cg-body{font-size:15px;color:var(--text);line-height:1.55;}
   #congrats .cg-card.remind{border-color:#6b5427;background:linear-gradient(160deg,#241a10,#16110a);}
   #congrats .cg-card.remind .cg-title{color:#e6c877;}
-  #congrats .cg-card.remind .cg-body b{color:#e9c45a;}
+  #congrats .cg-body .cg-num{display:inline-block;background:rgba(255,255,255,.16);color:#fff;
+    font-weight:900;padding:1px 8px;border-radius:7px;margin:0 2px;font-size:15px;letter-spacing:.3px;}
+  #congrats .cg-card.remind .cg-body .cg-num{background:rgba(233,196,90,.22);color:#fff;}
+  #congrats .cg-card:not(.remind) .cg-body .cg-num{background:rgba(70,201,138,.24);color:#fff;}
 
   .mini{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
   .mini-row{display:flex;align-items:center;gap:14px;font-size:14px;font-weight:700;margin-bottom:10px;}
@@ -215,24 +218,33 @@
   .modal-ok.danger{background:#b91c1c;border-color:#b91c1c;color:#fff;}
   .modal-ok.danger:hover{background:#dc2626;border-color:#dc2626;color:#fff;}
   .modal-card.wide{max-width:560px;}
-  .admin-input{flex:1 1 120px;min-width:90px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+  .admin-input{flex:1 1 auto;min-width:0;width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--text);
     border-radius:8px;padding:9px 11px;font-size:14px;font-weight:600;}
   .admin-input:focus{outline:none;border-color:#d9b44a;}
   .admin-note{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px;
     background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
-  .admin-list{display:flex;flex-direction:column;gap:8px;padding-right:4px;margin-bottom:12px;}
-  .admin-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .admin-no{flex:none;width:26px;text-align:right;color:var(--muted);font-weight:700;font-size:13px;}
-  .admin-toggle{flex:none;min-width:62px;padding:8px 10px;border-radius:8px;font-size:12.5px;font-weight:800;
-    cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;}
+  .admin-list{display:flex;flex-direction:column;gap:0;padding-right:2px;margin-bottom:12px;
+    max-height:52vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;}
+  .admin-list::-webkit-scrollbar{width:6px;}
+  .admin-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+  .admin-row{display:flex;flex-direction:column;gap:8px;padding:10px 10px;
+    border-bottom:1px solid rgba(255,255,255,.06);}
+  .admin-row:last-child{border-bottom:none;}
+  .admin-row-top{display:flex;align-items:center;gap:8px;width:100%;}
+  .admin-row-ctrls{display:flex;align-items:center;gap:6px;width:100%;flex-wrap:nowrap;}
+  .admin-no{flex:none;width:22px;text-align:right;color:var(--muted);font-weight:700;font-size:13px;}
+  .admin-toggle{flex:1 1 0;min-width:0;padding:8px 6px;border-radius:8px;font-size:12px;font-weight:800;
+    cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;
+    text-align:center;white-space:nowrap;}
   .admin-toggle.on{background:rgba(34,197,94,.12);border-color:#1f6b3a;color:var(--green-l);}
-  .admin-flag{flex:none;min-width:44px;padding:8px 9px;border-radius:8px;font-size:12px;font-weight:800;
-    cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;}
+  .admin-flag{flex:1 1 0;min-width:0;padding:8px 6px;border-radius:8px;font-size:12px;font-weight:800;
+    cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;
+    text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .admin-flag.place.on{background:rgba(217,180,74,.16);border-color:#7a5f1f;color:#e9c45a;}
   .admin-flag.vol.on{background:rgba(51,173,164,.18);border-color:#6b5427;color:#e6c877;}
   .admin-flag.manuel.on{background:rgba(201,139,230,.18);border-color:#8a4f9e;color:#c98be6;}
-  .admin-row.ph{background:rgba(217,180,74,.05);border-radius:8px;padding:2px 4px;}
-  .admin-row.man{background:rgba(201,139,230,.05);border-radius:8px;padding:2px 4px;}
+  .admin-row.ph{background:rgba(217,180,74,.05);}
+  .admin-row.man{background:rgba(201,139,230,.05);}
   .admin-add-row{display:flex;gap:8px;flex-wrap:wrap;}
   .admin-add.place{background:rgba(217,180,74,.12);border-color:#7a5f1f;color:#e9c45a;}
   .admin-add.manuel{background:rgba(201,139,230,.12);border-color:#8a4f9e;color:#c98be6;}
@@ -343,7 +355,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.5.11</div>
+  <div class="app-version">V1.5.12</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -361,7 +373,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.5.11';
+const APP_VERSION = '1.5.12';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -398,6 +410,13 @@ function personFor(c, h){ return (((c - h) % 30) + 30) % 30; }
 const ADMIN_PASS = "Hacibaba!";
 let isAdmin = false;
 function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function fmtTime(t){
+  if(!t) return '';
+  const d = new Date(t);
+  if(isNaN(d.getTime())) return '';
+  const p = function(n){ return String(n).padStart(2,'0'); };
+  return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
 function liveName(i){
   if(state.names && state.names[i] != null && state.names[i] !== "") return state.names[i];
   if(i < 30) return names[i];
@@ -677,12 +696,23 @@ function applySnap(val){
   if(state.hatimCount < 1) state.hatimCount = 1;
   const currentCycle = Math.floor((state.hatimCount - 1) / 30);
   if(currentCycle >= 1){
+    const newSeeds = {};
     for(let c = 1; c <= currentCycle + 1; c++){
       if(state.rotSeeds[c] == null){
         const list = activeList();
         const N = list.length > 0 ? list.length : 30;
-        state.rotSeeds[c] = Math.floor(Math.random() * N);
+        const seed = Math.floor(Math.random() * N);
+        state.rotSeeds[c] = seed;
+        newSeeds[c] = seed;
       }
+    }
+    // Persist newly generated seeds immediately so they are not re-rolled
+    // on the next snapshot (this was the cause of full reshuffling whenever
+    // any cüz was marked done/undone after the 30th hatim).
+    if(useFirebase && Object.keys(newSeeds).length > 0){
+      const seedUpdates = {};
+      Object.keys(newSeeds).forEach(function(c){ seedUpdates['rotSeeds/'+c] = newSeeds[c]; });
+      fbRoot().update(seedUpdates);
     }
   }
   render();
@@ -815,12 +845,12 @@ function showAdminPanel(){
     }
 
     rows += '<div class="admin-row'+(r.active?'':' off')+(r.placeholder?' ph':'')+(r.manuel?' man':'')+'">'
-          + '<span class="admin-no">'+(i+1)+'.</span>'
-          + '<input class="admin-input" data-ai="'+i+'" value="'+escAttr(r.name)+'" placeholder="İsim">'
-          + '<button class="admin-toggle'+(r.active?' on':'')+'" data-action="adm-toggle" data-ai="'+i+'">'
+          + '<div class="admin-row-top"><span class="admin-no">'+(i+1)+'.</span>'
+          + '<input class="admin-input" data-ai="'+i+'" value="'+escAttr(r.name)+'" placeholder="İsim"></div>'
+          + '<div class="admin-row-ctrls"><button class="admin-toggle'+(r.active?' on':'')+'" data-action="adm-toggle" data-ai="'+i+'">'
           + (r.active?'Aktif':'Pasif')+'</button>'
           + ctrl
-          + '</div>';
+          + '</div></div>';
   });
   uiConfirm({
     wide:true,
@@ -1497,14 +1527,14 @@ function myIdentity(){
 }
 function myCuzStatus(h){
   const me = myIdentity();
-  if(!me) return { mine:0, pending:0, pendingCuz:[] };
-  let mine = 0; const pendingCuz = [];
+  if(!me) return { mine:0, pending:0, pendingCuz:[], doneCuz:[] };
+  let mine = 0; const pendingCuz = []; const doneCuz = [];
   for(let c=1;c<=30;c++){
     const done = isDone(h, c);
     const isMine = done ? (readerName(h, c) === me.name) : (effectiveIndex(c, h) === me.idx);
-    if(isMine){ mine++; if(!done) pendingCuz.push(c); }
+    if(isMine){ mine++; if(!done) pendingCuz.push(c); else doneCuz.push(c); }
   }
-  return { mine:mine, pending:pendingCuz.length, pendingCuz:pendingCuz };
+  return { mine:mine, pending:pendingCuz.length, pendingCuz:pendingCuz, doneCuz:doneCuz };
 }
 function checkMyCompletion(h){
   const me = myIdentity();
@@ -1514,10 +1544,12 @@ function checkMyCompletion(h){
   if(st.mine === 0) return;
   if(st.pending === 0){
     const cuzWord = st.mine > 1 ? 'cüzlerinizi' : 'cüzünüzü';
-    showCongrats('🎉 Mâşâallah, '+me.name+'!', 'Bu haftaki '+h+'. hatim için '+cuzWord+' okudunuz.<br>Allah kabul etsin 🤲', 'done');
+    const doneNums = st.doneCuz.map(function(c){ return '<span class="cg-num">'+c+'</span>'; }).join(' ');
+    showCongrats('🎉 Mâşâallah, '+me.name+'!', 'Bu haftaki '+h+'. hatim için '+cuzWord+' okudunuz: '+doneNums+'<br>Allah kabul etsin 🤲', 'done');
   } else {
     const cuzWord = st.pending > 1 ? 'cüzler' : 'cüz';
-    showCongrats('👋 Sıra sizde, '+me.name, 'Bu haftaki '+h+'. hatim için okumanız gereken '+cuzWord+': <b>'+st.pendingCuz.join(', ')+'</b>. cüz<br>Okuyunca işaretlemeyi unutmayın 🤲', 'remind');
+    const pendingNums = st.pendingCuz.map(function(c){ return '<span class="cg-num">'+c+'</span>'; }).join(' ');
+    showCongrats('👋 Sıra sizde, '+me.name, 'Bu haftaki '+h+'. hatim için okumanız gereken '+cuzWord+': '+pendingNums+'<br>Okuyunca işaretlemeyi unutmayın 🤲', 'remind');
   }
 }
 function showCongrats(title, body, variant){
