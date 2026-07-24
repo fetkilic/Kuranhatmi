@@ -370,7 +370,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.6.4</div>
+  <div class="app-version">V1.6.5</div>
 </div>
 
 <div class="modal-overlay" id="modal" hidden>
@@ -388,7 +388,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.6.4';
+const APP_VERSION = '1.6.5';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1439,6 +1439,12 @@ function pad2(n){ return String(n).padStart(2,'0'); }
 function icsUTC(d){
   return d.getUTCFullYear()+pad2(d.getUTCMonth()+1)+pad2(d.getUTCDate())+'T'+pad2(d.getUTCHours())+pad2(d.getUTCMinutes())+pad2(d.getUTCSeconds())+'Z';
 }
+function utf8ToBase64(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function icsDataUri(ics){
+  return 'data:text/calendar;charset=utf-8;base64,' + utf8ToBase64(ics);
+}
 function isIOSDevice(){
   return /iPad|iPhone|iPod/.test(navigator.userAgent || '')
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -1446,9 +1452,9 @@ function isIOSDevice(){
 function triggerIcsDownload(ics, filename){
   if(isIOSDevice()){
     // iOS Safari ignores the <a download> attribute and mishandles blob: URLs for
-    // calendar files. A direct data: URI navigation is what reliably opens the
-    // native "Etkinliği Ekle" (Add to Calendar) sheet on iPhone.
-    window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    // calendar files. A direct base64 data: URI navigation is what reliably opens
+    // the native "Etkinliği Ekle" (Add to Calendar) sheet on iPhone.
+    window.location.href = icsDataUri(ics);
     return;
   }
   const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
@@ -1473,7 +1479,7 @@ function addToCalendar(h){
     + '&dates=' + icsUTC(start) + '/' + icsUTC(end)
     + '&details=' + encodeURIComponent(td.details);
   const icsSingle = buildIcs('hatim-'+h+'-'+Date.now(), td.title, td.details, start, end, null);
-  const icsHref = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsSingle);
+  const icsHref = icsDataUri(icsSingle);
 
   const allStart = nextUpcomingDeadline();
   const allEnd = new Date(allStart.getTime() + 60*60*1000);
@@ -1485,7 +1491,7 @@ function addToCalendar(h){
     + '&details=' + encodeURIComponent(allDetails)
     + '&recur=' + encodeURIComponent('RRULE:FREQ=WEEKLY;COUNT=52');
   const icsAll = buildIcs('hatim-weekly-'+Date.now(), allTitle, allDetails, allStart, allEnd, 'RRULE:FREQ=WEEKLY;COUNT=52');
-  const icsAllHref = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsAll);
+  const icsAllHref = icsDataUri(icsAll);
 
   // iOS Safari silently fails to open a data: URI when a `download` attribute
   // is present (it tries to save-as, which it doesn't support for data URIs).
