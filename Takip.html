@@ -119,6 +119,33 @@
   .mtile .m-extra{font-size:9.5px;font-weight:800;color:var(--gold2);background:rgba(217,180,74,.16);
     border:1px solid #6a5528;border-radius:5px;padding:1px 6px;margin-top:3px;}
   .mine-hint{text-align:center;color:var(--muted);font-size:12px;font-style:italic;margin-top:18px;}
+
+  /* Cüzlerim — hero kart + zaman çizelgesi */
+  .row.hero-card{display:block;text-align:left;cursor:pointer;min-height:0;padding:16px;
+    background:linear-gradient(160deg,#241a10,#1c1610);border:1.5px solid var(--gold);border-radius:16px;
+    margin-bottom:16px;user-select:none;}
+  .row.hero-card.done-hero{border-color:var(--green-l);background:linear-gradient(160deg,var(--green-bg),#1c1610);cursor:default;}
+  .hero-lbl{font-size:10px;color:var(--gold-2);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin-bottom:8px;}
+  .done-hero .hero-lbl{color:var(--green-l);}
+  .hero-cuz{font-size:22px;font-weight:900;color:var(--text);font-family:Georgia,"Times New Roman",serif;}
+  .hero-sub{font-size:12px;color:var(--muted);margin-top:5px;}
+  .hero-btn{margin-top:12px;padding:10px;background:rgba(217,180,74,.15);border:1px solid var(--gold);
+    border-radius:9px;color:var(--gold-2);font-weight:800;font-size:13px;text-align:center;}
+
+  .tl-list{display:flex;flex-direction:column;}
+  .row.tl-item{display:flex;flex-direction:row;align-items:center;gap:10px;text-align:left;
+    min-height:0;background:none;border:none;border-top:1px solid rgba(255,255,255,.06);
+    border-radius:0;padding:10px 2px;cursor:pointer;}
+  .row.tl-item:first-child{border-top:none;}
+  .row.tl-item:hover{background:rgba(255,255,255,.02);}
+  .row.tl-item:active{transform:none;}
+  .tl-dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;}
+  .tl-dot.done{background:var(--green-l);}
+  .tl-body{flex:1;min-width:0;}
+  .tl-h{font-size:13px;font-weight:700;color:var(--text);}
+  .tl-d{font-size:10.5px;color:var(--muted);margin-top:1px;}
+  .tl-st{font-size:10.5px;font-weight:800;color:var(--green-l);flex:none;}
+  .tl-st.wait{color:var(--muted);}
   .btn.open-ann{background:#2c1d0c;border-color:#b45309;color:#fcd34d;margin-top:8px;width:100%;}
   .btn.open-ann:hover{background:#3a2710;border-color:#d97706;}
   .btn.pdf{background:#2a2013;border-color:#5a4a26;color:#f0e2b8;}
@@ -391,17 +418,17 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.8.3</div>
+  <div class="app-version">V1.9.1</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
-  <button class="bn-item on" data-nav="hatimler">
-    <span class="bn-icon"><svg viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11c1 0 1.8.4 2.4 1.1"/><path d="M20 5.5C20 4.7 19.3 4 18.5 4H13c-1 0-1.8.4-2.4 1.1"/><path d="M4 5.5v13c0 .8.7 1.5 1.5 1.5H11c1 0 1.8.4 2.4 1.1"/><path d="M20 5.5v13c0 .8-.7 1.5-1.5 1.5H13c-1 0-1.8.4-2.4 1.1"/><line x1="12" y1="6.5" x2="12" y2="20"/></svg></span>
-    <span class="bn-lbl">Hatimler</span>
-  </button>
-  <button class="bn-item" data-nav="cuzlerim">
+  <button class="bn-item on" data-nav="cuzlerim">
     <span class="bn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></span>
     <span class="bn-lbl">Cüzlerim</span>
+  </button>
+  <button class="bn-item" data-nav="hatimler">
+    <span class="bn-icon"><svg viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11c1 0 1.8.4 2.4 1.1"/><path d="M20 5.5C20 4.7 19.3 4 18.5 4H13c-1 0-1.8.4-2.4 1.1"/><path d="M4 5.5v13c0 .8.7 1.5 1.5 1.5H11c1 0 1.8.4 2.4 1.1"/><path d="M20 5.5v13c0 .8-.7 1.5-1.5 1.5H13c-1 0-1.8.4-2.4 1.1"/><line x1="12" y1="6.5" x2="12" y2="20"/></svg></span>
+    <span class="bn-lbl">Hatimler</span>
   </button>
   <button class="bn-item" data-nav="havuz">
     <span class="bn-icon"><svg viewBox="0 0 24 24"><circle cx="8.5" cy="9" r="2.6"/><circle cx="16" cy="9.5" r="2.2"/><path d="M3.5 19c0-3 2.2-5 5-5s5 2 5 5"/><path d="M13 19c.3-2 1.8-3.6 4-3.6s3.7 1.6 4 3.6"/></svg></span>
@@ -432,7 +459,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.8.3';
+const APP_VERSION = '1.9.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -797,8 +824,8 @@ function applySnap(val){
 let archiveOpen = false;
 let expanded = {};
 let scrollTarget = null;
-let activeHatim = null;
-let userPicked = false;
+let activeHatim = 'mine';
+let userPicked = true;
 const app = document.getElementById('app');
 const bottomNav = document.getElementById('bottomNav');
 let bottomNavMode = 'hatimler'; // tracks which pill is highlighted; havuz/takvim/daha are transient actions
@@ -1791,37 +1818,72 @@ function myAllCuz(){
   });
   return list;
 }
+function daysLeftLabel(h){
+  const diffDays = Math.ceil((hatimDeadlineDate(h).getTime() - Date.now()) / 86400000);
+  if(diffDays > 1) return diffDays + ' gün kaldı';
+  if(diffDays === 1) return 'yarın son gün';
+  if(diffDays === 0) return 'bugün son gün';
+  return Math.abs(diffDays) + ' gün geçti';
+}
 function mineHTML(){
   const me = myIdentity();
   if(!me) return '<div class="empty">Önce üstteki <b>👤 Kim?</b> ile kim olduğunu seç, cüzlerin burada listelensin.</div>';
   const list = myAllCuz();
   const total = list.length, read = list.filter(function(x){ return x.done; }).length, wait = total - read;
-  let tiles = '';
-  list.forEach(function(it){
-    const interactive = !it.arch;
-    const data = interactive ? (' data-h="'+it.h+'" data-cuz="'+it.c+'" role="button" tabindex="0"') : '';
-    const isExtra = isPlaceholder(assignedIndex(it.c, it.h));
-    const secN = SECDE[it.c];
-    const sec = secN ? '<span class="sec-corner" title="Tilavet Secdesi'+(secN>=2?' (2 secde)':'')+'">۩'+(secN>=2?'2':'')+'</span>' : '';
-    const st = it.done ? '<span class="m-st ok">✓ okundu</span>'
-             : (isOpenCuz(it.h, it.c) ? '<span class="m-st open">🙋 havuzda</span>' : '<span class="m-st wait">okunmadı</span>');
-    const extra = isExtra ? '<span class="m-extra">🤝 gönüllü</span>' : '';
-    tiles += '<div class="row mtile'+(it.done?' done':'')+(secN?' secde':'')+'"'+data+'>'
-      + sec
-      + '<span class="m-hatim">'+it.h+'. Hatim</span>'
-      + '<span class="t-no">'+it.c+'</span>'
-      + extra + st + '</div>';
-  });
-  const body = (total > 0)
-    ? '<div class="grid">'+tiles+'</div>'
-    : '<div class="empty">Bu kişiye ait cüz bulunamadı.</div>';
-  return '<section class="hatim-section">'
-    + '<div class="mine-head"><div class="avatar">👤</div><div>'
+  const head = '<div class="mine-head"><div class="avatar">👤</div><div>'
     + '<div class="mine-name">'+escAttr(me.name)+'</div>'
     + '<div class="mine-sum"><b>'+total+'</b> cüzün var'+(read?' · <b class="ok">'+read+' okundu</b>':'')+(wait>0?' · '+wait+' bekliyor':'')+'</div>'
-    + '</div></div>'
-    + body
-    + '<div class="mine-hint">Yalnızca senin cüzlerin. Bir kutuya dokununca okundu olarak işaretlenir. Bekleyenler en üstte.</div>'
+    + '</div></div>';
+  if(total === 0){
+    return '<section class="hatim-section">'+head+'<div class="empty">Bu kişiye ait cüz bulunamadı.</div></section>';
+  }
+
+  const withDate = list.map(function(it){
+    return { h:it.h, c:it.c, done:it.done, arch:it.arch, deadline: hatimDeadlineDate(it.h).getTime() };
+  });
+  const pending = withDate.filter(function(it){ return !it.done; });
+  let hero = null;
+  pending.forEach(function(it){ if(!hero || it.deadline < hero.deadline) hero = it; });
+  const rest = withDate.filter(function(it){ return it !== hero; })
+    .sort(function(a,b){ return a.deadline - b.deadline; });
+
+  let heroHTML;
+  if(hero){
+    const interactive = !hero.arch;
+    const data = interactive ? (' data-h="'+hero.h+'" data-cuz="'+hero.c+'" role="button" tabindex="0"') : '';
+    const secN = SECDE[hero.c];
+    heroHTML = '<div class="row hero-card"'+data+'>'
+      + '<div class="hero-lbl">⏰ Sırada</div>'
+      + '<div class="hero-cuz">'+hero.h+'. Hatim · '+hero.c+'. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+'</div>'
+      + '<div class="hero-sub">Son tarih: '+hatimDate(hero.h)+' · 18:00 — '+daysLeftLabel(hero.h)+'</div>'
+      + (interactive ? '<div class="hero-btn">Okundu olarak işaretle</div>' : '')
+      + '</div>';
+  } else {
+    heroHTML = '<div class="row hero-card done-hero">'
+      + '<div class="hero-lbl">🎉 Tebrikler</div>'
+      + '<div class="hero-cuz" style="font-size:17px;">Tüm cüzlerini okudun</div>'
+      + '<div class="hero-sub">Allah kabul etsin 🤲</div></div>';
+  }
+
+  let tl = '';
+  rest.forEach(function(it){
+    const interactive = !it.arch;
+    const data = interactive ? (' data-h="'+it.h+'" data-cuz="'+it.c+'" role="button" tabindex="0"') : '';
+    const secN = SECDE[it.c];
+    const st = it.done ? '<span class="tl-st">✓ okundu</span>'
+             : (isOpenCuz(it.h, it.c) ? '<span class="tl-st wait" style="color:#fcd34d;">🙋 havuzda</span>' : '<span class="tl-st wait">bekliyor</span>');
+    tl += '<div class="row tl-item'+(it.done?' done':'')+'"'+data+'>'
+        + '<span class="tl-dot'+(it.done?' done':'')+'"></span>'
+        + '<div class="tl-body"><div class="tl-h">'+it.h+'. Hatim · '+it.c+'. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+'</div>'
+        + '<div class="tl-d">'+hatimDate(it.h)+'</div></div>'
+        + st + '</div>';
+  });
+
+  return '<section class="hatim-section">'
+    + head
+    + heroHTML
+    + '<div class="tl-list">'+tl+'</div>'
+    + '<div class="mine-hint">Sıradaki cüzün üstte. Bir satıra dokununca okundu olarak işaretlenir.</div>'
     + '</section>';
 }
 
