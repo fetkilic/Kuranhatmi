@@ -136,6 +136,19 @@
   .hero-btn{margin-top:12px;padding:10px;background:rgba(217,180,74,.15);border:1px solid var(--gold);
     border-radius:9px;color:var(--gold-2);font-weight:800;font-size:13px;text-align:center;}
 
+  /* Cüzlerim — okundu işaretleme mikro-etkileşimi (yukarı kayma + yeşile dönüş) */
+  .cuz-anim{display:inline-block;color:var(--gold-2);}
+  @keyframes heroBreatheGreen{
+    0%{transform:scale(1);color:var(--gold-2);}
+    45%{transform:scale(1.32);color:var(--green-l);}
+    100%{transform:scale(1);color:var(--green-l);}
+  }
+  .cuz-anim.breathe{animation:heroBreatheGreen .55s ease forwards;}
+  @keyframes heroSlideUpOut{to{transform:translateY(-40px);opacity:0;}}
+  .row.hero-card.slide-out{animation:heroSlideUpOut .36s ease forwards;}
+  @keyframes heroSlideUpIn{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .row.hero-card.hero-enter{animation:heroSlideUpIn .4s cubic-bezier(.2,.8,.3,1);}
+
   .tl-list{display:flex;flex-direction:column;}
   .row.tl-item{display:flex;flex-direction:row;align-items:center;gap:10px;text-align:left;
     min-height:0;background:none;border:none;border-top:1px solid rgba(255,255,255,.06);
@@ -428,7 +441,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.11.0</div>
+  <div class="app-version">V1.12.0</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -469,7 +482,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -772,7 +785,7 @@ function load(){
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -805,6 +818,7 @@ function applySnap(val){
   state.open = val.open || {};
   state.pcount = val.pcount || 30;
   state.rotSeeds = val.rotSeeds || {};
+  state.visits = val.visits || {};
   if(state.hatimCount < 1) state.hatimCount = 1;
   const currentCycle = Math.floor((state.hatimCount - 1) / 30);
   if(currentCycle >= 1){
@@ -835,6 +849,7 @@ let archiveOpen = false;
 let expanded = {};
 let scrollTarget = null;
 let activeHatim = 'mine';
+let pendingHeroEntrance = false;
 let userPicked = true;
 const app = document.getElementById('app');
 const bottomNav = document.getElementById('bottomNav');
@@ -1139,6 +1154,7 @@ function controlsHTML(){
   h += '<button class="btn" data-action="admin">'+(isAdmin ? '🔓 Admin' : '🔒 Admin')+'</button>';
   if(isAdmin){
     h += '<button class="btn" data-action="showlog">📋 Kayıt defteri</button>';
+    h += '<button class="btn" data-action="showvisits">👀 Ziyaret kayıtları</button>';
     h += '<button class="btn" data-action="volcuz">🤝 Gönüllü cüzleri</button>';
     h += '<button class="btn" data-action="admin-logout">Admin’den çık</button>';
     h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
@@ -1862,6 +1878,11 @@ function render(){
   out += controlsHTML();
   out += archiveHTML();
   app.innerHTML = out;
+  if(pendingHeroEntrance){
+    const hc = app.querySelector('.hero-card');
+    if(hc) hc.classList.add('hero-enter');
+    pendingHeroEntrance = false;
+  }
   updateBottomNav();
   updateAppBadge();
 }
@@ -1921,7 +1942,7 @@ function mineHTML(){
     const secN = SECDE[hero.c];
     heroHTML = '<div class="row hero-card"'+data+'>'
       + '<div class="hero-lbl">⏰ Sırada</div>'
-      + '<div class="hero-cuz">'+hero.h+'. Hatim · '+hero.c+'. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+'</div>'
+      + '<div class="hero-cuz">'+hero.h+'. Hatim · <span class="cuz-anim" id="heroCuzNum">'+hero.c+'</span>. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+'</div>'
       + '<div class="hero-sub">Son tarih: '+hatimDate(hero.h)+' · 18:00 — '+daysLeftLabel(hero.h)+'</div>'
       + (interactive ? '<div class="hero-btn">Okundu olarak işaretle</div>' : '')
       + '</div>';
@@ -1998,6 +2019,20 @@ function detectCityOnce(){
 
 let myUser = null;
 let identityPrompted = false;
+function recordVisit(){
+  const me = myIdentity();
+  if(!me) return;
+  const entry = { name: me.name, dev: deviceLabel(), city: (_city || ''), ip: (_ip || '') };
+  if(useFirebase){
+    entry.t = firebase.database.ServerValue.TIMESTAMP;
+    fbRoot().update({ ['visits/'+me.idx]: entry });
+  } else {
+    entry.t = Date.now();
+    state.visits = state.visits || {};
+    state.visits[me.idx] = entry;
+    save();
+  }
+}
 function loadMe(){
   try{ myUser = JSON.parse(localStorage.getItem('hatim_me') || 'null'); }catch(e){ myUser = null; }
 }
@@ -2054,6 +2089,7 @@ function setIdentity(idx){
   saveMe();
   render();
   setTimeout(askNotifPermissionOnce, 700);
+  setTimeout(recordVisit, 900);
 }
 function clearIdentity(){
   myUser = null; saveMe(); render();
@@ -2077,6 +2113,38 @@ function pickIdentity(){
   });
 }
 
+function buildVisitLog(){
+  const arr = [];
+  const v = state.visits || {};
+  for(const idxStr in v){
+    const e = v[idxStr];
+    if(!e) continue;
+    arr.push({ name: e.name || '?', t: e.t || null, dev: e.dev || '', city: e.city || '', ip: e.ip || '' });
+  }
+  arr.sort(function(a,b){ return (b.t||0) - (a.t||0); });
+  return arr;
+}
+function showVisitLog(){
+  if(!isAdmin) return;
+  const arr = buildVisitLog();
+  let rows = '';
+  if(arr.length === 0){ rows = '<div class="prof-empty">Henüz kayıtlı ziyaret yok.</div>'; }
+  arr.forEach(function(e){
+    let meta = fmtTime(e.t);
+    if(e.dev)  meta += ' · 📱 ' + escAttr(e.dev);
+    if(e.city) meta += ' · 📍 ' + escAttr(e.city);
+    if(e.ip)   meta += ' · 🌐 ' + escAttr(e.ip);
+    rows += '<div class="lg-row"><div class="lg-top"><span class="lg-name">'+escAttr(e.name)+'</span></div>'
+          + '<div class="lg-bot">'+meta+'</div></div>';
+  });
+  uiConfirm({
+    wide:true,
+    title:'👀 Ziyaret Kayıtları ('+arr.length+')',
+    body:'<div class="admin-note">Her kişinin uygulamayı en son ne zaman, hangi cihaz/konumdan açtığı.</div>'
+        +'<div class="lg-list">'+rows+'</div>',
+    okText:'Kapat', hideCancel:true
+  });
+}
 function buildLog(){
   const arr = [];
   for(let h=1; h<=state.hatimCount; h++){
@@ -2271,28 +2339,49 @@ function toggle(h,cuz){
                     : 'Bu cüzün işareti kaldırılsın mı? (okunmadı yapılacak)')
         + relBtn,
     onOk: function(){
-      const me = myIdentity();
-      const ei = effectiveIndex(cuz, h);
-      const lockName = me ? me.name : (isPlaceholder(ei) ? readerName(h, cuz) : liveName(ei));
-      const meta = { dev: deviceLabel(), city: (_city || ''), ip: (_ip || ''), by: (me ? me.name : ''), ver: APP_VERSION };
-      if(useFirebase){
-        const u = {};
-        if(willRead){
-          u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = lockName; u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP;
-          u['meta/'+h+'/'+cuz] = { dev: meta.dev, city: meta.city, ip: meta.ip, by: meta.by, ver: meta.ver, t: firebase.database.ServerValue.TIMESTAMP };
+      function commitToggle(){
+        const me = myIdentity();
+        const ei = effectiveIndex(cuz, h);
+        const lockName = me ? me.name : (isPlaceholder(ei) ? readerName(h, cuz) : liveName(ei));
+        const meta = { dev: deviceLabel(), city: (_city || ''), ip: (_ip || ''), by: (me ? me.name : ''), ver: APP_VERSION };
+        if(useFirebase){
+          const u = {};
+          if(willRead){
+            u['done/'+h+'/'+cuz] = true; u['readers/'+h+'/'+cuz] = lockName; u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP;
+            u['meta/'+h+'/'+cuz] = { dev: meta.dev, city: meta.city, ip: meta.ip, by: meta.by, ver: meta.ver, t: firebase.database.ServerValue.TIMESTAMP };
+          } else {
+            u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; u['times/'+h+'/'+cuz] = null; u['meta/'+h+'/'+cuz] = null;
+          }
+          fbRoot().update(u);
         } else {
-          u['done/'+h+'/'+cuz] = null; u['readers/'+h+'/'+cuz] = null; u['times/'+h+'/'+cuz] = null; u['meta/'+h+'/'+cuz] = null;
+          setDone(h,cuz,willRead);
+          state.readers = state.readers || {}; state.times = state.times || {}; state.meta = state.meta || {};
+          if(!state.readers[h]) state.readers[h] = {};
+          if(!state.times[h]) state.times[h] = {};
+          if(!state.meta[h]) state.meta[h] = {};
+          if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); state.meta[h][cuz] = { dev:meta.dev, city:meta.city, ip:meta.ip, by:meta.by, ver:meta.ver, t:Date.now() }; }
+          else { delete state.readers[h][cuz]; delete state.times[h][cuz]; delete state.meta[h][cuz]; }
+          save(); render(); detectCompletions();
         }
-        fbRoot().update(u);
+      }
+
+      // Cüzlerim ekranında, işaretlenen cüz şu an gösterilen "Sırada" (hero)
+      // kartıysa: önce numara nefes alıp yeşile dönsün, kart yukarı kayıp
+      // kaybolsun — sonra asıl veri güncellemesi gerçekleşsin. Bu küçük
+      // gecikme (~900ms) animasyonun düzgün oynaması için kasıtlı.
+      const heroEl = (activeHatim === 'mine')
+        ? app.querySelector('.hero-card[data-h="'+h+'"][data-cuz="'+cuz+'"]')
+        : null;
+      if(willRead && heroEl){
+        const numEl = document.getElementById('heroCuzNum');
+        if(numEl) numEl.classList.add('breathe');
+        pendingHeroEntrance = true;
+        setTimeout(function(){
+          heroEl.classList.add('slide-out');
+          setTimeout(commitToggle, 360);
+        }, 550);
       } else {
-        setDone(h,cuz,willRead);
-        state.readers = state.readers || {}; state.times = state.times || {}; state.meta = state.meta || {};
-        if(!state.readers[h]) state.readers[h] = {};
-        if(!state.times[h]) state.times[h] = {};
-        if(!state.meta[h]) state.meta[h] = {};
-        if(willRead){ state.readers[h][cuz] = lockName; state.times[h][cuz] = Date.now(); state.meta[h][cuz] = { dev:meta.dev, city:meta.city, ip:meta.ip, by:meta.by, ver:meta.ver, t:Date.now() }; }
-        else { delete state.readers[h][cuz]; delete state.times[h][cuz]; delete state.meta[h][cuz]; }
-        save(); render(); detectCompletions();
+        commitToggle();
       }
     }
   });
@@ -2429,6 +2518,7 @@ app.addEventListener('click', e=>{
     else if(a === 'admin'){ openAdmin(); }
     else if(a === 'whoami'){ pickIdentity(); }
     else if(a === 'showlog'){ showLog(); }
+    else if(a === 'showvisits'){ showVisitLog(); }
     else if(a === 'volcuz'){ showVolunteerCuz(); }
     else if(a === 'admin-logout'){ isAdmin = false; render(); }
     else if(a === 'reassign'){ _volReturn = false; reassign(h, +btn.dataset.cuz); }
@@ -2480,6 +2570,7 @@ if('serviceWorker' in navigator){
 loadMe();
 detectCityOnce();
 setTimeout(askNotifPermissionOnce, 1200);
+setTimeout(recordVisit, 1600);
 setTimeout(checkUpcoming24h, 2000);
 setInterval(checkUpcoming24h, 30*60*1000);
 if(useFirebase){
