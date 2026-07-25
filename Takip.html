@@ -441,7 +441,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.13.0</div>
+  <div class="app-version">V1.14.0</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -482,7 +482,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.13.0';
+const APP_VERSION = '1.14.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1155,6 +1155,7 @@ function controlsHTML(){
   if(isAdmin){
     h += '<button class="btn" data-action="showlog">📋 Kayıt defteri</button>';
     h += '<button class="btn" data-action="showvisits">👀 Ziyaret kayıtları</button>';
+    h += '<button class="btn" data-action="bulletin">🖨️ Aylık Özet Bülteni</button>';
     h += '<button class="btn" data-action="volcuz">🤝 Gönüllü cüzleri</button>';
     h += '<button class="btn" data-action="admin-logout">Admin’den çık</button>';
     h += '<button class="btn reset" data-action="reset">Tümünü sıfırla</button>';
@@ -1249,6 +1250,115 @@ function buildPdfTemplate(h){
     +   '<div style="margin-top:auto;font-size:14px;color:#8a6d1f;padding-top:14px;font-family:Arial,Helvetica,sans-serif;">۩ = tilavet secdesi&nbsp;&nbsp;·&nbsp;&nbsp;Kılıç Ailesi Hatim Takip</div>'
     + '</div>';
   return el;
+}
+const AY_ADLARI = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+function hatimsCompletedInMonth(year, month){
+  const out = [];
+  for(let h=1; h<=state.hatimCount; h++){
+    if(isRemoved(h)) continue;
+    if(countDone(h) !== 30) continue;
+    const d = hatimDeadlineDate(h);
+    if(d.getFullYear() === year && d.getMonth() === month) out.push(h);
+  }
+  return out;
+}
+function buildBulletinTemplate(year, month){
+  const hatims = hatimsCompletedInMonth(year, month);
+  const corner = function(pos){
+    return '<img src="'+MANDALA_IMG+'" style="position:absolute;'+pos+';width:380px;height:380px;opacity:.7;">';
+  };
+  let rows = '';
+  if(hatims.length === 0){
+    rows = '<div style="text-align:center;font-size:20px;color:#8a6d1f;padding:30px 0;font-family:Arial,Helvetica,sans-serif;">Bu ay tamamlanan hatim bulunmuyor.</div>';
+  } else {
+    hatims.forEach(function(h, i){
+      const readers = [];
+      for(let c=1;c<=30;c++){ const n = readerName(h,c); if(n && readers.indexOf(n)===-1) readers.push(n); }
+      const zebra = (i % 2 === 0) ? '#ffffff' : '#f3ede0';
+      rows += '<div style="background:'+zebra+';border:1px solid #d8c9a0;border-radius:10px;padding:14px 18px;margin-bottom:10px;">'
+        + '<div style="display:flex;justify-content:space-between;align-items:baseline;font-family:Arial,Helvetica,sans-serif;">'
+        + '<span style="font-size:20px;font-weight:800;color:#5c3420;">'+h+'. Hatim</span>'
+        + '<span style="font-size:14px;color:#8a6d1f;">'+hatimDate(h)+'</span>'
+        + '</div>'
+        + '<div style="font-size:14px;color:#5a4636;margin-top:6px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">'
+        + escAttr(readers.join(', ')) + '</div></div>';
+    });
+  }
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:-20000px;top:0;width:1000px;height:1414px;background:#efe6cf;overflow:hidden;box-sizing:border-box;font-family:Georgia,\'Times New Roman\',serif;';
+  el.innerHTML =
+      corner('top:-130px;left:-130px')
+    + corner('top:-130px;right:-130px')
+    + corner('bottom:-130px;left:-130px')
+    + corner('bottom:-130px;right:-130px')
+    + '<div style="position:absolute;inset:20px;border:3px solid #b8860b;"></div>'
+    + '<div style="position:absolute;inset:26px;border:1px solid #b8860b;"></div>'
+    + '<div style="position:absolute;inset:52px;background:#fffdf6;border:2px solid #cdb676;border-radius:14px;'
+    +   'box-shadow:0 10px 40px rgba(90,60,20,.18);padding:38px 40px 26px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;overflow-y:auto;">'
+    +   '<div style="font-size:34px;font-weight:800;color:#5c3420;letter-spacing:1px;text-align:center;line-height:1.2;">AYLIK ÖZET BÜLTENİ</div>'
+    +   '<div style="font-size:22px;color:#9a7b1e;margin-top:4px;font-weight:700;">'+AY_ADLARI[month]+' '+year+'</div>'
+    +   '<div style="width:160px;height:3px;background:#b8860b;margin:14px 0 12px;border-radius:2px;"></div>'
+    +   '<div style="font-size:18px;color:#9a7b1e;text-align:center;font-style:italic;">Merhum HÂFIZ HALİL KILIÇ (Hacıbabamız) ruhuna — El-Fâtiha</div>'
+    +   '<div style="font-size:15px;color:#5a4636;margin-top:6px;font-family:Arial,Helvetica,sans-serif;">Bu ay tamamlanan hatim sayısı: <b>'+hatims.length+'</b></div>'
+    +   '<div style="width:100%;margin-top:22px;">'+rows+'</div>'
+    +   '<div style="margin-top:auto;font-size:13px;color:#8a6d1f;padding-top:14px;font-family:Arial,Helvetica,sans-serif;">Kılıç Ailesi Hatim Takip</div>'
+    +   '</div>';
+  return el;
+}
+async function shareBulletin(year, month){
+  const ld = document.getElementById('pdfLoading');
+  if(ld){ ld.querySelector('span:last-child').textContent = 'Bülten hazırlanıyor…'; ld.classList.add('on'); }
+  try{
+    await ensurePdfLibs();
+    const tpl = buildBulletinTemplate(year, month);
+    document.body.appendChild(tpl);
+    await waitImages(tpl);
+    const canvas = await html2canvas(tpl, { scale:2, backgroundColor:'#efe6cf', width:1000, height:1414, windowWidth:1000, windowHeight:1414, logging:false, useCORS:true });
+    if(tpl.parentNode) tpl.parentNode.removeChild(tpl);
+    const JsPDF = window.jspdf.jsPDF;
+    const pdf = new JsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+    const blob = pdf.output('blob');
+    const fname = AY_ADLARI[month]+'-'+year+'-Aile-Bulteni.pdf';
+    const file = new File([blob], fname, { type:'application/pdf' });
+    if(ld) ld.classList.remove('on');
+    let shared = false;
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      try{
+        await navigator.share({ files:[file], title:AY_ADLARI[month]+' '+year+' Aile Bülteni', text:'Merhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna '+AY_ADLARI[month]+' '+year+' ayı özeti' });
+        shared = true;
+      }catch(err){ if(err && err.name === 'AbortError') return; shared = false; }
+    }
+    if(!shared){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    }
+  }catch(e){
+    if(ld) ld.classList.remove('on');
+    uiAlert('Bülten oluşturulamadı', 'Hazırlanırken sorun oluştu. İnternet bağlantını kontrol edip tekrar dener misin?');
+  }
+}
+function showBulletinPicker(){
+  if(!isAdmin) return;
+  const now = new Date();
+  let opts = '';
+  for(let i=0;i<12;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    opts += '<option value="'+d.getFullYear()+'-'+d.getMonth()+'"'+(i===0?' selected':'')+'>'+AY_ADLARI[d.getMonth()]+' '+d.getFullYear()+'</option>';
+  }
+  uiConfirm({
+    title:'🖨️ Aylık Özet Bülteni',
+    body:'<div class="admin-note">Hangi ayın bültenini hazırlayalım?</div>'
+        +'<select id="bulletinMonthSel" class="admin-input" style="width:100%;">'+opts+'</select>',
+    okText:'Hazırla ve Paylaş', cancelText:'Vazgeç',
+    onOk:function(){
+      const sel = document.getElementById('bulletinMonthSel');
+      const parts = sel.value.split('-');
+      shareBulletin(parseInt(parts[0],10), parseInt(parts[1],10));
+    }
+  });
 }
 async function printHatim(h){
   const ld = document.getElementById('pdfLoading');
@@ -2529,6 +2639,7 @@ app.addEventListener('click', e=>{
     else if(a === 'whoami'){ pickIdentity(); }
     else if(a === 'showlog'){ showLog(); }
     else if(a === 'showvisits'){ showVisitLog(); }
+    else if(a === 'bulletin'){ showBulletinPicker(); }
     else if(a === 'volcuz'){ showVolunteerCuz(); }
     else if(a === 'admin-logout'){ isAdmin = false; render(); }
     else if(a === 'reassign'){ _volReturn = false; reassign(h, +btn.dataset.cuz); }
