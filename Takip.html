@@ -6,6 +6,10 @@
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Hatim Takip Listesi</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#130f09">
 <style>
   :root{
     --bg:#130f09;--bg2:#1c1610;--card:#221a11;--card-hover:#2c2115;
@@ -424,7 +428,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.10.1</div>
+  <div class="app-version">V1.11.0</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -465,7 +469,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.10.1';
+const APP_VERSION = '1.11.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -2467,6 +2471,11 @@ function maybePromptIdentity(){
   if(skip) return;
   identityPrompted = true;
   setTimeout(pickIdentity, 900);
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
 }
 loadMe();
 detectCityOnce();
