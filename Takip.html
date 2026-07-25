@@ -367,6 +367,12 @@
   .vc-tab-btn{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--muted);
     font-size:13px;font-weight:700;padding:9px 10px;border-radius:9px;cursor:pointer;transition:all .15s;}
   .vc-tab-btn.on{border-color:var(--gold);background:#241a10;color:#e9c45a;}
+  .vc-join{background:rgba(70,201,138,.08);border:1px solid #2f6b45;border-radius:12px;
+    padding:14px;margin-bottom:14px;}
+  .vc-join-txt{font-size:12.5px;color:var(--green-l);line-height:1.6;margin-bottom:10px;}
+  .vc-join-btn{width:100%;background:rgba(70,201,138,.15);border-color:#2f6b45;color:var(--green-l);
+    font-weight:800;padding:11px;}
+  .vc-join-btn:hover{background:rgba(70,201,138,.22);border-color:var(--green-l);}
   .vc-hatim{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
   .vc-hatim.open{border-color:#b45309;background:#2c1d0c;}
   .vc-hatim.open .vc-h-title{color:#fcd34d;}
@@ -418,7 +424,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.9.1</div>
+  <div class="app-version">V1.9.2</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -459,7 +465,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.9.1';
+const APP_VERSION = '1.9.2';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -899,6 +905,7 @@ modal.addEventListener('click', function(e){
     if(a === 'adm-set-place'){ const i = +b.dataset.ai; if(adminRows[i]){ adminRows[i].placeholder = true; adminRows[i].volunteer = false; } showAdminPanel(); return; }
     if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); if(_volReturn){ _volReturn = false; setTimeout(showVolunteerCuz, 60); } return; }
     if(a === 'vc-reassign'){ _volReturn = true; reassign(+b.dataset.h, +b.dataset.cuz); return; }
+    if(a === 'become-vol'){ becomeVolunteer(); return; }
     if(a === 'rel-cuz'){
       const rh = +b.dataset.h, rc = +b.dataset.cuz;
       closeModal();
@@ -2058,8 +2065,16 @@ function showLog(){
 function myVolunteerCuzHTML(){
   const me = myIdentity();
   if(!me) return '<div class="prof-empty">Önce üstteki <b>👤 Kim?</b> ile kim olduğunu seçmelisin.</div>';
+  const already = isVolunteer(me.idx);
+  let joinBox = '';
+  if(!already){
+    joinBox = '<div class="vc-join">'
+      + '<div class="vc-join-txt">Henüz gönüllü değilsin. Gönüllü olursan, boşta kalan "yer" cüzlerinden bazıları düzenli olarak sana da düşmeye başlar.</div>'
+      + '<button class="btn vc-join-btn" data-action="become-vol">🙋 Gönüllü olmak istiyorum</button>'
+      + '</div>';
+  }
   const all = myAllCuz().filter(function(it){ return isPlaceholder(assignedIndex(it.c, it.h)); });
-  if(all.length === 0) return '<div class="prof-empty">Şu anda sana ait gönüllü cüzü bulunmuyor.</div>';
+  if(all.length === 0) return joinBox + '<div class="prof-empty">Şu anda sana ait gönüllü cüzü bulunmuyor.</div>';
   let rows = '';
   all.forEach(function(it){
     const st = it.done ? '<span class="vc-ok">✓ okudu</span>'
@@ -2069,7 +2084,18 @@ function myVolunteerCuzHTML(){
           + st
           + '</div>';
   });
-  return '<div class="vc-hatim"><div class="vc-h-title">Sana ait gönüllü cüzler <span class="vc-count">('+all.length+')</span></div>'+rows+'</div>';
+  return joinBox + '<div class="vc-hatim"><div class="vc-h-title">Sana ait gönüllü cüzler <span class="vc-count">('+all.length+')</span></div>'+rows+'</div>';
+}
+function becomeVolunteer(){
+  const me = myIdentity();
+  if(!me){ closeModal(); setTimeout(pickIdentity, 60); return; }
+  if(isVolunteer(me.idx)) return;
+  state.volunteer = state.volunteer || {};
+  state.volunteer[me.idx] = true;
+  if(useFirebase){ fbRoot().update({ ['volunteer/'+me.idx]: true }); }
+  else { save(); render(); }
+  closeModal();
+  setTimeout(showVolunteerCuz, 60);
 }
 function vcTab(which){
   const mineTab = document.getElementById('vcTabMine');
