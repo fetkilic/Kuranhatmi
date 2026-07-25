@@ -424,7 +424,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.9.2</div>
+  <div class="app-version">V1.10.0</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -465,7 +465,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.9.2';
+const APP_VERSION = '1.10.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1704,6 +1704,26 @@ function nextUpcomingDeadline(){
   }
   return hatimDeadlineDate(h);
 }
+function currentWeekHatimNumber(){
+  const now = Date.now();
+  let h = 1;
+  for(h=1; h<=state.hatimCount+1; h++){
+    if(hatimDeadlineDate(h).getTime() >= now) break;
+  }
+  return h;
+}
+function updateAppBadge(){
+  if(!('setAppBadge' in navigator)) return;
+  try{
+    const me = myIdentity();
+    if(!me){ navigator.clearAppBadge().catch(function(){}); return; }
+    const curH = currentWeekHatimNumber();
+    if(curH == null || isArchived(curH) || isRemoved(curH)){ navigator.clearAppBadge().catch(function(){}); return; }
+    const st = myCuzStatus(curH);
+    if(st.pending > 0){ navigator.setAppBadge(st.pending).catch(function(){}); }
+    else { navigator.clearAppBadge().catch(function(){}); }
+  }catch(e){}
+}
 function openGoogleCalAll(){
   const start = nextUpcomingDeadline();
   const end = new Date(start.getTime() + 60*60*1000);
@@ -1804,6 +1824,7 @@ function render(){
   out += archiveHTML();
   app.innerHTML = out;
   updateBottomNav();
+  updateAppBadge();
 }
 function myAllCuz(){
   const me = myIdentity();
