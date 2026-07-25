@@ -424,7 +424,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.10.0</div>
+  <div class="app-version">V1.10.1</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -465,7 +465,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.10.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1572,6 +1572,9 @@ function isIOSDevice(){
   return /iPad|iPhone|iPod/.test(navigator.userAgent || '')
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
+function isAndroidDevice(){
+  return /Android/.test(navigator.userAgent || '');
+}
 function triggerIcsDownload(ics, filename){
   if(isIOSDevice()){
     // iOS Safari ignores the <a download> attribute and mishandles blob: URLs for
@@ -1712,16 +1715,48 @@ function currentWeekHatimNumber(){
   }
   return h;
 }
+let _lastAndroidBadgeNotif = null;
+let _lastBadgePending = null;
+function updateAndroidBadgeNotification(pending){
+  // Android launchers vary widely in whether they render navigator.setAppBadge()
+  // visually — many OEM skins (Samsung/MIUI/etc.) silently ignore it. A stable,
+  // silent notification is a more universally honored signal for the OS/launcher
+  // to show a badge dot (or count, on launchers that support it) on the icon.
+  // Note: unlike WhatsApp's own native badge, this can't guarantee an exact
+  // number on every launcher — some only show presence (a dot), not a count.
+  if(!isAndroidDevice()) return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  if(pending === _lastBadgePending) return; // avoid re-surfacing it in the shade on every render()
+  _lastBadgePending = pending;
+  try{
+    if(pending > 0){
+      _lastAndroidBadgeNotif = new Notification('📖 Hatim Takip', {
+        body: pending + ' bekleyen cüzün var (bu hafta).',
+        tag: 'hatim-badge',
+        silent: true,
+        renotify: false
+      });
+    } else if(_lastAndroidBadgeNotif){
+      try{ _lastAndroidBadgeNotif.close(); }catch(e){}
+      _lastAndroidBadgeNotif = null;
+    }
+  }catch(e){}
+}
 function updateAppBadge(){
-  if(!('setAppBadge' in navigator)) return;
   try{
     const me = myIdentity();
-    if(!me){ navigator.clearAppBadge().catch(function(){}); return; }
-    const curH = currentWeekHatimNumber();
-    if(curH == null || isArchived(curH) || isRemoved(curH)){ navigator.clearAppBadge().catch(function(){}); return; }
-    const st = myCuzStatus(curH);
-    if(st.pending > 0){ navigator.setAppBadge(st.pending).catch(function(){}); }
-    else { navigator.clearAppBadge().catch(function(){}); }
+    let pending = 0;
+    if(me){
+      const curH = currentWeekHatimNumber();
+      if(curH != null && !isArchived(curH) && !isRemoved(curH)){
+        pending = myCuzStatus(curH).pending;
+      }
+    }
+    if('setAppBadge' in navigator){
+      if(pending > 0){ navigator.setAppBadge(pending).catch(function(){}); }
+      else { navigator.clearAppBadge().catch(function(){}); }
+    }
+    updateAndroidBadgeNotification(pending);
   }catch(e){}
 }
 function openGoogleCalAll(){
