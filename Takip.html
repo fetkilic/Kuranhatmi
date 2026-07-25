@@ -441,7 +441,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.12.0</div>
+  <div class="app-version">V1.13.0</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -482,7 +482,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.13.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1940,9 +1940,11 @@ function mineHTML(){
     const interactive = !hero.arch;
     const data = interactive ? (' data-h="'+hero.h+'" data-cuz="'+hero.c+'" role="button" tabindex="0"') : '';
     const secN = SECDE[hero.c];
+    const heroExtra = isPlaceholder(assignedIndex(hero.c, hero.h))
+      ? '<span class="badge-extra" title="Bir gönüllünün ekstra üstlendiği cüz">🤝</span>' : '';
     heroHTML = '<div class="row hero-card"'+data+'>'
       + '<div class="hero-lbl">⏰ Sırada</div>'
-      + '<div class="hero-cuz">'+hero.h+'. Hatim · <span class="cuz-anim" id="heroCuzNum">'+hero.c+'</span>. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+'</div>'
+      + '<div class="hero-cuz">'+hero.h+'. Hatim · <span class="cuz-anim" id="heroCuzNum">'+hero.c+'</span>. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+' '+heroExtra+'</div>'
       + '<div class="hero-sub">Son tarih: '+hatimDate(hero.h)+' · 18:00 — '+daysLeftLabel(hero.h)+'</div>'
       + (interactive ? '<div class="hero-btn">Okundu olarak işaretle</div>' : '')
       + '</div>';
@@ -1958,11 +1960,13 @@ function mineHTML(){
     const interactive = !it.arch;
     const data = interactive ? (' data-h="'+it.h+'" data-cuz="'+it.c+'" role="button" tabindex="0"') : '';
     const secN = SECDE[it.c];
+    const itExtra = isPlaceholder(assignedIndex(it.c, it.h))
+      ? '<span class="badge-extra" title="Bir gönüllünün ekstra üstlendiği cüz">🤝</span>' : '';
     const st = it.done ? '<span class="tl-st">✓ okundu</span>'
              : (isOpenCuz(it.h, it.c) ? '<span class="tl-st wait" style="color:#fcd34d;">🙋 havuzda</span>' : '<span class="tl-st wait">bekliyor</span>');
     tl += '<div class="row tl-item'+(it.done?' done':'')+'"'+data+'>'
         + '<span class="tl-dot'+(it.done?' done':'')+'"></span>'
-        + '<div class="tl-body"><div class="tl-h">'+it.h+'. Hatim · '+it.c+'. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+'</div>'
+        + '<div class="tl-body"><div class="tl-h">'+it.h+'. Hatim · '+it.c+'. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+' '+itExtra+'</div>'
         + '<div class="tl-d">'+hatimDate(it.h)+'</div></div>'
         + st + '</div>';
   });
@@ -2330,6 +2334,11 @@ function toggle(h,cuz){
   const relBtn = canRelease
     ? '<button class="btn rel-btn" data-action="rel-cuz" data-h="'+h+'" data-cuz="'+cuz+'">🙏 Okumaya fırsatım yok — havuza bırak</button>'
     : '';
+  const secN = SECDE[cuz];
+  const secNote = (willRead && secN)
+    ? '<div class="admin-note" style="margin-top:12px;border-color:#7a5f1f;background:rgba(217,180,74,.08);color:#e9c45a;">'
+      + '۩ Bu cüzde <b>tilavet secdesi</b> vardır'+(secN>=2?' (2 secde)':'')+' — okurken unutmayın.</div>'
+    : '';
   uiConfirm({
     title: willRead ? 'Okundu olarak işaretle' : 'İşareti kaldır',
     okText: willRead ? '✓ Okudum' : 'Kaldır',
@@ -2337,6 +2346,7 @@ function toggle(h,cuz){
     body: '<span class="hl">'+h+'. hatim · '+cuz+'. cüz</span><br><span class="nm">'+kisi+'</span><br><br>'
         + (willRead ? 'Bu cüz <b>OKUNDU</b> olarak işaretlensin mi?'
                     : 'Bu cüzün işareti kaldırılsın mı? (okunmadı yapılacak)')
+        + secNote
         + relBtn,
     onOk: function(){
       function commitToggle(){
