@@ -482,7 +482,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.18.0</div>
+  <div class="app-version">V1.18.1</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -524,7 +524,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.18.0';
+const APP_VERSION = '1.18.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -2268,19 +2268,31 @@ function wtShowStep(idx){
 function wtFinish(){
   wtRemoveOverlay();
   wtActive = false;
+  wtScheduled = false;
   wtMarkSeen();
-  if(modal && !modal.hidden){ closeModal(); }
+  if(modal && !modal.hidden){
+    const cancelBtn = document.getElementById('modalCancel');
+    if(cancelBtn && cancelBtn.style.display !== 'none'){ cancelBtn.click(); }
+    else { closeModal(); }
+  }
 }
 function wtStart(){
   if(!myIdentity()){ pickIdentity(); return; }
   wtActive = true;
   wtShowStep(0);
 }
+let wtScheduled = false;
 function wtMaybeAutoStart(){
-  if(wtActive || wtSeen()) return;
+  if(wtActive || wtScheduled || wtSeen()) return;
   if(!myIdentity()) return;
   if(!document.querySelector('.hero-card')) return;
-  setTimeout(function(){ wtActive = true; wtShowStep(0); }, 500);
+  wtScheduled = true;
+  setTimeout(function(){
+    wtScheduled = false;
+    if(wtActive || wtSeen()) return; // bu arada başka bir yoldan zaten başlamış/bitmiş olabilir
+    wtActive = true;
+    wtShowStep(0);
+  }, 500);
 }
 (function(){
   const modalEl = document.getElementById('modal');
