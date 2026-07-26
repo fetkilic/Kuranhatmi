@@ -441,7 +441,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.14.0</div>
+  <div class="app-version">V1.15.0</div>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -482,7 +482,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.15.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -917,6 +917,7 @@ modal.addEventListener('click', function(e){
     if(a === 'adm-place'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].placeholder = !adminRows[i].placeholder; if(adminRows[i].placeholder) adminRows[i].volunteer = false; showAdminPanel(); return; }
     if(a === 'adm-vol'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].volunteer = !adminRows[i].volunteer; if(adminRows[i].volunteer) adminRows[i].placeholder = false; showAdminPanel(); return; }
     if(a === 'adm-manuel'){ syncAdminInputs(); const i = +b.dataset.ai; adminRows[i].manuel = !adminRows[i].manuel; showAdminPanel(); return; }
+    if(a === 'adm-share-manuel'){ shareManuelCuz(+b.dataset.ai); return; }
     if(a === 'adm-add'){ syncAdminInputs(); adminRows.push({name:'', active:true}); showAdminPanel(); return; }
     if(a === 'adm-add-place'){ syncAdminInputs(); adminRows.push({name:'Gönüllü', active:true, placeholder:true}); showAdminPanel(); return; }
     if(a === 'adm-add-manuel'){ syncAdminInputs(); adminRows.push({name:'Özel Kullanıcı', active:true, manuel:true}); showAdminPanel(); return; }
@@ -994,6 +995,30 @@ function syncAdminInputs(){
     const i = +inp.dataset.ai; if(adminRows[i]) adminRows[i].name = inp.value;
   });
 }
+function manuelAssignedCuz(i){
+  const out = [];
+  for(let h=1; h<=state.hatimCount; h++){
+    if(isArchived(h) || isRemoved(h)) continue;
+    for(let c=1;c<=30;c++){
+      if(effectiveIndex(c, h) === i) out.push({ h:h, c:c, done: isDone(h,c) });
+    }
+  }
+  return out;
+}
+function shareManuelCuz(i){
+  const name = liveName(i);
+  const list = manuelAssignedCuz(i);
+  if(list.length === 0){
+    uiAlert('Atanmış cüz yok', escAttr(name)+' için şu anda elle atanmış bir cüz bulunmuyor.');
+    return;
+  }
+  let msg = '🕌 *'+name+'* için okuman gereken cüzler:\n\n';
+  list.forEach(function(it){
+    msg += '• '+it.h+'. Hatim — '+it.c+'. Cüz'+(it.done ? ' ✓ (okundu)' : '')+'\n';
+  });
+  msg += '\nMerhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunmaktadır. Müsait olduğunuzda okuyup uygulamadan işaretleyebilir misiniz?\nAllah razı olsun 🤲';
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
 function showAdminPanel(){
   const activeCount = adminRows.filter(function(r){ return r.active && (r.name||'').trim() && !r.manuel; }).length;
   const manuelCount = adminRows.filter(function(r){ return r.active && r.manuel; }).length;
@@ -1003,7 +1028,8 @@ function showAdminPanel(){
     if(r.placeholder){
       ctrl = '<button class="admin-flag place on" data-action="adm-place" data-ai="'+i+'" title="Gönüllü yeri">Yer ✓</button>';
     } else if(r.manuel){
-      ctrl = '<button class="admin-flag manuel on" data-action="adm-manuel" data-ai="'+i+'" title="Özel Manuel Kullanıcı (Sıralı hatimlere girmez, sadece elle cüz atanır)">Özel ✓</button>';
+      ctrl = '<button class="admin-flag manuel on" data-action="adm-manuel" data-ai="'+i+'" title="Özel Manuel Kullanıcı (Sıralı hatimlere girmez, sadece elle cüz atanır)">Özel ✓</button>'
+           + '<button class="admin-flag" data-action="adm-share-manuel" data-ai="'+i+'" title="Bu kişinin atanmış cüzlerini WhatsApp\'tan paylaş">📲 Paylaş</button>';
     } else {
       ctrl = '<button class="admin-flag vol'+(r.volunteer?' on':'')+'" data-action="adm-vol" data-ai="'+i+'" title="Gönüllü havuzu">Gön.</button>'
            + '<button class="admin-flag manuel'+(r.manuel?' on':'')+'" data-action="adm-manuel" data-ai="'+i+'" title="Özel Manuel Kullanıcı yap">Özel</button>';
