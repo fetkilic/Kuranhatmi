@@ -110,7 +110,10 @@
   .tab.tab-mine{color:var(--gold2);border-color:#6a5528;}
   .mine-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
   .mine-head .avatar{flex:none;width:44px;height:44px;border-radius:50%;background:#2a2013;border:1px solid #6a5528;
-    display:flex;align-items:center;justify-content:center;font-size:21px;}
+    display:flex;align-items:center;justify-content:center;font-size:21px;position:relative;overflow:hidden;}
+  .avatar-edit{cursor:pointer;}
+  .avatar-cam{position:absolute;bottom:-2px;right:-2px;width:17px;height:17px;border-radius:50%;background:var(--gold);
+    display:flex;align-items:center;justify-content:center;font-size:9px;border:1.5px solid var(--bg2);}
   .mine-name{font-family:Georgia,"Times New Roman",serif;font-size:20px;font-weight:800;color:var(--gold);}
   .mine-sum{color:var(--muted);font-size:13px;margin-top:2px;}
   .mine-sum b.ok{color:var(--green-l);}
@@ -123,6 +126,21 @@
   .mtile .m-extra{font-size:9.5px;font-weight:800;color:var(--gold2);background:rgba(217,180,74,.16);
     border:1px solid #6a5528;border-radius:5px;padding:1px 6px;margin-top:3px;}
   .mine-hint{text-align:center;color:var(--muted);font-size:12px;font-style:italic;margin-top:18px;}
+  .mine-replay{display:block;text-align:center;color:var(--muted);font-size:11.5px;margin-top:8px;text-decoration:underline;cursor:pointer;}
+
+  /* Cüzlerim bağlamsal walkthrough (spot ışık + balon) */
+  .wt-dim{position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:9000;pointer-events:none;}
+  .wt-hole{position:fixed;border-radius:14px;box-shadow:0 0 0 2000px rgba(0,0,0,.68);z-index:9001;
+    pointer-events:none;transition:all .3s ease;background:transparent;}
+  .wt-tip{position:fixed;z-index:9002;background:var(--bg2);border:1px solid var(--gold);border-radius:12px;
+    padding:13px 15px;transition:all .3s ease;box-shadow:0 12px 34px rgba(0,0,0,.5);}
+  .wt-tip-title{font-size:13px;font-weight:800;color:var(--gold2);margin-bottom:5px;}
+  .wt-tip-body{font-size:12px;color:var(--muted);line-height:1.55;}
+  .wt-tip-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+  .wt-step{font-size:10.5px;color:var(--muted);}
+  .wt-next{font-size:12px;font-weight:800;color:var(--gold2);cursor:pointer;}
+  .wt-skip{position:fixed;top:14px;right:16px;z-index:9003;font-size:11px;color:var(--muted);
+    text-decoration:underline;cursor:pointer;background:var(--bg2);padding:5px 10px;border-radius:8px;border:1px solid var(--line);}
 
   /* Daha — konsolide yönetici menüsü */
   .daha-lock{text-align:center;padding:40px 20px;}
@@ -308,6 +326,7 @@
   .admin-row-top{display:flex;align-items:center;gap:8px;width:100%;}
   .admin-row-ctrls{display:flex;align-items:center;gap:6px;width:100%;flex-wrap:nowrap;}
   .admin-no{flex:none;width:22px;text-align:right;color:var(--muted);font-weight:700;font-size:13px;}
+  .admin-thumb{flex:none;width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid var(--line);}
   .admin-toggle{flex:1 1 0;min-width:0;padding:8px 6px;border-radius:8px;font-size:12px;font-weight:800;
     cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:all .15s;
     text-align:center;white-space:nowrap;}
@@ -463,9 +482,10 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.16.0</div>
+  <div class="app-version">V1.18.0</div>
 </div>
 
+<input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
 <nav class="bottom-nav" id="bottomNav">
   <button class="bn-item on" data-nav="cuzlerim">
     <span class="bn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></span>
@@ -504,7 +524,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.18.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -807,7 +827,7 @@ function load(){
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}, photos:{}};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -840,6 +860,7 @@ function applySnap(val){
   state.open = val.open || {};
   state.pcount = val.pcount || 30;
   state.rotSeeds = val.rotSeeds || {};
+  state.photos = val.photos || {};
   state.visits = val.visits || {};
   if(state.hatimCount < 1) state.hatimCount = 1;
   const currentCycle = Math.floor((state.hatimCount - 1) / 30);
@@ -1073,6 +1094,7 @@ function showAdminPanel(){
 
     rows += '<div class="admin-row'+(r.active?'':' off')+(r.placeholder?' ph':'')+(r.manuel?' man':'')+'">'
           + '<div class="admin-row-top"><span class="admin-no">'+(i+1)+'.</span>'
+          + (myPhoto(i) ? '<img src="'+myPhoto(i)+'" class="admin-thumb">' : '')
           + '<input class="admin-input" data-ai="'+i+'" value="'+escAttr(r.name)+'" placeholder="İsim"></div>'
           + '<div class="admin-row-ctrls"><button class="admin-toggle'+(r.active?' on':'')+'" data-action="adm-toggle" data-ai="'+i+'">'
           + (r.active?'Aktif':'Pasif')+'</button>'
@@ -2049,6 +2071,7 @@ function render(){
   }
   updateBottomNav();
   updateAppBadge();
+  if(activeHatim === 'mine') wtMaybeAutoStart();
 }
 function myAllCuz(){
   const me = myIdentity();
@@ -2115,7 +2138,11 @@ function mineHTML(){
   if(!me) return '<div class="empty">Önce üstteki <b>👤 Kim?</b> ile kim olduğunu seç, cüzlerin burada listelensin.</div>';
   const list = myAllCuz();
   const total = list.length, read = list.filter(function(x){ return x.done; }).length, wait = total - read;
-  const head = '<div class="mine-head"><div class="avatar">👤</div><div>'
+  const photo = myPhoto(me.idx);
+  const avatarInner = photo
+    ? '<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
+    : '👤';
+  const head = '<div class="mine-head"><div class="avatar avatar-edit" onclick="changeMyPhoto()" title="Profil fotoğrafını değiştir">'+avatarInner+'<span class="avatar-cam">📷</span></div><div>'
     + '<div class="mine-name">'+escAttr(me.name)+'</div>'
     + '<div class="mine-sum"><b>'+total+'</b> cüzün var'+(read?' · <b class="ok">'+read+' okundu</b>':'')+(wait>0?' · '+wait+' bekliyor':'')+'</div>'
     + '</div></div>';
@@ -2173,8 +2200,103 @@ function mineHTML(){
     + heroHTML
     + '<div class="tl-list">'+tl+'</div>'
     + '<div class="mine-hint">Sıradaki cüzün üstte. Bir satıra dokununca okundu olarak işaretlenir.</div>'
+    + '<div class="mine-replay" onclick="wtStart()">Nasıl çalışır? 🔄</div>'
     + '</section>';
 }
+
+const WT_VERSION = 'v1'; // sürüm değişirse anahtarı artır, eski kullanıcılara bir kez daha gösterilir
+function wtSeen(){
+  try{ return localStorage.getItem('hatim_wt_cuzlerim') === WT_VERSION; }catch(e){ return true; }
+}
+function wtMarkSeen(){
+  try{ localStorage.setItem('hatim_wt_cuzlerim', WT_VERSION); }catch(e){}
+}
+const WT_STEPS = [
+  { sel:'.hero-card', title:'Sıradaki Cüzün', body:'Bu kart her zaman senin şu anki sıradaki cüzünü gösterir.', place:'below' },
+  { sel:'.hero-btn', title:'Okundu İşaretle', body:'Okuduğunda buraya dokun — bir onay penceresi açılır.', place:'above', opensModal:true },
+  { sel:'#wtSecdeNote', title:'Secde Hatırlatması', body:'Bazı cüzlerde tilavet secdesi vardır — pencerede burada hatırlatılır.', place:'below', inModal:true },
+  { sel:'.rel-btn', title:'Okuyamıyorsan', body:'Bu hafta fırsatın yoksa, buradan havuza bırakabilirsin.', place:'below', inModal:true },
+  { sel:'#modalOk', title:'Onayla', body:'Okuduğunda burayı onaylayınca cüzün işaretlenir.', place:'above', inModal:true },
+];
+let wtActive = false;
+let wtStep = 0;
+let wtModalObserver = null;
+function wtRemoveOverlay(){
+  ['wtDim','wtHole','wtTip','wtSkip'].forEach(function(id){ const el = document.getElementById(id); if(el) el.remove(); });
+}
+function wtFindTarget(idx){ return document.querySelector(WT_STEPS[idx].sel); }
+function wtShowStep(idx){
+  while(idx < WT_STEPS.length && !wtFindTarget(idx)) idx++;
+  if(idx >= WT_STEPS.length){ wtFinish(); return; }
+  wtStep = idx;
+  const s = WT_STEPS[idx];
+  const target = wtFindTarget(idx);
+  wtRemoveOverlay();
+
+  const dim = document.createElement('div'); dim.id='wtDim'; dim.className='wt-dim';
+  const hole = document.createElement('div'); hole.id='wtHole'; hole.className='wt-hole';
+  const tip = document.createElement('div'); tip.id='wtTip'; tip.className='wt-tip';
+  const skip = document.createElement('div'); skip.id='wtSkip'; skip.className='wt-skip'; skip.textContent='Atla';
+  document.body.appendChild(dim);
+  document.body.appendChild(hole);
+  document.body.appendChild(tip);
+  document.body.appendChild(skip);
+
+  const r = target.getBoundingClientRect();
+  hole.style.left = (r.left-6)+'px';
+  hole.style.top = (r.top-6)+'px';
+  hole.style.width = (r.width+12)+'px';
+  hole.style.height = (r.height+12)+'px';
+
+  tip.innerHTML = '<div class="wt-tip-title">'+s.title+'</div><div class="wt-tip-body">'+s.body+'</div>'
+    + '<div class="wt-tip-row"><span class="wt-step">'+(idx+1)+' / '+WT_STEPS.length+'</span>'
+    + '<span class="wt-next" id="wtNextBtn">'+(idx===WT_STEPS.length-1?'Bitti ✓':'İleri ›')+'</span></div>';
+  const tipW = Math.min(240, window.innerWidth-24);
+  tip.style.width = tipW+'px';
+  let left = r.left + r.width/2 - tipW/2;
+  left = Math.max(10, Math.min(left, window.innerWidth-tipW-10));
+  tip.style.left = left+'px';
+  tip.style.top = (s.place === 'above' ? Math.max(10, r.top-132) : Math.min(window.innerHeight-140, r.bottom+12)) + 'px';
+
+  document.getElementById('wtNextBtn').onclick = function(){
+    if(s.opensModal){ target.click(); return; } // gerçek butonu tetikle, modal açılınca observer devam ettirir
+    if(idx === WT_STEPS.length-1){ wtFinish(); return; }
+    wtShowStep(idx+1);
+  };
+  skip.onclick = function(){ wtFinish(); };
+}
+function wtFinish(){
+  wtRemoveOverlay();
+  wtActive = false;
+  wtMarkSeen();
+  if(modal && !modal.hidden){ closeModal(); }
+}
+function wtStart(){
+  if(!myIdentity()){ pickIdentity(); return; }
+  wtActive = true;
+  wtShowStep(0);
+}
+function wtMaybeAutoStart(){
+  if(wtActive || wtSeen()) return;
+  if(!myIdentity()) return;
+  if(!document.querySelector('.hero-card')) return;
+  setTimeout(function(){ wtActive = true; wtShowStep(0); }, 500);
+}
+(function(){
+  const modalEl = document.getElementById('modal');
+  if(!modalEl || typeof MutationObserver === 'undefined') return;
+  wtModalObserver = new MutationObserver(function(){
+    if(!wtActive) return;
+    if(!modalEl.hidden){
+      // modal az önce açıldı — walkthrough hâlâ modal-öncesi adımdaysa modal adımlarına geç
+      if(wtStep < 2) setTimeout(function(){ wtShowStep(2); }, 80);
+    } else if(wtStep >= 1){
+      // modal kapandı (İptal ya da dışarı tıklama) — yarım kalan walkthrough'u bitir
+      wtFinish();
+    }
+  });
+  wtModalObserver.observe(modalEl, { attributes:true, attributeFilter:['hidden'] });
+})();
 
 function deviceLabel(){
   const ua = navigator.userAgent || '';
@@ -2234,6 +2356,53 @@ function recordVisit(){
     save();
   }
 }
+
+/* ---- Profil fotoğrafı ---- */
+function myPhoto(idx){
+  return (state.photos && state.photos[idx]) ? state.photos[idx] : null;
+}
+function resizeImageToDataUrl(file){
+  return new Promise(function(resolve, reject){
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = function(e){
+      img.onload = function(){
+        const SIZE = 160;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        // orta kare kırp, sonra SIZE x SIZE'a sığdır (avatar için)
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function changeMyPhoto(){
+  const me = myIdentity();
+  if(!me){ pickIdentity(); return; }
+  const inp = document.getElementById('photoInput');
+  if(inp) inp.click();
+}
+function onPhotoSelected(input){
+  const me = myIdentity();
+  const file = input.files && input.files[0];
+  input.value = '';
+  if(!me || !file) return;
+  resizeImageToDataUrl(file).then(function(dataUrl){
+    if(useFirebase){ fbRoot().update({ ['photos/'+me.idx]: dataUrl }); }
+    else { state.photos = state.photos || {}; state.photos[me.idx] = dataUrl; save(); render(); }
+  }).catch(function(){
+    uiAlert('Fotoğraf eklenemedi', 'Bu resim yüklenirken bir sorun oluştu. Başka bir fotoğraf dener misin?');
+  });
+}
+
 function loadMe(){
   try{ myUser = JSON.parse(localStorage.getItem('hatim_me') || 'null'); }catch(e){ myUser = null; }
 }
@@ -2533,7 +2702,7 @@ function toggle(h,cuz){
     : '';
   const secN = SECDE[cuz];
   const secNote = (willRead && secN)
-    ? '<div class="admin-note" style="margin-top:12px;border-color:#7a5f1f;background:rgba(217,180,74,.08);color:#e9c45a;">'
+    ? '<div class="admin-note" id="wtSecdeNote" style="margin-top:12px;border-color:#7a5f1f;background:rgba(217,180,74,.08);color:#e9c45a;">'
       + '۩ Bu cüzde <b>tilavet secdesi</b> vardır'+(secN>=2?' (2 secde)':'')+' — okurken unutmayın.</div>'
     : '';
   uiConfirm({
