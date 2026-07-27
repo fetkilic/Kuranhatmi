@@ -498,7 +498,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.19.1</div>
+  <div class="app-version">V1.19.2</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -540,7 +540,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.19.1';
+const APP_VERSION = '1.19.2';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1804,10 +1804,10 @@ function isStandaloneApp(){
     || navigator.standalone === true;
 }
 function installDismissed(){
-  try{ return localStorage.getItem('hatim_install_dismissed') === '1'; }catch(e){ return false; }
+  try{ return localStorage.getItem('hatim_install_dismissed_v2') === '1'; }catch(e){ return false; }
 }
 function markInstallDismissed(){
-  try{ localStorage.setItem('hatim_install_dismissed', '1'); }catch(e){}
+  try{ localStorage.setItem('hatim_install_dismissed_v2', '1'); }catch(e){}
 }
 function showInstallBanner(mode){
   if(isStandaloneApp() || installDismissed()) return;
@@ -1825,7 +1825,6 @@ window.addEventListener('beforeinstallprompt', function(e){
 window.addEventListener('appinstalled', function(){
   const b = document.getElementById('installBanner');
   if(b) b.hidden = true;
-  markInstallDismissed();
 });
 (function(){
   const btn = document.getElementById('installBtn');
@@ -1840,6 +1839,8 @@ window.addEventListener('appinstalled', function(){
           + '<br><br>1. Alttaki <b>Paylaş</b> simgesine dokun (kare içinde yukarı ok)'
           + '<br>2. Aşağı kaydırıp <b>"Ana Ekrana Ekle"</b>ye dokun'
           + '<br>3. Sağ üstten <b>Ekle</b>ye dokun');
+        if(b) b.hidden = true;
+        markInstallDismissed();
         return;
       }
       if(deferredInstallPrompt){
@@ -1847,7 +1848,6 @@ window.addEventListener('appinstalled', function(){
         deferredInstallPrompt.userChoice.finally(function(){
           deferredInstallPrompt = null;
           if(b) b.hidden = true;
-          markInstallDismissed();
         });
       }
     });
