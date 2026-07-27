@@ -465,6 +465,7 @@
 
   .install-banner{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--gold);
     border-radius:12px;padding:10px 12px;margin-bottom:14px;}
+  .install-banner[hidden]{display:none;}
   .install-icon{font-size:18px;flex:none;}
   .install-text{flex:1;font-size:12.5px;color:var(--text);font-weight:600;}
   .install-btn{flex:none;background:rgba(217,180,74,.18);border:1px solid var(--gold);color:var(--gold2);
@@ -497,7 +498,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.19.0</div>
+  <div class="app-version">V1.19.1</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -539,7 +540,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.19.0';
+const APP_VERSION = '1.19.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1816,6 +1817,7 @@ function showInstallBanner(mode){
   b.hidden = false;
 }
 window.addEventListener('beforeinstallprompt', function(e){
+  if(isStandaloneApp()) return;
   e.preventDefault();
   deferredInstallPrompt = e;
   showInstallBanner('android');
