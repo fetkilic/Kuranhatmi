@@ -462,6 +462,14 @@
   .celebrate .dua{display:inline-block;color:var(--green-l);font-weight:800;margin-top:2px;}
 
   .stats-banner{margin-top:8px;padding-top:7px;border-top:1px dashed var(--line);text-align:center;}
+
+  .install-banner{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--gold);
+    border-radius:12px;padding:10px 12px;margin-bottom:14px;}
+  .install-icon{font-size:18px;flex:none;}
+  .install-text{flex:1;font-size:12.5px;color:var(--text);font-weight:600;}
+  .install-btn{flex:none;background:rgba(217,180,74,.18);border:1px solid var(--gold);color:var(--gold2);
+    font-weight:800;font-size:12.5px;padding:7px 14px;border-radius:8px;cursor:pointer;}
+  .install-close{flex:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 4px;}
   .stats-banner .line{font-size:11.5px;color:var(--muted);}
   .stats-banner .line b{color:var(--gold2);font-weight:800;}
   .stats-banner .line b.g{color:var(--green-l);}
@@ -479,10 +487,17 @@
   </header>
   <div class="divider"></div>
 
+  <div class="install-banner" id="installBanner" hidden>
+    <span class="install-icon">📲</span>
+    <span class="install-text" id="installText">Uygulamayı ana ekranına ekle</span>
+    <button class="install-btn" id="installBtn">Ekle</button>
+    <span class="install-close" id="installClose">✕</span>
+  </div>
+
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.18.1</div>
+  <div class="app-version">V1.19.0</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -524,7 +539,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.18.1';
+const APP_VERSION = '1.19.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1780,6 +1795,75 @@ function isIOSDevice(){
 function isAndroidDevice(){
   return /Android/.test(navigator.userAgent || '');
 }
+
+/* ---- Ana ekrana ekle ---- */
+let deferredInstallPrompt = null;
+function isStandaloneApp(){
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+    || navigator.standalone === true;
+}
+function installDismissed(){
+  try{ return localStorage.getItem('hatim_install_dismissed') === '1'; }catch(e){ return false; }
+}
+function markInstallDismissed(){
+  try{ localStorage.setItem('hatim_install_dismissed', '1'); }catch(e){}
+}
+function showInstallBanner(mode){
+  if(isStandaloneApp() || installDismissed()) return;
+  const b = document.getElementById('installBanner');
+  if(!b) return;
+  b.dataset.mode = mode;
+  b.hidden = false;
+}
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showInstallBanner('android');
+});
+window.addEventListener('appinstalled', function(){
+  const b = document.getElementById('installBanner');
+  if(b) b.hidden = true;
+  markInstallDismissed();
+});
+(function(){
+  const btn = document.getElementById('installBtn');
+  const closeBtn = document.getElementById('installClose');
+  if(btn){
+    btn.addEventListener('click', function(){
+      const b = document.getElementById('installBanner');
+      const mode = b ? b.dataset.mode : 'android';
+      if(mode === 'ios'){
+        uiAlert('📲 Ana Ekrana Ekle',
+          'iPhone/iPad\'de otomatik yükleme yapılamıyor (Apple\'ın kısıtlaması). Elle eklemek için:'
+          + '<br><br>1. Alttaki <b>Paylaş</b> simgesine dokun (kare içinde yukarı ok)'
+          + '<br>2. Aşağı kaydırıp <b>"Ana Ekrana Ekle"</b>ye dokun'
+          + '<br>3. Sağ üstten <b>Ekle</b>ye dokun');
+        return;
+      }
+      if(deferredInstallPrompt){
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.finally(function(){
+          deferredInstallPrompt = null;
+          if(b) b.hidden = true;
+          markInstallDismissed();
+        });
+      }
+    });
+  }
+  if(closeBtn){
+    closeBtn.addEventListener('click', function(){
+      const b = document.getElementById('installBanner');
+      if(b) b.hidden = true;
+      markInstallDismissed();
+    });
+  }
+  // iOS'ta beforeinstallprompt hiç ateşlenmez — biz kendimiz tespit edip
+  // talimat gösteren bir banner çıkarıyoruz.
+  if(isIOSDevice() && !isStandaloneApp() && !installDismissed()){
+    setTimeout(function(){ showInstallBanner('ios'); }, 1800);
+  }
+})();
+
 function triggerIcsDownload(ics, filename){
   if(isIOSDevice()){
     // iOS Safari ignores the <a download> attribute and mishandles blob: URLs for
