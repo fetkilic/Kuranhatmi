@@ -77,6 +77,18 @@
   .t-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
   .name{font-size:13px;font-weight:700;letter-spacing:.2px;margin-top:4px;max-width:100%;line-height:1.15;
     overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .name.split{font-size:10.5px;letter-spacing:0;line-height:1.2;-webkit-line-clamp:3;}
+
+  /* Yarı-yarıya paylaşılan cüz — kart ortadan bölünür */
+  .row.split-row{flex-direction:column;justify-content:stretch;align-items:stretch;padding:8px 4px 6px;gap:0;}
+  .row.split-row.done{background:var(--green-bg);border-color:var(--green-l);}
+  .t-no.corner{position:absolute;top:4px;left:7px;font-size:11px;font-weight:800;color:var(--muted);z-index:2;}
+  .split-half{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:3px 4px;min-height:0;overflow:hidden;}
+  .split-divider{height:1px;background:var(--line);margin:1px 6px;flex:none;}
+  .split-name{font-size:10px;font-weight:700;line-height:1.2;color:var(--text);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .split-name.done{color:var(--green-l);}
+  .split-name.split-empty{color:#fcd34d;font-weight:700;font-size:9px;line-height:1.35;font-style:italic;}
   .sec-corner{position:absolute;top:0;left:0;background:#6d4a86;color:#fff;font-size:10px;font-weight:800;
     padding:2px 7px 3px;border-bottom-right-radius:10px;line-height:1;z-index:2;}
   .row.secde::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--sec);z-index:1;}
@@ -418,6 +430,8 @@
   .lg-act{font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;}
   .lg-act.ok{background:rgba(34,197,94,.16);color:var(--green-l);}
   .lg-act.undo{background:rgba(239,68,68,.16);color:#fca5a5;}
+  .lg-act.rel{background:rgba(217,180,74,.16);color:#fcd34d;}
+  .lg-act.claim{background:rgba(51,173,164,.18);color:var(--teal);}
   .lg-mid{font-size:13px;color:#e6c877;font-weight:700;}
   .lg-by{font-size:12.5px;color:#e9c45a;font-weight:700;margin-top:2px;}
   .vc-list{display:flex;flex-direction:column;gap:14px;max-height:56vh;overflow-y:auto;padding-right:4px;}
@@ -498,7 +512,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.19.2</div>
+  <div class="app-version">V1.22.1</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -540,7 +554,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.19.2';
+const APP_VERSION = '1.22.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -683,6 +697,7 @@ function isMyCuz(h, c){
   if(isAdmin) return true;
   const me = myIdentity();
   if(!me) return true;
+  if(mySplitHalf(h, c)) return true;
   if(isDone(h, c)) return readerName(h, c) === me.name;
   return effectiveIndex(c, h) === me.idx;
 }
@@ -705,11 +720,15 @@ function releaseCuz(h, cuz){
   if(useFirebase){
     rec.t = firebase.database.ServerValue.TIMESTAMP;
     fbPath('open/'+h+'/'+cuz).set(rec);
+    fbPath('releases/'+h+'/'+cuz).set(rec);
   } else {
     rec.t = Date.now();
     state.open = state.open || {};
     if(!state.open[h]) state.open[h] = {};
     state.open[h][cuz] = rec;
+    state.releases = state.releases || {};
+    if(!state.releases[h]) state.releases[h] = {};
+    state.releases[h][cuz] = rec;
     save(); render();
   }
 }
@@ -723,26 +742,116 @@ function unreleaseCuz(h, cuz){
 function takeCuz(h, cuz){
   const me = myIdentity();
   if(!me){ pickIdentity(); return; }
+  const claimRec = { by: me.name };
   if(useFirebase){
     const u = {};
     u['overrides/'+h+'/'+cuz] = me.idx;
     u['open/'+h+'/'+cuz] = null;
+    claimRec.t = firebase.database.ServerValue.TIMESTAMP;
+    u['claims/'+h+'/'+cuz+'/whole'] = claimRec;
     fbRoot().update(u);
   } else {
     state.overrides = state.overrides || {};
     if(!state.overrides[h]) state.overrides[h] = {};
     state.overrides[h][cuz] = me.idx;
     if(state.open && state.open[h]) delete state.open[h][cuz];
+    claimRec.t = Date.now();
+    state.claims = state.claims || {};
+    if(!state.claims[h]) state.claims[h] = {};
+    if(!state.claims[h][cuz]) state.claims[h][cuz] = {};
+    state.claims[h][cuz].whole = claimRec;
     save(); render();
   }
 }
 function isMyOwnCuz(h, c){
   const me = myIdentity();
   if(!me) return false;
+  if(mySplitHalf(h, c)) return true;
   return isDone(h, c) ? (readerName(h, c) === me.name) : (effectiveIndex(c, h) === me.idx);
+}
+function splitRec(h, c){ return (state.split && state.split[h] && state.split[h][c]) || null; }
+function splitHalfDone(h, c, half){ return !!(state.doneHalf && state.doneHalf[h] && state.doneHalf[h][c] && state.doneHalf[h][c][half]); }
+function isRealSplit(h, c){
+  const r = splitRec(h, c);
+  if(!r || !(r.first || r.second)) return false;
+  if(r.first && r.second && r.first.idx === r.second.idx) return false; // aynı kişi ikisini de aldıysa artık normal (bölünmemiş) cüz
+  return true;
+}
+function mySplitHalf(h, c){
+  const me = myIdentity();
+  if(!me) return null;
+  if(!isRealSplit(h, c)) return null;
+  const r = splitRec(h, c);
+  if(r.first && r.first.idx === me.idx) return 'first';
+  if(r.second && r.second.idx === me.idx) return 'second';
+  return null;
+}
+function splitDisplayName(h, c){
+  const r = splitRec(h, c);
+  if(!r) return null;
+  const f = r.first ? r.first.name : null;
+  const s = r.second ? r.second.name : null;
+  if(f && s) return f + ' + ' + s;
+  if(f) return f + ' (1. yarı) · Boşta (2. yarı)';
+  if(s) return 'Boşta (1. yarı) · ' + s + ' (2. yarı)';
+  return null;
+}
+function takeCuzHalf(h, cuz, half){
+  const me = myIdentity();
+  if(!me){ pickIdentity(); return; }
+  const other = half === 'first' ? 'second' : 'first';
+  const existing = splitRec(h, cuz) || {};
+  const bothWillBeTaken = !!existing[other];
+  const claimLabel = me.name + ' (' + (half === 'first' ? '1.' : '2.') + ' yarı)';
+  if(useFirebase){
+    const u = {};
+    u['split/'+h+'/'+cuz+'/'+half] = { idx: me.idx, name: me.name };
+    u['claims/'+h+'/'+cuz+'/'+half] = { by: claimLabel, t: firebase.database.ServerValue.TIMESTAMP };
+    if(bothWillBeTaken){ u['open/'+h+'/'+cuz] = null; }
+    fbRoot().update(u);
+  } else {
+    state.split = state.split || {}; if(!state.split[h]) state.split[h] = {}; if(!state.split[h][cuz]) state.split[h][cuz] = {};
+    state.split[h][cuz][half] = { idx: me.idx, name: me.name };
+    state.claims = state.claims || {}; if(!state.claims[h]) state.claims[h] = {}; if(!state.claims[h][cuz]) state.claims[h][cuz] = {};
+    state.claims[h][cuz][half] = { by: claimLabel, t: Date.now() };
+    if(bothWillBeTaken && state.open && state.open[h]) delete state.open[h][cuz];
+    save(); render();
+  }
+}
+function setSplitHalfDone(h, cuz, half, val){
+  const other = half === 'first' ? 'second' : 'first';
+  const otherDone = splitHalfDone(h, cuz, other);
+  const bothDone = val && otherDone;
+  const name = splitDisplayName(h, cuz);
+  if(useFirebase){
+    const u = {};
+    u['doneHalf/'+h+'/'+cuz+'/'+half] = val;
+    if(bothDone){
+      u['done/'+h+'/'+cuz] = true;
+      u['readers/'+h+'/'+cuz] = name;
+      u['times/'+h+'/'+cuz] = firebase.database.ServerValue.TIMESTAMP;
+    } else {
+      u['done/'+h+'/'+cuz] = null;
+    }
+    fbRoot().update(u);
+  } else {
+    state.doneHalf = state.doneHalf || {}; if(!state.doneHalf[h]) state.doneHalf[h] = {}; if(!state.doneHalf[h][cuz]) state.doneHalf[h][cuz] = {};
+    state.doneHalf[h][cuz][half] = val;
+    state.done[h] = state.done[h] || {};
+    if(bothDone){
+      state.done[h][cuz] = true;
+      state.readers[h] = state.readers[h] || {}; state.readers[h][cuz] = name;
+      state.times[h] = state.times[h] || {}; state.times[h][cuz] = Date.now();
+    } else {
+      state.done[h][cuz] = false;
+    }
+    save(); render(); detectCompletions();
+  }
 }
 function effectiveIndex(c, h){
   if(state.overrides && state.overrides[h] && state.overrides[h][c] != null) return state.overrides[h][c];
+  const sp = splitRec(h, c);
+  if(sp && sp.first && sp.second && sp.first.idx === sp.second.idx) return sp.first.idx;
   const i = assignedIndex(c, h);
   if(isPlaceholder(i)) return volunteerFor(c, h);
   return i;
@@ -767,6 +876,7 @@ function readerName(h, c){
 }
 function displayName(c, h){
   if(isDone(h,c)) return readerName(h, c);
+  if(isRealSplit(h, c)) return splitDisplayName(h, c);
   const i = effectiveIndex(c,h);
   if(i == null) return '—';
   if(state.snapshots && state.snapshots[h] && state.snapshots[h][i] != null) return state.snapshots[h][i];
@@ -843,7 +953,7 @@ function load(){
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}, photos:{}};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}, photos:{}, releases:{}, claims:{}, split:{}, doneHalf:{}};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -876,6 +986,10 @@ function applySnap(val){
   state.open = val.open || {};
   state.pcount = val.pcount || 30;
   state.rotSeeds = val.rotSeeds || {};
+  state.releases = val.releases || {};
+  state.claims = val.claims || {};
+  state.split = val.split || {};
+  state.doneHalf = val.doneHalf || {};
   state.photos = val.photos || {};
   state.visits = val.visits || {};
   if(state.hatimCount < 1) state.hatimCount = 1;
@@ -985,6 +1099,9 @@ modal.addEventListener('click', function(e){
     if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); if(_volReturn){ _volReturn = false; setTimeout(showVolunteerCuz, 60); } return; }
     if(a === 'vc-reassign'){ _volReturn = true; reassign(+b.dataset.h, +b.dataset.cuz); return; }
     if(a === 'become-vol'){ becomeVolunteer(); return; }
+    if(a === 'take-whole'){ closeModal(); takeCuz(+b.dataset.h, +b.dataset.cuz); return; }
+    if(a === 'take-half'){ closeModal(); takeCuzHalf(+b.dataset.h, +b.dataset.cuz, b.dataset.half); return; }
+    if(a === 'whoami'){ closeModal(); pickIdentity(); return; }
     if(a === 'rel-cuz'){
       const rh = +b.dataset.h, rc = +b.dataset.cuz;
       closeModal();
@@ -1190,15 +1307,33 @@ function rowHTML(name, cuz, done, interactive, h){
   const reassign = (interactive && isAdmin)
     ? '<button class="reassign-btn" data-action="reassign" data-h="'+h+'" data-cuz="'+cuz+'" title="Bu cüzü başkasına ata">✎</button>'
     : '';
-  const nameEl = done
+  const isSplitName = name.indexOf(' + ') !== -1;
+  const nameEl = (done && !isSplitName)
     ? '<span class="name clickable" data-action="profile" data-name="'+escAttr(name)+'">'+name+'</span>'
-    : '<span class="name">'+name+'</span>';
+    : '<span class="name'+(isSplitName?' split':'')+'">'+name+'</span>';
   const locked = interactive && !isMyCuz(h, cuz);
   const lockMark = locked ? '<span class="lockmark" title="Sadece kendi cüzünüz">🔒</span>' : '';
   const extra = interactive && isPlaceholder(assignedIndex(cuz, h));
   const extraBadge = extra ? '<span class="badge-extra" title="Bir gönüllünün ekstra üstlendiği cüz">🤝</span>' : '';
   const mine = interactive && isMyOwnCuz(h, cuz);
   const isOpen = interactive && isOpenCuz(h, cuz);
+  const sp = splitRec(h, cuz);
+  if(isRealSplit(h, cuz)){
+    const firstDone = splitHalfDone(h, cuz, 'first');
+    const secondDone = splitHalfDone(h, cuz, 'second');
+    const bothDone = firstDone && secondDone;
+    const halfHtml = function(rec, isDoneHalf){
+      if(!rec) return '<span class="split-name split-empty">Boşta<br>üstlenmek için dokun</span>';
+      return '<span class="split-name'+(isDoneHalf?' done':'')+'">'+escAttr(rec.name)+(isDoneHalf?' ✓':'')+'</span>';
+    };
+    return '<div class="row split-row'+(bothDone?' done':'')+(sec?' secde':'')+'"'+data+'>'
+      + secMark + reassign
+      + '<span class="t-no corner">'+cuz+'</span>'
+      + '<div class="split-half top">'+halfHtml(sp.first, firstDone)+'</div>'
+      + '<div class="split-divider"></div>'
+      + '<div class="split-half bottom">'+halfHtml(sp.second, secondDone)+'</div>'
+      + '</div>';
+  }
   const lbl = isOpen ? '🙋 boşta' : (mine ? '★ sizin cüzünüz' : 'cüz');
   if(isOpen){
     return '<div class="row open'+(sec?' secde':'')+'"'+data+'>'
@@ -2167,8 +2302,10 @@ function myAllCuz(){
     if(isRemoved(h)) continue;
     const arch = isArchived(h);
     for(let c=1;c<=30;c++){
-      const done = isDone(h, c);
-      const mine = done ? (readerName(h, c) === me.name) : (effectiveIndex(c, h) === me.idx);
+      const half = mySplitHalf(h, c);
+      let mine, done;
+      if(half){ mine = true; done = splitHalfDone(h, c, half); }
+      else { done = isDone(h, c); mine = done ? (readerName(h, c) === me.name) : (effectiveIndex(c, h) === me.idx); }
       if(mine) list.push({ h:h, c:c, done:done, arch:arch });
     }
   }
@@ -2520,8 +2657,10 @@ function myCuzStatus(h){
   if(!me) return { mine:0, pending:0, pendingCuz:[], doneCuz:[] };
   let mine = 0; const pendingCuz = []; const doneCuz = [];
   for(let c=1;c<=30;c++){
-    const done = isDone(h, c);
-    const isMine = done ? (readerName(h, c) === me.name) : (effectiveIndex(c, h) === me.idx);
+    const half = mySplitHalf(h, c);
+    let done, isMine;
+    if(half){ isMine = true; done = splitHalfDone(h, c, half); }
+    else { done = isDone(h, c); isMine = done ? (readerName(h, c) === me.name) : (effectiveIndex(c, h) === me.idx); }
     if(isMine){ mine++; if(!done) pendingCuz.push(c); else doneCuz.push(c); }
   }
   return { mine:mine, pending:pendingCuz.length, pendingCuz:pendingCuz, doneCuz:doneCuz };
@@ -2623,8 +2762,21 @@ function buildLog(){
       const c = +cstr;
       const t = (state.times && state.times[h] && state.times[h][c]) || null;
       const m = (state.meta && state.meta[h] && state.meta[h][c]) || null;
-      arr.push({ name: readerName(h, c), h:h, cuz:c, t:t,
+      arr.push({ act:'ok', name: readerName(h, c), h:h, cuz:c, t:t,
                  dev: m ? (m.dev||'') : '', city: m ? (m.city||'') : '', ip: m ? (m.ip||'') : '', by: m ? (m.by||'') : '', ver: m ? (m.ver||'') : '' });
+    }
+    const rl = (state.releases && state.releases[h]) || {};
+    for(const cstr in rl){
+      const r = rl[cstr]; if(!r) continue;
+      arr.push({ act:'rel', name: r.by || '?', h:h, cuz:+cstr, t: r.t || null });
+    }
+    const cl = (state.claims && state.claims[h]) || {};
+    for(const cstr in cl){
+      const slots = cl[cstr]; if(!slots) continue;
+      ['whole','first','second'].forEach(function(slot){
+        const cRec = slots[slot];
+        if(cRec) arr.push({ act:'claim', name: cRec.by || '?', h:h, cuz:+cstr, t: cRec.t || null });
+      });
     }
   }
   arr.sort(function(a,b){ return (b.t||0) - (a.t||0); });
@@ -2643,8 +2795,11 @@ function showLog(){
     if(e.ver)  meta += ' · 🏷️ v' + escAttr(e.ver);
     const byLine = (e.by && e.by !== e.name)
       ? '<div class="lg-by">✍️ işaretleyen: '+escAttr(e.by)+'</div>' : '';
+    const actLbl = e.act === 'rel' ? '<span class="lg-act rel">🙏 müsait değil</span>'
+                 : e.act === 'claim' ? '<span class="lg-act claim">🤝 üstlendi</span>'
+                 : '<span class="lg-act ok">okundu</span>';
     rows += '<div class="lg-row"><div class="lg-top"><span class="lg-name">'+escAttr(e.name||'?')+'</span>'
-          + '<span class="lg-act ok">okundu</span></div>'
+          + actLbl+'</div>'
           + '<div class="lg-mid">'+e.h+'. hatim · '+e.cuz+'. cüz</div>'
           + byLine
           + '<div class="lg-bot">'+meta+'</div></div>';
@@ -2715,8 +2870,11 @@ function showVolunteerCuz(){
     let rows = '';
     ol.forEach(function(c){
       const r = openRec(h, c) || {};
+      const nameHtml = isRealSplit(h, c)
+        ? '<span style="color:var(--teal);">🤝 '+escAttr(splitDisplayName(h,c))+'</span>'
+        : '<span style="color:#fcd34d;">🙋 boşta'+(r.by?' <span style="color:var(--muted);font-weight:600;font-size:12px;">('+escAttr(r.by)+' bıraktı)</span>':'')+'</span>';
       rows += '<div class="vc-row"><span class="vc-cuz">'+c+'. cüz</span>'
-            + '<span class="vc-name" style="color:#fcd34d;">🙋 boşta'+(r.by?' <span style="color:var(--muted);font-weight:600;font-size:12px;">('+escAttr(r.by)+' bıraktı)</span>':'')+'</span>'
+            + '<span class="vc-name">'+nameHtml+'</span>'
             + (isAdmin ? '<button class="vc-edit" data-action="vc-reassign" data-h="'+h+'" data-cuz="'+c+'">ata</button>' : '')
             + '</div>';
     });
@@ -2769,14 +2927,72 @@ function toggle(h,cuz){
       });
       return;
     }
+    const myHalf = mySplitHalf(h, cuz);
+    if(myHalf){
+      const otherHalf = myHalf === 'first' ? 'second' : 'first';
+      const otherTaken = !!(splitRec(h, cuz) && splitRec(h, cuz)[otherHalf]);
+      const willRead = !splitHalfDone(h, cuz, myHalf);
+      const extraBtn = !otherTaken
+        ? '<div class="cal-opts" style="margin-top:14px;">'
+          + '<button class="btn admin-add" data-action="take-half" data-h="'+h+'" data-cuz="'+cuz+'" data-half="'+otherHalf+'">🔷 Diğer yarıyı da ben üstleneyim</button>'
+          + '</div>'
+        : '';
+      uiConfirm({
+        title: willRead ? 'Yarını okundu işaretle' : 'İşareti kaldır',
+        okText: willRead ? '✓ Okudum' : 'Kaldır',
+        danger: !willRead,
+        body: '<span class="hl">'+h+'. hatim · '+cuz+'. cüz — '+(myHalf==='first'?'1. yarı':'2. yarı')+'</span><br><br>'
+            + 'Bu yarı '+(willRead ? '<b>OKUNDU</b> olarak işaretlensin mi?' : 'okunmadı yapılsın mı?')
+            + extraBtn,
+        onOk: function(){ setSplitHalfDone(h, cuz, myHalf, willRead); }
+      });
+      return;
+    }
+    const sp = splitRec(h, cuz);
+    const firstTaken = sp && sp.first;
+    const secondTaken = sp && sp.second;
+    let claimOpts;
+    let claimNote;
+    if(firstTaken && !secondTaken){
+      claimNote = '1. yarısını <b>'+escAttr(sp.first.name)+'</b> zaten üstlendi.';
+      claimOpts = '<button class="btn admin-add" data-action="take-half" data-h="'+h+'" data-cuz="'+cuz+'" data-half="second">🟣 İkinci Yarısını Üstleniyorum (%50)</button>';
+    } else if(!firstTaken && secondTaken){
+      claimNote = '2. yarısını <b>'+escAttr(sp.second.name)+'</b> zaten üstlendi.';
+      claimOpts = '<button class="btn admin-add" data-action="take-half" data-h="'+h+'" data-cuz="'+cuz+'" data-half="first">🔵 İlk Yarısını Üstleniyorum (%50)</button>';
+    } else {
+      claimNote = '';
+      claimOpts = '<button class="btn admin-add" data-action="take-whole" data-h="'+h+'" data-cuz="'+cuz+'">✅ Tamamını Üstleniyorum (%100)</button>'
+        + '<button class="btn admin-add" data-action="take-half" data-h="'+h+'" data-cuz="'+cuz+'" data-half="first">🔵 İlk Yarısını Üstleniyorum (%50)</button>'
+        + '<button class="btn admin-add" data-action="take-half" data-h="'+h+'" data-cuz="'+cuz+'" data-half="second">🟣 İkinci Yarısını Üstleniyorum (%50)</button>';
+    }
     uiConfirm({
       title:'🤝 Bu cüzü üstlen',
       body:'<span class="hl">'+h+'. hatim · '+cuz+'. cüz</span><br><br>'
-          +'Bu cüzün sahibi bu hafta okuma fırsatı bulamamış ve havuza bırakmış.<br><br>'
-          +(me ? 'Bu cüzü <b>'+escAttr(me.name)+'</b> olarak üstlenmek ister misiniz?' : 'Üstlenmek için önce kim olduğunuzu seçmeniz gerekiyor.'),
-      okText: me ? '🤝 Üstleniyorum' : '👤 Kim olduğumu seç', cancelText:'Vazgeç',
-      onOk: function(){ takeCuz(h, cuz); }
+          +'Bu cüzün sahibi bu hafta okuma fırsatı bulamamış ve havuza bırakmış.'
+          +(claimNote ? '<br><br>'+claimNote : '<br><br>Tamamını ya da yarısını üstlenebilirsiniz.')
+          +(me ? '' : '<br><br>Üstlenmek için önce kim olduğunuzu seçmeniz gerekiyor.')
+          +'<div class="cal-opts" style="margin-top:14px;">'
+          +(me ? claimOpts : '<button class="btn admin-add" data-action="whoami">👤 Kim olduğumu seç</button>')
+          +'</div>',
+      okText:'Kapat', hideCancel:true
     });
+    return;
+  }
+  const mySplitH = mySplitHalf(h, cuz);
+  if(mySplitH){
+    const willRead = !splitHalfDone(h, cuz, mySplitH);
+    uiConfirm({
+      title: willRead ? 'Yarını okundu işaretle' : 'İşareti kaldır',
+      okText: willRead ? '✓ Okudum' : 'Kaldır',
+      danger: !willRead,
+      body: '<span class="hl">'+h+'. hatim · '+cuz+'. cüz — '+(mySplitH==='first'?'1. yarı':'2. yarı')+'</span><br><br>'
+          + 'Bu yarı '+(willRead ? '<b>OKUNDU</b> olarak işaretlensin mi?' : 'okunmadı yapılsın mı?'),
+      onOk: function(){ setSplitHalfDone(h, cuz, mySplitH, willRead); }
+    });
+    return;
+  }
+  if(splitRec(h, cuz)){
+    uiAlert('Bu cüz paylaşımlı', 'Bu cüz iki kişi arasında paylaşılmış: <b>'+escAttr(splitDisplayName(h,cuz) || '')+'</b>.');
     return;
   }
   if(!isMyCuz(h, cuz)){
