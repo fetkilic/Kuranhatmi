@@ -501,7 +501,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.20.0</div>
+  <div class="app-version">V1.21.0</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -543,7 +543,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.20.0';
+const APP_VERSION = '1.21.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -857,7 +857,7 @@ function load(){
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}, photos:{}, releases:{}, claims:{}};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}, photos:{}, releases:{}, claims:{}, broadcast:null};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -894,6 +894,8 @@ function applySnap(val){
   state.claims = val.claims || {};
   state.photos = val.photos || {};
   state.visits = val.visits || {};
+  state.broadcast = val.broadcast || null;
+  checkBroadcast();
   if(state.hatimCount < 1) state.hatimCount = 1;
   const currentCycle = Math.floor((state.hatimCount - 1) / 30);
   if(currentCycle >= 1){
@@ -2218,6 +2220,7 @@ function dahaHTML(){
     { icon:'📋', label:'Kayıt Defteri', sub:'Kim, ne zaman, hangi cüzü işaretledi', action:'showlog' },
     { icon:'👀', label:'Ziyaret Kayıtları', sub:'Kim uygulamayı en son ne zaman açtı', action:'showvisits' },
     { icon:'🖨️', label:'Aylık Özet Bülteni', sub:'Yazdırılabilir/paylaşılabilir aile bülteni', action:'bulletin' },
+    { icon:'📢', label:'Herkese Hatırlatma Gönder', sub:'Süre dolmadan uygulama içi duyuru + bildirim', action:'broadcast-send' },
   ];
   const list = items.map(function(it){
     return '<button class="daha-item" data-action="'+it.action+'">'
@@ -2456,6 +2459,39 @@ function detectCityOnce(){
 
 let myUser = null;
 let identityPrompted = false;
+function checkBroadcast(){
+  const b = state.broadcast;
+  if(!b || !b.msg || !b.t) return;
+  let seenT = null;
+  try{ seenT = localStorage.getItem('hatim_broadcast_seen'); }catch(e){}
+  const curT = String(b.t);
+  if(seenT === curT) return;
+  try{ localStorage.setItem('hatim_broadcast_seen', curT); }catch(e){}
+  uiAlert('📢 Duyuru', escAttr(b.msg).replace(/\n/g, '<br>'));
+  if('Notification' in window && Notification.permission === 'granted'){
+    try{ new Notification('📢 Hatim Takip', { body: b.msg, tag: 'hatim-broadcast' }); }catch(e){}
+  }
+}
+function sendBroadcast(){
+  if(!isAdmin) return;
+  uiConfirm({
+    title:'📢 Herkese Hatırlatma Gönder',
+    body:'Tüm katılımcılar uygulamayı bir sonraki açışlarında (veya açıksa hemen) bu mesajı görecek. Bildirim izni vermiş olanlarda ayrıca gerçek bir bildirim de tetiklenir (sekme açık/yakın zamanda kullanılmışsa).'
+        +'<br><br><textarea id="broadcastMsg" class="admin-input" style="width:100%;min-height:76px;resize:vertical;">⏰ Süre dolmak üzere — henüz okumadığınız cüzünüz varsa bu hafta bitmeden okuyunuz!</textarea>',
+    okText:'📢 Gönder', cancelText:'Vazgeç',
+    onOk: function(){
+      const el = document.getElementById('broadcastMsg');
+      const msg = el ? el.value.trim() : '';
+      if(!msg) return;
+      if(useFirebase){
+        fbRoot().update({ broadcast: { msg: msg, t: firebase.database.ServerValue.TIMESTAMP } });
+      } else {
+        state.broadcast = { msg: msg, t: Date.now() };
+        save(); render();
+      }
+    }
+  });
+}
 function recordVisit(){
   const me = myIdentity();
   if(!me) return;
@@ -3025,6 +3061,7 @@ app.addEventListener('click', e=>{
     else if(a === 'showlog'){ showLog(); }
     else if(a === 'showvisits'){ showVisitLog(); }
     else if(a === 'bulletin'){ showBulletinPicker(); }
+    else if(a === 'broadcast-send'){ sendBroadcast(); }
     else if(a === 'volcuz'){ showVolunteerCuz(); }
     else if(a === 'admin-logout'){ isAdmin = false; render(); }
     else if(a === 'reassign'){ _volReturn = false; reassign(h, +btn.dataset.cuz); }
