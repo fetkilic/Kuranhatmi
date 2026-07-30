@@ -501,7 +501,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.21.0</div>
+  <div class="app-version">V1.22.0</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -543,7 +543,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.21.0';
+const APP_VERSION = '1.22.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1108,6 +1108,22 @@ function shareManuelCuz(i){
     msg += '• '+it.h+'. Hatim — '+it.c+'. Cüz'+(it.done ? ' ✓ (okundu)' : '')+'\n';
   });
   msg += '\nMerhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunmaktadır. Müsait olduğunuzda okuyup uygulamadan işaretleyebilir misiniz?\nAllah razı olsun 🤲';
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+function shareMyCuzWhatsApp(){
+  if(!isAdmin) return;
+  const me = myIdentity();
+  if(!me) return;
+  const list = myAllCuz();
+  if(list.length === 0){
+    uiAlert('Cüz yok', escAttr(me.name)+' için şu anda kayıtlı bir cüz bulunmuyor.');
+    return;
+  }
+  let msg = '🕌 *'+me.name+'* için hatim cüzleri:\n\n';
+  list.forEach(function(it){
+    msg += '• '+it.h+'. Hatim — '+it.c+'. Cüz'+(it.done ? ' ✓ (okundu)' : ' (bekliyor)')+'\n';
+  });
+  msg += '\nMerhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunmaktadır. Allah razı olsun 🤲';
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 function showAdminPanel(){
@@ -2305,6 +2321,7 @@ function mineHTML(){
     + heroHTML
     + '<div class="tl-list">'+tl+'</div>'
     + '<div class="mine-hint">Sıradaki cüzün üstte. Bir satıra dokununca okundu olarak işaretlenir.</div>'
+    + (isAdmin ? '<button class="btn admin-add" style="width:100%;margin-top:10px;" data-action="share-my-cuz">📲 '+escAttr(me.name)+'\'in cüzlerini WhatsApp\'tan paylaş</button>' : '')
     + '<div class="mine-replay" onclick="wtStart()">Nasıl çalışır? 🔄</div>'
     + '</section>';
 }
@@ -3058,6 +3075,7 @@ app.addEventListener('click', e=>{
     else if(a === 'daha-login'){ dahaLogin(); }
     else if(a === 'daha-participants'){ initAdminRows(); showAdminPanel(); }
     else if(a === 'whoami'){ pickIdentity(); }
+    else if(a === 'share-my-cuz'){ shareMyCuzWhatsApp(); }
     else if(a === 'showlog'){ showLog(); }
     else if(a === 'showvisits'){ showVisitLog(); }
     else if(a === 'bulletin'){ showBulletinPicker(); }
