@@ -501,7 +501,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.22.1</div>
+  <div class="app-version">V1.23.0</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -543,7 +543,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.22.1';
+const APP_VERSION = '1.23.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -997,6 +997,7 @@ modal.addEventListener('click', function(e){
     if(a === 'adm-share-manuel'){ shareManuelCuz(+b.dataset.ai); return; }
     if(a === 'adm-add'){ syncAdminInputs(); adminRows.push({name:'', active:true}); showAdminPanel(); return; }
     if(a === 'adm-add-place'){ syncAdminInputs(); adminRows.push({name:'Gönüllü', active:true, placeholder:true}); showAdminPanel(); return; }
+    if(a === 'adm-transfer'){ showTransferPicker(); return; }
     if(a === 'adm-add-manuel'){ syncAdminInputs(); adminRows.push({name:'Özel Kullanıcı', active:true, manuel:true}); showAdminPanel(); return; }
     if(a === 'adm-to-place'){ syncAdminInputs(); showToPlacePicker(); return; }
     if(a === 'adm-set-place'){ const i = +b.dataset.ai; if(adminRows[i]){ adminRows[i].placeholder = true; adminRows[i].volunteer = false; } showAdminPanel(); return; }
@@ -1162,10 +1163,56 @@ function showAdminPanel(){
         +'<button class="btn admin-add" data-action="adm-add">＋ Kişi ekle</button>'
         +'<button class="btn admin-add manuel" data-action="adm-add-manuel">＋ Özel (Manuel) Kullanıcı Ekle</button>'
         +'<button class="btn admin-add place" data-action="adm-add-place">＋ Gönüllü yeri ekle</button>'
+        +'<button class="btn admin-add" data-action="adm-transfer" style="background:#1a2e4d;border-color:#2f5aa8;color:#c9dcff;">🔀 Cüzleri Başka Kişiye Taşı</button>'
         +'</div>',
     okText:'Kaydet',
     onOk:saveAdminParticipants
   });
+}
+function showTransferPicker(){
+  syncAdminInputs();
+  let opts = '';
+  adminRows.forEach(function(r, i){
+    if(r.placeholder) return;
+    const label = (i+1)+'. '+((r.name||'').trim() || '(isimsiz)') + (r.active?'':' (pasif)') + (r.manuel?' — Özel':'');
+    opts += '<option value="'+i+'">'+escAttr(label)+'</option>';
+  });
+  uiConfirm({
+    wide:true,
+    title:'🔀 Cüzleri Başka Kişiye Taşı',
+    body:'<div class="admin-note">Bir kişiye elle veya rotasyonla atanmış (override) tüm cüzleri başka bir kişiye toplu taşır. Aynı isim farklı bir sıra numarasıyla yeniden eklendiğinde ("özel" kullanıcıdan sıralı listeye geçiş gibi) cüzlerin yeni kayda bağlı görünmesini sağlamak için kullanılır.</div>'
+        +'<div style="margin-top:10px;font-size:12px;color:var(--muted);font-weight:700;">Kimden (cüzleri alınacak kişi)</div>'
+        +'<select id="transferFrom" class="admin-input" style="width:100%;">'+opts+'</select>'
+        +'<div style="margin-top:10px;font-size:12px;color:var(--muted);font-weight:700;">Kime (cüzler buraya taşınacak)</div>'
+        +'<select id="transferTo" class="admin-input" style="width:100%;">'+opts+'</select>',
+    okText:'Taşı', cancelText:'Vazgeç',
+    onOk: function(){
+      const fromIdx = +document.getElementById('transferFrom').value;
+      const toIdx = +document.getElementById('transferTo').value;
+      if(fromIdx === toIdx){ uiAlert('Aynı kişi', 'Kimden ve kime aynı kişi seçilemez.'); return; }
+      transferCuzOwnership(fromIdx, toIdx);
+    }
+  });
+}
+function transferCuzOwnership(fromIdx, toIdx){
+  let count = 0;
+  const updates = {};
+  for(let h=1; h<=state.hatimCount; h++){
+    for(let c=1;c<=30;c++){
+      if(state.overrides && state.overrides[h] && state.overrides[h][c] === fromIdx){
+        count++;
+        if(useFirebase){ updates['overrides/'+h+'/'+c] = toIdx; }
+        else { state.overrides[h][c] = toIdx; }
+      }
+    }
+  }
+  if(count === 0){
+    uiAlert('Taşınacak cüz yok', 'Bu kişiye elle atanmış (override) bir cüz bulunmuyor. Cüz, normal sıralı rotasyondan geliyorsa bu araç onu etkilemez.');
+    return;
+  }
+  if(useFirebase){ fbRoot().update(updates); }
+  else { save(); render(); }
+  uiAlert('✓ Taşındı', count+' cüz başarıyla taşındı.');
 }
 function showToPlacePicker(){
   let rows = '';
