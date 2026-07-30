@@ -501,7 +501,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.22.0</div>
+  <div class="app-version">V1.22.1</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -543,7 +543,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.22.0';
+const APP_VERSION = '1.22.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -1105,7 +1105,7 @@ function shareManuelCuz(i){
   }
   let msg = '🕌 *'+name+'* için okuman gereken cüzler:\n\n';
   list.forEach(function(it){
-    msg += '• '+it.h+'. Hatim — '+it.c+'. Cüz'+(it.done ? ' ✓ (okundu)' : '')+'\n';
+    msg += '• '+it.h+'. Hatim — '+it.c+'. Cüz'+(it.done ? ' ✓ (okundu)' : ' (son tarih: '+hatimDate(it.h)+')')+'\n';
   });
   msg += '\nMerhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunmaktadır. Müsait olduğunuzda okuyup uygulamadan işaretleyebilir misiniz?\nAllah razı olsun 🤲';
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
@@ -1121,7 +1121,7 @@ function shareMyCuzWhatsApp(){
   }
   let msg = '🕌 *'+me.name+'* için hatim cüzleri:\n\n';
   list.forEach(function(it){
-    msg += '• '+it.h+'. Hatim — '+it.c+'. Cüz'+(it.done ? ' ✓ (okundu)' : ' (bekliyor)')+'\n';
+    msg += '• '+it.h+'. Hatim — '+it.c+'. Cüz'+(it.done ? ' ✓ (okundu)' : ' (son tarih: '+hatimDate(it.h)+')')+'\n';
   });
   msg += '\nMerhum Hâfız Halil Kılıç (Hacıbabamız) ruhuna okunmaktadır. Allah razı olsun 🤲';
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
