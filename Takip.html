@@ -191,6 +191,9 @@
   .row.hero-card.hero-enter{animation:heroSlideUpIn .4s cubic-bezier(.2,.8,.3,1);}
 
   .tl-list{display:flex;flex-direction:column;}
+  .tl-section-head{margin-top:18px;margin-bottom:6px;padding-top:14px;border-top:1px dashed var(--line);
+    font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .tl-section-count{color:var(--green-l);font-weight:700;text-transform:none;letter-spacing:0;}
   .row.tl-item{display:flex;flex-direction:row;align-items:center;gap:10px;text-align:left;
     min-height:0;background:none;border:none;border-top:1px solid rgba(255,255,255,.06);
     border-radius:0;padding:10px 2px;cursor:pointer;}
@@ -501,7 +504,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.23.0</div>
+  <div class="app-version">V1.23.1</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -543,7 +546,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.23.0';
+const APP_VERSION = '1.23.1';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -2348,7 +2351,9 @@ function mineHTML(){
   }
 
   let tl = '';
-  rest.forEach(function(it){
+  const restPending = rest.filter(function(it){ return !it.done; });
+  const restDone = rest.filter(function(it){ return it.done; });
+  function tlItemHTML(it){
     const interactive = !it.arch;
     const data = interactive ? (' data-h="'+it.h+'" data-cuz="'+it.c+'" role="button" tabindex="0"') : '';
     const secN = SECDE[it.c];
@@ -2356,17 +2361,24 @@ function mineHTML(){
       ? '<span class="badge-extra" title="Bir gönüllünün ekstra üstlendiği cüz">🤝</span>' : '';
     const st = it.done ? '<span class="tl-st">✓ okundu</span>'
              : (isOpenCuz(it.h, it.c) ? '<span class="tl-st wait" style="color:#fcd34d;">🙋 havuzda</span>' : '<span class="tl-st wait">bekliyor</span>');
-    tl += '<div class="row tl-item'+(it.done?' done':'')+'"'+data+'>'
+    return '<div class="row tl-item'+(it.done?' done':'')+'"'+data+'>'
         + '<span class="tl-dot'+(it.done?' done':'')+'"></span>'
         + '<div class="tl-body"><div class="tl-h">'+it.h+'. Hatim · '+it.c+'. Cüz'+(secN?' <span style="color:var(--sec);">۩'+(secN>=2?'2':'')+'</span>':'')+' '+itExtra+'</div>'
         + '<div class="tl-d">'+hatimDate(it.h)+'</div></div>'
         + st + '</div>';
-  });
+  }
+  restPending.forEach(function(it){ tl += tlItemHTML(it); });
+  let tlDone = '';
+  restDone.forEach(function(it){ tlDone += tlItemHTML(it); });
+  const doneSection = restDone.length
+    ? '<div class="tl-section-head">✓ Okunanlar <span class="tl-section-count">('+restDone.length+')</span></div><div class="tl-list">'+tlDone+'</div>'
+    : '';
 
   return '<section class="hatim-section">'
     + head
     + heroHTML
     + '<div class="tl-list">'+tl+'</div>'
+    + doneSection
     + '<div class="mine-hint">Sıradaki cüzün üstte. Bir satıra dokununca okundu olarak işaretlenir.</div>'
     + (isAdmin ? '<button class="btn admin-add" style="width:100%;margin-top:10px;" data-action="share-my-cuz">📲 '+escAttr(me.name)+'\'in cüzlerini WhatsApp\'tan paylaş</button>' : '')
     + '<div class="mine-replay" onclick="wtStart()">Nasıl çalışır? 🔄</div>'
