@@ -424,6 +424,7 @@
   .lg-act.undo{background:rgba(239,68,68,.16);color:#fca5a5;}
   .lg-act.rel{background:rgba(217,180,74,.16);color:#fcd34d;}
   .lg-act.claim{background:rgba(51,173,164,.18);color:var(--teal);}
+  .lg-act.handoff{background:rgba(150,120,220,.18);color:#c9a8f5;}
   .lg-mid{font-size:13px;color:#e6c877;font-weight:700;}
   .lg-by{font-size:12.5px;color:#e9c45a;font-weight:700;margin-top:2px;}
   .vc-list{display:flex;flex-direction:column;gap:14px;max-height:56vh;overflow-y:auto;padding-right:4px;}
@@ -504,7 +505,7 @@
   <div id="app"></div>
 
   <footer>Bir cüzü "okundu" işaretlemek için karta dokunun. Her yeni hatimde okuyucuların cüzü bir ileri kayar. Firebase bağlıyken işaretlemeler tüm aileyle gerçek zamanlı paylaşılır.</footer>
-  <div class="app-version">V1.23.1</div>
+  <div class="app-version">V1.24.0</div>
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(this)">
@@ -546,7 +547,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
 <script>
 /* ---- Sürüm & otomatik güncelleme ---- */
-const APP_VERSION = '1.23.1';
+const APP_VERSION = '1.24.0';
 (function(){
   try{
     const vEl = document.querySelector('.app-version');
@@ -860,7 +861,7 @@ function load(){
   if(!st.pcount) st.pcount = 30;
   return st;
 }
-let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}, photos:{}, releases:{}, claims:{}, broadcast:null};
+let state = {hatimCount:1, done:{}, archived:[], removed:[], names:{}, snapshots:{}, readers:{}, times:{}, meta:{}, open:{}, inactive:{}, placeholder:{}, volunteer:{}, manuel:{}, overrides:{}, pcount:30, rotSeeds:{}, visits:{}, photos:{}, releases:{}, claims:{}, broadcast:null, handoffs:{}};
 if(!useFirebase){ state = load(); }
 function save(){ window.__state = state; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -894,6 +895,7 @@ function applySnap(val){
   state.pcount = val.pcount || 30;
   state.rotSeeds = val.rotSeeds || {};
   state.releases = val.releases || {};
+  state.handoffs = val.handoffs || {};
   state.claims = val.claims || {};
   state.photos = val.photos || {};
   state.visits = val.visits || {};
@@ -1007,6 +1009,8 @@ modal.addEventListener('click', function(e){
     if(a === 'pick-reader'){ setOverride(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); closeModal(); if(_volReturn){ _volReturn = false; setTimeout(showVolunteerCuz, 60); } return; }
     if(a === 'vc-reassign'){ _volReturn = true; reassign(+b.dataset.h, +b.dataset.cuz); return; }
     if(a === 'become-vol'){ becomeVolunteer(); return; }
+    if(a === 'handoff-open'){ closeModal(); setTimeout(function(){ showHandoffPicker(+b.dataset.h, +b.dataset.cuz); }, 60); return; }
+    if(a === 'handoff-pick'){ handoffCuz(+b.dataset.h, +b.dataset.cuz, +b.dataset.i); return; }
     if(a === 'rel-cuz'){
       const rh = +b.dataset.h, rc = +b.dataset.cuz;
       closeModal();
@@ -1713,6 +1717,43 @@ function showProfile(name){
 }
 
 let _volReturn = false;
+function showHandoffPicker(h, cuz){
+  const me = myIdentity();
+  const list = allActiveList().filter(function(i){ return !isPlaceholder(i) && (!me || i !== me.idx); });
+  let rows = '';
+  list.forEach(function(i){
+    rows += '<button class="pick-btn" data-action="handoff-pick" data-h="'+h+'" data-cuz="'+cuz+'" data-i="'+i+'">'+escAttr(liveName(i))+(isManuel(i)?' (Özel)':'')+'</button>';
+  });
+  uiConfirm({
+    wide:true,
+    title:'🔄 Kiminle Anlaştınız?',
+    body:'<div class="admin-note"><span class="hl">'+h+'. hatim · '+cuz+'. cüz</span>ünü okuması için anlaştığınız kişiyi seçin — cüz doğrudan o kişiye devredilir.</div>'
+        +'<div class="pick-list">'+rows+'</div>',
+    okText:'Kapat', hideCancel:true
+  });
+}
+function handoffCuz(h, cuz, toIdx){
+  const me = myIdentity();
+  const fromName = me ? me.name : displayName(cuz, h);
+  const toName = liveName(toIdx);
+  const rec = { from: fromName, to: toName };
+  if(useFirebase){
+    const u = {};
+    u['overrides/'+h+'/'+cuz] = toIdx;
+    rec.t = firebase.database.ServerValue.TIMESTAMP;
+    u['handoffs/'+h+'/'+cuz] = rec;
+    fbRoot().update(u);
+  } else {
+    state.overrides = state.overrides || {}; if(!state.overrides[h]) state.overrides[h] = {};
+    state.overrides[h][cuz] = toIdx;
+    rec.t = Date.now();
+    state.handoffs = state.handoffs || {}; if(!state.handoffs[h]) state.handoffs[h] = {};
+    state.handoffs[h][cuz] = rec;
+    save(); render();
+  }
+  closeModal();
+  uiAlert('✓ Devredildi', cuz+'. cüz artık <b>'+escAttr(toName)+'</b>\'e ait.');
+}
 function reassign(h, cuz){
   if(!isAdmin) return;
   const list = allActiveList().filter(function(i){ return !isPlaceholder(i); });
@@ -2764,6 +2805,11 @@ function buildLog(){
       const cRec = cl[cstr]; if(!cRec) continue;
       arr.push({ act:'claim', name: cRec.by || '?', h:h, cuz:+cstr, t: cRec.t || null });
     }
+    const hf = (state.handoffs && state.handoffs[h]) || {};
+    for(const cstr in hf){
+      const hRec = hf[cstr]; if(!hRec) continue;
+      arr.push({ act:'handoff', name: (hRec.from||'?')+' → '+(hRec.to||'?'), h:h, cuz:+cstr, t: hRec.t || null });
+    }
   }
   arr.sort(function(a,b){ return (b.t||0) - (a.t||0); });
   return arr;
@@ -2783,6 +2829,7 @@ function showLog(){
       ? '<div class="lg-by">✍️ işaretleyen: '+escAttr(e.by)+'</div>' : '';
     const actLbl = e.act === 'rel' ? '<span class="lg-act rel">🙏 müsait değil</span>'
                  : e.act === 'claim' ? '<span class="lg-act claim">🤝 üstlendi</span>'
+                 : e.act === 'handoff' ? '<span class="lg-act handoff">🔄 devretti</span>'
                  : '<span class="lg-act ok">okundu</span>';
     rows += '<div class="lg-row"><div class="lg-top"><span class="lg-name">'+escAttr(e.name||'?')+'</span>'
           + actLbl+'</div>'
@@ -2935,9 +2982,9 @@ function toggle(h,cuz){
   userPicked = true;
   const willRead = !isDone(h,cuz);
   const kisi = displayName(cuz,h);
-  const canRelease = willRead && (isAdmin || isMyOwnCuz(h, cuz));
-  const relBtn = canRelease
-    ? '<button class="btn rel-btn" data-action="rel-cuz" data-h="'+h+'" data-cuz="'+cuz+'">🙏 Okumaya fırsatım yok — havuza bırak</button>'
+  const canHandoff = willRead && (isAdmin || isMyOwnCuz(h, cuz));
+  const relBtn = canHandoff
+    ? '<button class="btn rel-btn" data-action="handoff-open" data-h="'+h+'" data-cuz="'+cuz+'">🔄 Okuyamadım — biriyle anlaştım</button>'
     : '';
   const secN = SECDE[cuz];
   const secNote = (willRead && secN)
